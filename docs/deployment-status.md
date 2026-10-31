@@ -27,14 +27,22 @@ docker compose -f compose.yaml -f compose.local.yaml up -d --build
 
 The owner ran the command successfully: the Docker image built, all three named volumes were created, and `brain-companion-brain-1` started. This agent session still cannot access the Docker socket directly. Do not use `down -v`; it deletes the data volumes.
 
-Browser checks against http://localhost:3010 passed: `/healthz` returned `{"ok":true}`, anonymous vault/MCP requests required authentication, both OAuth discovery documents used the local origin, owner login succeeded, and the authenticated vault API returned live mode with zero notes and zero operations. The session remained signed in after navigation. Obsidian reports `Not configured`; a full OAuth code exchange, authenticated MCP tool calls, and restart persistence have not yet been verified live.
+Browser checks against http://localhost:3010 passed: `/healthz` returned `{"ok":true}`, anonymous vault/MCP requests required authentication, both OAuth discovery documents used the local origin, and owner login succeeded. The owner then authenticated Obsidian Headless, selected the remote vault, and reported a completed one-shot sync (`Fully synced`). The authenticated vault API now returns real notes in live mode; the existing browser session still works. Private note counts and a sample revision are recorded only in ignored `data/restart-baseline.json` for comparison after recreation.
+
+Local `.env` now has `SYNC_ENABLED=true`, but the running container still needs recreation to apply it. Its API currently reports `Not configured` because the successful first sync ran manually outside the application scheduler. Run:
+
+```sh
+docker compose -f compose.yaml -f compose.local.yaml up -d --force-recreate --no-build brain
+```
+
+After recreation, confirm the same notes and browser session, then a fresh `Last sync succeeded` status without reauthenticating Obsidian. This verifies the mounted vault, SQLite session, and Headless credentials. No operation history exists yet, so operation and OAuth-token persistence require separate checks. A full OAuth code exchange, authenticated MCP tool calls, and live restart persistence remain unverified.
 
 ## Remaining setup
 
 1. Complete a live OAuth code exchange and authenticated MCP tool calls after configuring the vault.
 2. Add the Jev key only to the local service's `.env`. Leave `AUTO_ACCEPT` empty until evaluation is complete.
-3. With `SYNC_ENABLED=false`, authenticate official Obsidian Headless inside the container and select the real remote vault using the README commands. Keep this separate from the desktop vault. Enable automatic sync only after the initial manual sync succeeds.
-4. Verify a container restart preserves notes, operation history, OAuth/browser sessions, and Obsidian login/sync. No live restart or real-vault result is claimed yet.
+3. Recreate the local service with both Compose files to activate scheduled sync after the completed manual sync. Keep this container vault separate from the desktop vault.
+4. Verify container recreation preserves notes and browser sessions and that scheduled sync succeeds with the persisted Obsidian credentials. Then verify operation history and OAuth grants after creating a test proposal and connection. No live restart result is claimed yet.
 5. For remote agents and the hosted Vercel UI, connect a stable HTTPS tunnel to the **production** Compose configuration and set Vercel's `BRAIN_SERVICE_URL`. Do not expose the local override publicly. No tunnel was provisioned.
 
 The Mac must remain awake and Docker running. Render or Railway can replace it later using the existing portable Docker image and persistent paths; resuming paid Render provisioning requires a new instruction from the owner.
