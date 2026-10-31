@@ -161,6 +161,14 @@ npm run evaluate -- /path/to/labeled-cases.json
 
 The runner reports case outcomes, unsafe acceptances, failures, response time, and token counts without printing note bodies or secrets. It makes real, billable Jev calls. Use a pinned available `JEV_MODEL` for a reproducible evaluation. Zero unsafe acceptances in a small sample is not sufficient evidence for every future note.
 
+After the classifier smoke test, check the proposal workflow with one billable Jev call:
+
+```sh
+JEV_MODEL=jev-1.14.0 node --env-file-if-exists=.env scripts/test-jev-workflow.ts
+```
+
+This uses the real MCP tool handler and SQLite store with a temporary synthetic vault. It verifies that a supported update remains a proposal with automatic writes disabled, the note stays unchanged, the proposal and Jev decision survive closing and reopening SQLite, and retries reuse the same operation without another Jev call. The temporary files are removed afterward. This does not contact the running Docker service, test OAuth, or add entries to your live Changes view. It does not verify Docker-volume or Obsidian-credential persistence.
+
 ## Backup and recovery
 
 Keep backups of **both** vault files and SQLite state. The state includes proposals, change history, and authorization records. Files can remain useful without the database, but source envelopes and operation history cannot be reconstructed completely from Markdown alone.
