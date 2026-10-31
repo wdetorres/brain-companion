@@ -2,6 +2,22 @@
 
 Plan: docs/superpowers/plans/2026-10-31-brain-companion.md
 
+## Session handoff: 2026-10-31
+
+This checkpoint supersedes the historical implementation status below. See [deployment-status.md](deployment-status.md) for setup details and remaining verification.
+
+- All 20 locally changed source/configuration/test/documentation files were compared with public GitHub `main` and matched exactly before this handoff update. Published source is at https://github.com/wdetorres/brain-companion. No credentials, private vault notes, or ignored runtime data were published.
+- Temporary local Docker is the chosen backend; the owner built and started it, authenticated official Obsidian Headless, and reported a completed real-vault sync. Paid Render provisioning remains paused. The Docker image stays portable for a later host migration.
+- The monochrome Vercel explorer is live at https://brain-companion-hazel.vercel.app/demo. The graph now uses resolved-link force layout, readable zoom-aware labels, and a label toggle for demos.
+- Jev reviews are visible in Changes, showing stored support/duplicate/conflict scores, classification, and actual operation disposition. The four public demo scenarios are explicitly illustrative and make no Jev request: https://brain-companion-hazel.vercel.app/demo?view=changes.
+- Latest verified production application commit: `3ea5bce9651f59981cabc78b010417cb505870f3`; deployment `dpl_8w2eLwL8sm8GwMhZLynegoQ1BEyr`. TypeScript, 30 tests, production build, desktop/mobile review scenarios, and navigation checks passed.
+- The owner's live `jev-1.14.0` smoke run scored 5/6 exact matches, zero unsafe acceptances, zero API failures, and 324 ms mean latency. The remaining new-memory case was conservatively retained. The isolated MCP/Jev/SQLite workflow passed: note unchanged, proposal persisted after reopen, retries idempotent, one judge call. Automatic acceptance remains disabled; six cases do not establish production accuracy.
+- Remaining: rebuild/recreate local Docker for current UI/evaluator/scheduled-sync settings; verify real restart persistence; complete a live OAuth/MCP client connection. The hosted UI still lacks a connected persistent backend. Do not confuse unit/integration coverage with a completed remote connection.
+- Wilson explicitly deferred additional Jev roles to a separate session: worth-remembering judgments, recall relevance filtering/ranking, suggested graph connections, and memory categories. They are proposals, not implemented features. Resume with an evaluation set for the chosen role.
+- Local `main` still has its original ancestry and the working-tree changes because `.git` is read-only in this session. GitHub publication used the connector. Reconcile histories before a normal push; do not force-push local history over remote `main`.
+
+## Initial implementation history
+
 - User accepted Explorer and Vercel plus persistent worker; instructed implementation.
 - New isolated project directory; no existing repository or worktree to protect.
 - Native implementation with final independent review.
