@@ -12,11 +12,19 @@ Date: 2026-10-31. Build: Explorer v0.1.0.
 - Actual React Markdown rendering with hostile HTML, executable links, and ambiguous/relative note links.
 - Production configuration refuses development HTTP defaults and missing owner credentials.
 
+## Verified on Vercel
+
+- Production installation and asset build, deployment routing, and public `/demo` rendering.
+- Redesigned Graph, Pages, and Changes at desktop 1280 × 720 and mobile 390 × 844, including note reading, search-to-reader navigation, and change diffs.
+- No browser console warnings or errors during these demo interactions.
+- Final monochrome palette follows the user's explicit black-and-white preference. Phone captions prioritize the selected note, desktop reader navigation retains the header, and Changes omits the unrelated collection filter.
+- Sample data is explicitly labeled. No private notes or credentials were deployed.
+
 ## Not yet verified live
 
-This runtime cannot listen on a local socket and cannot reach npm/GitHub from its shell. Dependencies were reconstructed from real cached tarballs, then a normal clean offline install was verified. Vercel requires a user consent grant for the personal project scope. No persistent host, Jev secret, or Obsidian account credentials have been configured.
+This runtime cannot listen on a local socket and cannot reach npm/GitHub from its shell. Dependencies were reconstructed from real cached tarballs, then a normal clean offline install and a Vercel production install were verified. No persistent host, Jev secret, or Obsidian account credentials have been configured.
 
-Remaining deployment checks: browser interactions/accessibility; real HTTP/proxy/Vercel routing; clean Linux installation and Docker image build; ChatGPT authorization and a fresh-conversation recall; live Jev API accuracy, cost, and thresholds; Obsidian CLI authentication, sync, conflict copies, and offline-device convergence; persistent-volume backup restoration; actual process-kill/power-loss recovery.
+Remaining deployment checks: comprehensive accessibility audit; live worker/proxy routing; Docker image build; ChatGPT authorization and a fresh-conversation recall; live Jev API accuracy, cost, and thresholds; Obsidian CLI authentication, sync, conflict copies, and offline-device convergence; persistent-volume backup restoration; actual process-kill/power-loss recovery.
 
 No real vault was copied, modified, or uploaded. No live API evaluation was performed. Automatic write acceptance is disabled by default.
 

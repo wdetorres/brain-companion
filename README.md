@@ -64,7 +64,7 @@ Without worker environment variables, the Vercel UI and `/demo` work while priva
 
 The Dockerfile installs Obsidian's open-beta CLI. For a production build, pin a tested version using `--build-arg HEADLESS_VERSION=<version>` and pin the base image digest. Application dependencies are locked in `package-lock.json`.
 
-No deployment has been created yet. The connected Vercel account is `wdetorres`, but access to its personal project scope needs a Vercel consent grant. The persistent host and credentials still need to be configured.
+The frontend is deployed in the personal Vercel account at [brain-companion-hazel.vercel.app/demo](https://brain-companion-hazel.vercel.app/demo). The demo uses clearly labeled sample notes and activity. The persistent worker, Jev credentials, and Obsidian Sync still need to be configured before private memory and MCP access work.
 
 ## Connect Obsidian Sync
 

@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-31T04:18:57.330415+00:00",
+  "title": "Design System: Brain",
+  "extensions": {
+    "colorMeta": {
+      "canvas": {
+        "role": "neutral",
+        "displayName": "Canvas",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "paper": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "rail": {
+        "role": "neutral",
+        "displayName": "Rail",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "rail-raised": {
+        "role": "neutral",
+        "displayName": "Rail Raised",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Line",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Accent",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "accent-strong": {
+        "role": "primary",
+        "displayName": "Accent Strong",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "accent-soft": {
+        "role": "primary",
+        "displayName": "Accent Soft",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "brain": {
+        "role": "neutral",
+        "displayName": "Brain",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "projects": {
+        "role": "neutral",
+        "displayName": "Projects",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "areas": {
+        "role": "neutral",
+        "displayName": "Areas",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "resources": {
+        "role": "neutral",
+        "displayName": "Resources",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "archives": {
+        "role": "neutral",
+        "displayName": "Archives",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "list-selected": {
+        "role": "neutral",
+        "displayName": "List Selected",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "list-hover": {
+        "role": "neutral",
+        "displayName": "List Hover",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "rail-selected": {
+        "role": "neutral",
+        "displayName": "Rail Selected",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      },
+      "reading-text": {
+        "role": "neutral",
+        "displayName": "Reading Text",
+        "tonalRamp": [
+          "oklch(15% 0 0)",
+          "oklch(26% 0 0)",
+          "oklch(38% 0 0)",
+          "oklch(49% 0 0)",
+          "oklch(61% 0 0)",
+          "oklch(72% 0 0)",
+          "oklch(84% 0 0)",
+          "oklch(95% 0 0)"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Full note titles."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "View and inspector titles."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Full-page Markdown reading."
+      },
+      "body-compact": {
+        "displayName": "Body Compact",
+        "purpose": "Desktop inspector Markdown."
+      },
+      "button": {
+        "displayName": "Button",
+        "purpose": "Primary and quiet actions."
+      },
+      "navigation": {
+        "displayName": "Navigation",
+        "purpose": "Main rail navigation."
+      },
+      "graph-label": {
+        "displayName": "Graph Label",
+        "purpose": "Regular whole-note captions."
+      },
+      "graph-hub": {
+        "displayName": "Graph Hub",
+        "purpose": "Hub note captions."
+      },
+      "code": {
+        "displayName": "Code",
+        "purpose": "Change diff lines."
+      }
+    },
+    "shadows": [
+      {
+        "name": "overlay",
+        "value": "0 12px 32px #2b2b2b1c",
+        "purpose": "Transient search results only; source custom property --shadow-overlay."
+      },
+      {
+        "name": "search-focus",
+        "value": "0 0 0 2px #bdbdbd",
+        "purpose": "Search wrapper focus-within state, not surface elevation."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(.16, 1, .3, 1)",
+        "purpose": "Shared button and graph transition curve."
+      },
+      {
+        "name": "button-state",
+        "value": "160ms",
+        "purpose": "Button background and text color transition."
+      },
+      {
+        "name": "graph-state",
+        "value": "220ms",
+        "purpose": "Graph edge stroke/opacity and node-dot scale transition."
+      },
+      {
+        "name": "refresh-spin",
+        "value": "1.5s linear infinite",
+        "purpose": "Busy refresh icon; removed under reduced motion."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "animation: none!important; transition: none!important; scroll-behavior: auto!important",
+        "purpose": "Applied to all elements and pseudo-elements when prefers-reduced-motion is reduce."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "(min-width: 1500px)"
+      },
+      {
+        "name": "compact-desktop",
+        "value": "(max-width: 1150px)"
+      },
+      {
+        "name": "icon-rail",
+        "value": "(max-width: 950px)"
+      },
+      {
+        "name": "stacked",
+        "value": "(max-width: 760px)"
+      },
+      {
+        "name": "phone",
+        "value": "(max-width: 440px)"
+      },
+      {
+        "name": "short-desktop",
+        "value": "(min-width: 951px) and (max-height: 800px)"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Charcoal action used to open the full note reader.",
+      "html": "<button class=\"ds-primary\">Read full page<svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-primary{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 13px;font-size:12px;line-height:16px;font-weight:500;border-radius:6px;min-height:36px;cursor:pointer;transition:background-color 160ms var(--ease, cubic-bezier(.16,1,.3,1)),color 160ms var(--ease, cubic-bezier(.16,1,.3,1));background:var(--accent,#252525);color:var(--paper,#ffffff);border:0}.ds-primary:hover:not(:disabled){background:var(--accent-strong,#050505)}.ds-primary:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }.ds-primary:disabled{opacity:.48;cursor:default}@media(prefers-reduced-motion:reduce){.ds-primary{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Quiet button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Bordered secondary action for graph focus and refresh.",
+      "html": "<button class=\"ds-quiet\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"2\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"16\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"/><path d=\"M12 8v4M5 16v-4h14v4\"/></svg>Focus</button>",
+      "css": ".ds-quiet{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 13px;font-size:12px;line-height:16px;font-weight:500;border-radius:6px;min-height:36px;cursor:pointer;transition:background-color 160ms var(--ease, cubic-bezier(.16,1,.3,1)),color 160ms var(--ease, cubic-bezier(.16,1,.3,1));background:var(--paper,#ffffff);color:#5a5a5a;border:1px solid var(--line,#e2e2e2)}.ds-quiet:hover:not(:disabled){background:#ededed;border-color:#c6c6c6}.ds-quiet:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }.ds-quiet:disabled{opacity:.48;cursor:default}@media(prefers-reduced-motion:reduce){.ds-quiet{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Icon button",
+      "kind": "button",
+      "refersTo": "button-icon",
+      "description": "Compact unboxed icon action with a pale hover state.",
+      "html": "<button class=\"ds-icon\" aria-label=\"Close preview\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" aria-hidden=\"true\"><path d=\"m6 6 12 12M6 18 18 6\"/></svg></button>",
+      "css": ".ds-icon{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;color:#6d6d6d;background:none;border:0;border-radius:5px;cursor:pointer;transition:background-color 160ms var(--ease,cubic-bezier(.16,1,.3,1)),color 160ms var(--ease,cubic-bezier(.16,1,.3,1))}.ds-icon:hover{background:var(--accent-soft,#ededed);color:var(--accent-strong,#050505)}.ds-icon:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }@media(prefers-reduced-motion:reduce){.ds-icon{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Text button",
+      "kind": "button",
+      "refersTo": "button-text",
+      "description": "Unboxed navigation within the graph work area.",
+      "html": "<button class=\"ds-text\">Whole graph</button>",
+      "css": ".ds-text{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--accent-strong,#050505);padding:2px 6px;border:0;background:none;cursor:pointer}.ds-text:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }@media(prefers-reduced-motion:reduce){.ds-text{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Search field",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Pale search wrapper; focus is shown on the whole field.",
+      "html": "<label class=\"ds-search\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" aria-hidden=\"true\"><circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/></svg><input aria-label=\"Search your notes\" placeholder=\"Search your brain\"/></label>",
+      "css": ".ds-search{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:flex;align-items:center;gap:10px;width:300px;max-width:100%;padding:9px 12px;background:var(--canvas,#f6f6f6);border-radius:7px;color:#707070}.ds-search:focus-within{box-shadow:0 0 0 2px #bdbdbd}.ds-search input{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;min-width:0;width:100%;color:var(--ink,#222222);background:none;border:0;padding:2px 0;font-size:12px;outline:none;caret-color:var(--accent,#252525)}.ds-search input::placeholder{color:#6d6d6d}@media(prefers-reduced-motion:reduce){.ds-search{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Rail navigation",
+      "kind": "nav",
+      "refersTo": "navigation-item",
+      "description": "Dark rail with an inverted active row.",
+      "html": "<nav class=\"ds-rail\" aria-label=\"Example navigation\"><button class=\"ds-nav ds-active\" aria-current=\"page\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><rect x=\"9\" y=\"2\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"2\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"/><rect x=\"16\" y=\"16\" width=\"6\" height=\"6\" rx=\"1\"/><path d=\"M12 8v4M5 16v-4h14v4\"/></svg><span>Graph</span></button><button class=\"ds-nav\">Pages</button></nav>",
+      "css": ".ds-rail{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;background:var(--rail,#191919);padding:16px;width:216px;display:grid;gap:5px}.ds-nav{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:flex;align-items:center;gap:12px;width:100%;padding:12px;text-align:left;border:0;background:none;border-radius:7px;color:#c1c1c1;font-size:13px;line-height:18px;cursor:pointer}.ds-nav.ds-active{background:#eeeeee;color:#323232;font-weight:550}.ds-nav:hover:not(.ds-active){background:var(--rail-raised,#303030);color:#ffffff}.ds-nav:focus-visible{outline:2px solid #c9c9c9;outline-offset:3px}@media(prefers-reduced-motion:reduce){.ds-active,.ds-nav,.ds-rail{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Page list row",
+      "kind": "card",
+      "refersTo": "page-row",
+      "description": "Flat selectable row used in the reading index.",
+      "html": "<button class=\"ds-row\" aria-pressed=\"true\"><span class=\"ds-row-content\"><strong>Weekend build</strong><small>Projects · 3 links</small></span><svg width=\"15\" height=\"15\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M5 12h14m-6-6 6 6-6 6\"/></svg></button>",
+      "css": ".ds-row{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:flex;align-items:center;gap:12px;width:100%;padding:14px 13px;text-align:left;border:0;border-radius:7px;background:#e4e4e4;cursor:pointer}.ds-row-content{flex:1;min-width:0}.ds-row strong{display:block;font-size:13px;font-weight:500;color:#424242;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.ds-row small{display:block;font-size:11px;color:var(--muted,#666666);margin-top:6px}.ds-row svg{color:#929292}.ds-row:hover{background:#e4e4e4}.ds-row:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }@media(prefers-reduced-motion:reduce){.ds-row,.ds-row-content{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Status chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "Outlined text status from the change reader; meaning is written explicitly.",
+      "html": "<span class=\"ds-status\">Needs attention</span>",
+      "css": ".ds-status{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;display:inline-flex;align-items:center;font-size:11px;color:#676767;border:1px solid currentColor;border-radius:5px;padding:4px 7px}@media(prefers-reduced-motion:reduce){.ds-status{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Selected graph node",
+      "kind": "custom",
+      "refersTo": "graph-node",
+      "description": "A selected whole-note marker with ring and readable caption.",
+      "html": "<div class=\"ds-graph-demo\"><button class=\"ds-node\" aria-label=\"Read Weekend build\" aria-pressed=\"true\"><span class=\"ds-dot\"></span><span class=\"ds-caption\">Weekend build</span></button></div>",
+      "css": ".ds-graph-demo{background:var(--canvas,#f6f6f6);height:100px;display:grid;place-items:center}.ds-node{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;position:relative;display:flex;align-items:center;justify-content:center;min-width:30px;min-height:30px;padding:0;background:none;border:0;cursor:pointer}.ds-dot{width:9px;height:9px;border-radius:50%;background:var(--projects,#4b4b4b);border:2px solid var(--canvas,#f6f6f6);box-sizing:content-box;outline:1px solid var(--projects,#4b4b4b);outline-offset:4px;transform:scale(1.12);transition:transform 220ms var(--ease,cubic-bezier(.16,1,.3,1))}.ds-caption{position:absolute;top:calc(50% + 17px);white-space:nowrap;font-size:11px;font-weight:600;background:#ffffff;color:var(--ink,#222222);padding:5px 8px;border:1px solid #cfcfcf;border-radius:4px}.ds-node:hover .ds-dot{transform:scale(1.25)}.ds-node:hover .ds-caption{color:#303030;background:#e2e2e2}.ds-node:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }@media(prefers-reduced-motion:reduce){.ds-caption,.ds-dot,.ds-graph-demo,.ds-node{transition:none!important;animation:none!important}}"
+    },
+    {
+      "name": "Inline note link",
+      "kind": "custom",
+      "refersTo": "wiki-link",
+      "description": "Resolved note reference rendered as an inline action.",
+      "html": "<p class=\"ds-reading\">Follow the <button class=\"ds-wiki\">Memory service</button> connection.</p>",
+      "css": ".ds-reading{font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;font-size:15px;line-height:1.9;color:#4f4f4f}.ds-wiki{display:inline;padding:0 1px;background:#efefef;color:#565656;border:0;border-radius:3px;font:inherit;line-height:inherit;text-align:left;text-decoration:underline;text-decoration-color:#c0c0c0;text-underline-offset:3px;cursor:pointer}.ds-wiki:hover{background:#dddddd;color:#3b3b3b}.ds-wiki:focus-visible { outline: 2px solid var(--accent, #252525); outline-offset: 3px; }@media(prefers-reduced-motion:reduce){.ds-reading,.ds-wiki{transition:none!important;animation:none!important}}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Monochrome Field Index",
+    "overview": "Brain uses a clean, minimalist black-and-white interface for exploring connected notes. The black navigation rail anchors pale working space and white reading surfaces; compact controls and explicit labels keep the knowledge itself prominent. Neutral grays express hierarchy without decorative color.\n\nThe implemented system uses one system sans for interface and reading text, fine dividers, restrained rounded controls, and flat panes. Graph selection adds a ring, stronger connections, and a readable caption; reading expands into a generous white column. This record describes the current source implementation after the user’s explicit monochrome revision, not an approved image composition.",
+    "keyCharacteristics": [
+      "Black navigation, off-white graph space, and white reading panes.",
+      "Compact interface typography paired with spacious reading line height.",
+      "Flat panes separated by fine rules; shadows reserved for search overlays.",
+      "Text, shape, and selection treatment carry meaning alongside grayscale markers."
+    ],
+    "rules": [
+      {
+        "name": "The Monochrome Rule",
+        "body": "Use black, white, and neutral grays throughout the interface. The user explicitly rejected colored decorative accents.",
+        "section": "colors"
+      },
+      {
+        "name": "The Reading Measure Rule",
+        "body": "Keep full-page note content and change readers within the implemented 70ch measure; compact previews use the inspector’s available width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Flat Pane Rule",
+        "body": "Use surface tone and fine borders to separate persistent panes. Reserve the overlay shadow for transient search results.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do preserve the black rail, off-white working canvas, and white reading surfaces.",
+      "Do pair grayscale collection dots and activity states with explicit names or symbols.",
+      "Do use the selected graph ring and caption, with connection emphasis on selection, hover, or keyboard focus.",
+      "Do keep keyboard focus visible and honor reduced-motion preferences.",
+      "Do use concise sentence-case interface text and readable, flowing note content."
+    ],
+    "donts": [
+      "Don’t reintroduce violet or other colored decorative accents.",
+      "Don’t turn the open graph or reader into a stack of shadowed dashboard cards.",
+      "Don’t add decorative display headlines or labels above headings.",
+      "Don’t rely on subtle differences between folder grays to identify a collection.",
+      "Don’t show the collection filter in Changes, where it does not filter the activity list."
+    ]
+  }
+}

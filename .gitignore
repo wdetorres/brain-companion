@@ -9,3 +9,5 @@ data/
 *.log
 
 .render-test-*/
+.impeccable/review/
+.impeccable/questions/
