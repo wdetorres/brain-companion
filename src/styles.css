@@ -155,6 +155,7 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .zoom-controls button { display: grid; place-items: center; width: 34px; height: 34px; color: #bdbdbd; }
 .zoom-controls button+button { border-left: 1px solid #414141; }
 .zoom-controls button:hover { background: #383838; color: #fff; }
+.zoom-controls button[aria-pressed="true"] { background: #383838; color: #fff; }
 .graph-footer { padding: 12px 24px; border-top: 1px solid #303030; }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
 .legend button { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: #aaa; padding: 3px 0; }
