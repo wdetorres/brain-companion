@@ -80,6 +80,13 @@ test('browser review requires owner session, same origin and CSRF; ignores clien
   const req = (path: string, body: object, cookie = csrfCookie, site = origin) => new Request(origin + path, { method: 'POST', headers: { Origin: site, Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   const login = await handle(req('/api/auth/login', { password, csrf }));
   const cookie = csrfCookie + '; ' + login.headers.get('set-cookie')!.split(';')[0];
+  const held=await store.remember({path:'Held.md',markdown:'# Held memory',sources:[{title:'Source',uri:'urn:test:held',observedAt:new Date().toISOString()}],expectedRevision:null,idempotencyKey:'held-browser-review'},'Agent');
+  const review={id:held.id,action:'dismiss',reason:'Owner checked the source',csrf};
+  assert.equal((await handle(req('/api/memories/review',review))).status,401);
+  assert.equal((await handle(req('/api/memories/review',{...review,csrf:'bad'},cookie))).status,403);
+  assert.equal((await handle(req('/api/memories/review',{...review,markdown:'injected'},cookie))).status,400);
+  assert.equal((await handle(req('/api/memories/review',review,cookie,'https://evil.test'))).status,403);
+  assert.equal((await handle(req('/api/memories/review',review,cookie))).status,200);
   const [c] = await store.suggestConnections('Plan.md');
   assert.equal((await handle(req('/api/connections/review', { id: c.id, action: 'accept', csrf }))).status, 401);
   assert.equal((await handle(req('/api/connections/review', { id: c.id, action: 'accept', csrf: 'bad' }, cookie))).status, 403);

@@ -1,3 +1,22 @@
+# Harness deployment status — October 31, 2026
+
+This section supersedes all historical checkpoints below.
+
+- Local Docker is updated at http://localhost:3010 with the harness code and `AUTO_ACCEPT` empty. Automatic actions were verified, then disabled again when the owner deferred adoption until deployment. The separate server vault, SQLite state and Headless home volumes remain attached. Baseline note revisions, history and owner session survived recreation; scheduled sync succeeded. No real knowledge notes were promoted for testing.
+- Both a standalone production-configured Docker runtime and the local service passed owner OAuth and discovery of all 12 MCP tools plus two resources. Smoke grants were revoked. The standalone check used a synthetic HTTPS issuer over a loopback test connection; real managed TLS/proxy and connector enrollment remain pending.
+- Consistent stopped-service backups of all three volumes and prior environment are private under ignored `data/harness-rollout/`, with readable archives. The pre-harness image was rebuilt from prior main as `brain-companion-brain:pre-harness` because the original Docker image content was unavailable. Full restore was not exercised. Never run `docker compose down -v`.
+- The v21 Jev adapter remains pinned to `jev-1.14.0`; seven isolated synthetic workflow requests bring the cumulative ledger to **1,841 / 2,000**. Private datasets, backups and credentials remain excluded from source, Docker context and deployment uploads.
+- The owner asked to keep existing jobs and writing behavior until deployment tomorrow. Original Brain policies/stages/setups, installed local instructions and three Codex automation prompts/settings are restored and verified against backups. No remote scheduler changed. The repository skill is ready for later installation; no current agent is migrated.
+- The owner will provision managed Docker hosting on Railway, Render or another persistent platform. No paid host, public tunnel or new schedule was created. See [hosting instructions](harness.md#hosting); use one replica and a persistent `/data` volume. The public Vercel demo remains synthetic until a backend is connected.
+
+## Hosted harness UI
+
+Production source upload uses an explicit 23-file build allowlist containing only application assets, source and package/build configuration. No private data or backend environment is uploaded. Deployment `dpl_CWKMGZ8FAWQU9SX2tKfPXCTd62Sq` is READY under the personal `wdetorres` account and serves https://brain-companion-hazel.vercel.app/demo?view=changes. Browser inspection confirmed the shared queue and proposal review controls with no console warnings/errors. Served JS/CSS hashes match the local build; new API routes return the expected unconnected-backend 503 and the private dataset path returns 404. The private backend remains unconnected; this is a synthetic UI deployment, not managed-harness activation.
+
+---
+
+## Historical Jev feature deployment
+
 # Jev deployment status — October 31, 2026
 
 This section supersedes the historical checkpoint below.

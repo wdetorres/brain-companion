@@ -6,5 +6,7 @@ test('production refuses the localhost development default and requires HTTPS pl
   assert.throws(() => validateRuntimeConfig({ NODE_ENV: 'production', PUBLIC_ORIGIN: 'http://localhost:3000' }), /HTTPS/);
   assert.throws(() => validateRuntimeConfig({ NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://brain.example' }), /owner password/);
   assert.equal(validateRuntimeConfig({}), 'http://localhost:3000');
+  assert.equal(validateRuntimeConfig({NODE_ENV:'production',PUBLIC_ORIGIN:'https://brain.example',BRAIN_PASSWORD_HASH:'a'.repeat(32)+':'+ 'b'.repeat(128)}),'https://brain.example');
+  assert.throws(()=>validateRuntimeConfig({BRAIN_BRIDGE_KEY:'short'}),/32/);
   assert.equal(validateRuntimeConfig({ NODE_ENV: 'production', PUBLIC_ORIGIN: 'https://brain.example', BRAIN_PASSWORD_HASH: 'a'.repeat(32) + ':' + 'b'.repeat(128), BRAIN_BRIDGE_KEY: 'c'.repeat(64) }), 'https://brain.example');
 });

@@ -26,11 +26,21 @@ test('Vercel forwards authenticated recall and connection review without widenin
   process.env.BRAIN_SERVICE_URL='https://private.example.test';process.env.BRAIN_BRIDGE_KEY='test';
   const seen:string[]=[];
   globalThis.fetch=async(input,init)=>{seen.push(new URL(String(input)).pathname);assert.equal(init?.method,'POST');assert.match(String(init?.body),/csrf/);return new Response('{}');};
-  for(const route of ['api/recall','api/connections/suggest','api/connections/review']){
+  for(const route of ['api/recall','api/connections/suggest','api/connections/review','api/memories/review']){
     const res={statusCode:200,setHeader(){},write(){},end(){}};
     await bridge({url:'/api/bridge?route='+route,method:'POST',headers:{'content-type':'application/json'},body:{csrf:'test'}} as any,res as any);assert.equal(res.statusCode,200);
   }
-  assert.deepEqual(seen,['/api/recall','/api/connections/suggest','/api/connections/review']);
+  assert.deepEqual(seen,['/api/recall','/api/connections/suggest','/api/connections/review','/api/memories/review']);
   const res={statusCode:200,setHeader(){},write(){},end(){}};
   await bridge({url:'/api/bridge?route=api/connections/delete',method:'POST',headers:{},body:{}} as any,res as any);assert.equal(res.statusCode,404);
+});
+
+test('hosted harness review and work URLs reach the authenticated bridge', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const { rewrites } = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
+  for (const path of ['/api/work','/api/memories/review']) {
+    const rule = rewrites.find((r: {source:string}) => new RegExp('^'+r.source.replace(':path*','.*')+'$').test(path));
+    assert.ok(rule, path+' must reach the bridge instead of a static 404');
+    assert.match(rule.destination, /^\/api\/bridge\?route=/);
+  }
 });

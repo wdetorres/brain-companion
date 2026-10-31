@@ -5,7 +5,10 @@ export const categoryLabels: Record<MemoryCategory, string> = { preference: 'Pre
 export type Note = { path: string; title: string; folder: string; markdown: string; body: string; revision: string; links: string[]; unresolved: string[]; tags: string[]; sources: Source[]; modifiedAt: string; category?: MemoryCategory; assessmentAllowed?: boolean };
 export type Decision = { outcome: 'new'|'update'|'duplicate'|'conflict'|'uncertain'|'not_worth_remembering'; confidence: number; model: string; usage: Record<string,number>; probabilities?: Record<string,number>; category?: MemoryCategory; worthRemembering?: boolean; questionVersion?: string; comparison?: 'exact_content'|'model' };
 export type RememberInput = { path: string; markdown: string; sources: Source[]; expectedRevision: string|null; idempotencyKey: string };
-export type Operation = { id: string; path: string; actor: string; at: string; status: 'applied'|'duplicate'|'needs_attention'|'failed'|'external'|'pending'; reason: string; before: string|null; proposed: string; sources: Source[]; decision?: Decision; category?: MemoryCategory; revision?: string };
+export type Operation = { id: string; path: string; actor: string; at: string; status: 'applied'|'duplicate'|'needs_attention'|'failed'|'external'|'pending'; reason: string; before: string|null; proposed: string; sources: Source[]; decision?: Decision; category?: MemoryCategory; revision?: string; expectedRevision?:string|null; resolution?:{actor:string;at:string;reason:string;operationId?:string}; promotion?:{sourcePath:string;sourceRevision:string;preservation?:Decision} };
+export type WorkKind = 'inbox'|'review'|'proposal';
+export type WorkStatus = 'open'|'claimed'|'deferred'|'done'|'stale';
+export type WorkItem = {id:string;subject:string;revision:string;path:string;kind:WorkKind;status:WorkStatus;reason:string;createdAt:number;updatedAt:number;operationId?:string;owner?:string;claimToken?:string;leaseUntil?:number;retryAt?:number};
 export type BrainSnapshot = { notes: Note[]; operations: Operation[]; connections?: Connection[]; mode: 'demo'|'live'; status: { indexedAt: string; sync: string; lastSync: string|null; search: string } };
 export type Judge = (input: RememberInput, current: Note|undefined, related: Note[]) => Promise<Decision>;
 export type PassageAssessment = { route: 'evidence'|'conflict'|'excluded'; probabilities: Record<'relevant'|'evidence'|'conflict'|'injection',number>; model: string; usage: Record<string,number>; questionVersion: string };
@@ -14,4 +17,4 @@ export type RecallResult = { notes: Note[]; evidence: RecallHit[]; conflicts: Re
 export type RecallJudge = (query: string, note: Note, peers: Note[]) => Promise<PassageAssessment>;
 export type ConnectionAssessment = { useful: boolean; score: number; model: string; usage: Record<string,number>; questionVersion: string };
 export type ConnectionJudge = (source: Note, target: Note) => Promise<ConnectionAssessment>;
-export type Connection = { id: string; source: string; target: string; sourceRevision: string; targetRevision: string; status: 'proposed'|'accepted'|'dismissed'|'stale'; assessment: ConnectionAssessment; operationId?: string };
+export type Connection = { id: string; source: string; target: string; sourceRevision: string; targetRevision: string; status: 'proposed'|'accepted'|'dismissed'|'stale'; assessment: ConnectionAssessment; operationId?: string; reviewedBy?:string; reviewedAt?:string };

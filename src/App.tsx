@@ -4,6 +4,8 @@ import { Graph } from './Graph.tsx';
 import { connectionMarkdown } from './links.ts';
 import { Recall } from './Recall.tsx';
 import { ConnectionPanel } from './ConnectionPanel.tsx';
+import { WorkList } from './WorkList.tsx';
+import { MemoryActions } from './MemoryActions.tsx';
 import { categories, categoryLabels } from './shared.ts';
 import { JevReview } from './JevReview.tsx';
 import { Markdown } from './Markdown.tsx';
@@ -39,13 +41,13 @@ function NoteReader({ note, notes, onOpen, compact = false }: { note: Note; note
     {!compact && <div className="revision">Updated {when(note.modifiedAt)} · Revision {note.revision.slice(0, 12)}</div>}
   </>;
 }
-function ChangeReader({ operation: op, onOpen }: { operation: Operation; onOpen: (path: string) => void }) {
+function ChangeReader({ operation: op, onOpen, onReview }: { operation: Operation; onOpen: (path: string) => void; onReview:(action:'accept'|'dismiss',reason:string)=>Promise<void> }) {
   const lines = useMemo(() => diffLines(op.before ?? '', op.proposed), [op.before, op.proposed]);
   return <article className="change-reader"><h1>{titleFor(op.path)}</h1><div className="change-info"><span className={'status ' + op.status}>{statuses[op.status]}</span><span>{when(op.at)}</span></div><div className="change-actor"><Sparkles size={14} />{op.actor}</div>
     <JevReview operation={op} sample={isDemo} />
     <div className="diff-label"><span>{op.status === 'needs_attention' ? 'Current → proposed' : 'Before → submitted'}</span>{(op.before !== null || op.status === 'applied') && <button onClick={() => onOpen(op.path)}>Open current page <ArrowUpRight size={12} /></button>}</div>
     <div className="diff" aria-label="Markdown change">{lines.map((line, i) => <div key={i} className={'diff-line ' + line.kind}><span aria-hidden="true">{line.kind === 'add' ? '+' : line.kind === 'remove' ? '−' : ' '}</span><code>{line.text || ' '}</code></div>)}</div>
-    <Sources sources={op.sources} /><div className="revision">Operation {op.id}</div>
+    <Sources sources={op.sources} /><MemoryActions key={op.id} operation={op} demo={isDemo} onReview={onReview}/><div className="revision">Operation {op.id}</div>
   </article>;
 }
 function Entry({ error, csrf, onEnter }: { error: string; csrf: string; onEnter: () => void }) {
@@ -103,7 +105,7 @@ export function App() {
   useEffect(() => {
     const controller = new AbortController(); setOperation(null); setDetailError('');
     if (!operationId) return;
-    if (isDemo) { setOperation(demoSnapshot.operations.find(o => o.id === operationId) || null); return; }
+    if (isDemo) { setOperation(snapshot?.operations.find(o => o.id === operationId) || null); return; }
     api<Operation>('/api/operation?id=' + encodeURIComponent(operationId), controller.signal).then(setOperation).catch(e => { if (!controller.signal.aborted) setDetailError(e.message); });
     return () => controller.abort();
   }, [operationId, snapshot]);
@@ -144,6 +146,12 @@ export function App() {
     setSnapshot(await api<BrainSnapshot>('/api/brain'));
     if (result.status === 'stale') throw Error('A note changed; the link was not saved. Find connections again.');
   }
+  async function reviewMemory(action:'accept'|'dismiss',reason:string){
+    if(!operation)return;
+    if(isDemo){setSnapshot(current=>current?{...current,operations:current.operations.map(o=>o.id===operation.id?{...o,resolution:{actor:'Demo owner',at:new Date().toISOString(),reason:action==='dismiss'?reason:'Sample review recorded. A live save requires fresh evidence checks. '+reason}}:o)}:current);return;}
+    const reviewed=await post<Operation>('/api/memories/review',{id:operation.id,action,reason,idempotencyKey:crypto.randomUUID()});
+    setSnapshot(await api<BrainSnapshot>('/api/brain'));setOperationId(reviewed.id);
+  }
   const connectionPanel = note && <ConnectionPanel key={note.path} note={note} notes={notes} connections={connections} demo={isDemo} onSuggest={suggest} onReview={reviewConnection} onOpen={openNote} />;
   if (!ready) return <main className="entry"><p className="muted">Opening your Brain…</p></main>;
   if (!snapshot) return <Entry error={error} csrf={csrf} onEnter={() => void refresh()} />;
@@ -154,7 +162,7 @@ export function App() {
       </a>
       <div className="workspace-label"><span className="workspace-avatar">W</span><div><strong>Wilson’s brain</strong><span>Personal workspace</span></div></div>
       <nav aria-label="Main navigation">
-        {([['graph', Network, 'Graph'], ['pages', BookOpen, 'Pages'], ['changes', History, 'Changes'], ['recall', Sparkles, 'Recall']] as const).map(([id, Icon, label]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label} onClick={() => changeView(id)}><Icon size={18} strokeWidth={1.6} /><span>{label}</span>{id === 'changes' && operations.some(o => o.status === 'needs_attention') ? <span className="nav-count attention-count">{operations.filter(o => o.status === 'needs_attention').length}</span> : <span className="nav-count">{id === 'pages' ? notes.length : ''}</span>}</button>)}
+        {([['graph', Network, 'Graph'], ['pages', BookOpen, 'Pages'], ['changes', History, 'Changes'], ['recall', Sparkles, 'Recall']] as const).map(([id, Icon, label]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label} onClick={() => changeView(id)}><Icon size={18} strokeWidth={1.6} /><span>{label}</span>{id === 'changes' && operations.some(o => o.status === 'needs_attention' && !o.resolution) ? <span className="nav-count attention-count">{operations.filter(o => o.status === 'needs_attention' && !o.resolution).length}</span> : <span className="nav-count">{id === 'pages' ? notes.length : ''}</span>}</button>)}
       </nav>
       <div className="sidebar-section">
         <div className="sidebar-label">Collections</div>
@@ -192,7 +200,7 @@ export function App() {
         </aside> : null}
       </div>
       {view === 'pages' && <div className="reading-layout"><section className="page-list" aria-label="Pages"><div className="list-heading"><span>{folderLabels[folder]}</span><span>{pages.length}</span></div>{pages.map(n => <button data-folder={n.folder} key={n.path} className={'page-row ' + (selected === n.path ? 'selected' : '')} aria-pressed={selected === n.path} onClick={() => openNote(n.path)}><FileText size={17} /><div><strong>{n.title}</strong><small>{folderLabels[n.folder] || n.folder} · {n.links.length} links</small></div><ChevronRight size={15} /></button>)}{!pages.length && <p className="empty-text">No pages here yet. Choose another collection.</p>}<label className="system-toggle"><input type="checkbox" checked={system} onChange={e => setSystem(e.target.checked)} />Show inbox & system</label></section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : note ? <><NoteReader note={note} notes={notes} onOpen={openNote} />{connectionPanel}</> : <div className="reading-empty"><BookOpen size={30} /><h2>{selected ? 'Loading page…' : 'Pick a page. Get curious.'}</h2><p>Read and follow connections here. Keep writing in Obsidian or with an agent.</p></div>}</div></div>}
-      {view === 'changes' && <div className="reading-layout"><section className="page-list change-list" aria-label="Recent changes"><div className="list-heading"><span>Recent activity</span><span>{operations.length}</span></div>{operations.map(o => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{statuses[o.status]}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>)}{!operations.length && <p className="empty-text">Agent proposals and Obsidian edits will appear here. Select a proposal to see its Jev review.</p>}</section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} /> : <div className="reading-empty"><History size={30} /><h2>{operationId ? 'Loading change…' : 'See how memories are reviewed.'}</h2><p>Jev checks evidence support, duplication, and conflicts. Select a change to see its recorded scores and outcome.</p></div>}</div></div>}
+      {view === 'changes' && <div className="reading-layout"><section className="page-list change-list" aria-label="Recent changes"><WorkList demo={isDemo} operations={operations} refreshKey={snapshot.status.indexedAt} onNote={openNote} onOperation={setOperationId}/><div className="list-heading"><span>Recent activity</span><span>{operations.length}</span></div>{operations.map(o => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{o.resolution ? 'Reviewed' : statuses[o.status]}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>)}{!operations.length && <p className="empty-text">Agent proposals and Obsidian edits will appear here. Select a proposal to see its Jev review.</p>}</section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} onReview={reviewMemory} /> : <div className="reading-empty"><History size={30} /><h2>{operationId ? 'Loading change…' : 'See how memories are reviewed.'}</h2><p>Jev checks evidence support, duplication, and conflicts. Select a change to see its recorded scores and outcome.</p></div>}</div></div>}
       {view === 'recall' && <Recall csrf={csrf} demo={isDemo} notes={notes} onOpen={openNote} />}
       <footer className="statusbar"><span>{isDemo ? <><span className="demo-dot" />Sample notes & activity</> : <><LockKeyhole size={12} />Private explorer</>}</span><span>{isDemo ? (isStandalone ? 'Local demo' : 'Demo workspace') : snapshot.status.sync}{snapshot.status.lastSync ? ' · ' + when(snapshot.status.lastSync) : ''}<span className="status-separator">/</span>{snapshot.status.search}</span></footer>
     </main>

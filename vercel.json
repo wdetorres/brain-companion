@@ -50,6 +50,14 @@
       "destination": "/api/bridge?route=api/connections/:path*"
     },
     {
+      "source": "/api/work",
+      "destination": "/api/bridge?route=api/work"
+    },
+    {
+      "source": "/api/memories/:path*",
+      "destination": "/api/bridge?route=api/memories/:path*"
+    },
+    {
       "source": "/demo",
       "destination": "/index.html"
     }

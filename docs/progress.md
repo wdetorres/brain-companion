@@ -1,3 +1,13 @@
+# Brain harness checkpoint — October 31, 2026
+
+The agent-agnostic harness is implemented: 12 MCP tools, portable skill/resource/prompt, persisted FTS retrieval, leased shared work, checked source-backed Inbox promotion, and owner proposal review. No new runtime dependency or always-running reasoning agent was added. The local code supports verified new/update/promote actions; automatic acceptance remains disabled pending deployment.
+
+Validation: 66 behavioral tests, typecheck/build, Docker, two-client MCP integration, isolated live Jev flow, local owner OAuth, preserved notes/history/session and scheduled sync. Jev usage is 1,841 / 2,000. At the owner’s request, migration was reverted and all existing Brain instructions, installed skills and three Codex prompts/settings were restored. Current agents keep writing as before. Managed hosting and harness adoption are deferred until the owner deploys tomorrow.
+
+See [harness setup](harness.md), [validation](validation.md) and [deployment status](deployment-status.md). The following checkpoints are historical; their disabled-write and environment restrictions no longer describe the current local service.
+
+---
+
 # Jev feature checkpoint — October 31, 2026
 
 The four requested features are implemented and deployed locally and to the existing synthetic hosted demo. The browser includes worth-remembering review, category filters, evidence/conflict recall, and dotted connection proposals with explicit review/save. The same recall assessment is available through MCP.

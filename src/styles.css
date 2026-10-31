@@ -494,3 +494,18 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .memory-select { display: block; }
 
 .source-evidence blockquote { margin: 10px 0; padding-left: 12px; border-left: 2px solid var(--line); font-size: 12px; white-space: pre-wrap; }
+
+.work-list { padding: 16px; border-bottom: 1px solid var(--line, #e2e2e2); }
+.work-list summary { cursor: pointer; font-size: 13px; font-weight: 600; }
+.work-list summary span { float: right; color: #666; font-weight: 400; }
+.work-row { display: block; width: 100%; padding: 11px 0; text-align: left; border-bottom: 1px solid #ededed; }
+.work-row strong, .work-row small, .work-row span { display: block; overflow-wrap: anywhere; }
+.work-row strong { font-size: 12px; font-weight: 500; }
+.work-row small { margin-top: 4px; color: #666; font-size: 11px; }
+.work-row span { margin-top: 5px; font-size: 11px; line-height: 1.5; color: #737373; }
+.work-pages { display: flex; justify-content: space-between; margin-top: 14px; font-size: 12px; }
+.memory-actions { margin: 28px 0 16px; padding-top: 20px; border-top: 1px solid #e2e2e2; }
+.memory-actions h3 { font-size: 14px; margin: 0 0 8px; }
+.memory-actions label { display: block; font-size: 12px; margin: 15px 0 8px; }
+.memory-actions textarea { width: 100%; box-sizing: border-box; resize: vertical; background: #f6f6f6; border: 1px solid #e2e2e2; border-radius: 6px; padding: 12px; font: inherit; font-size: 13px; line-height: 1.6; }
+.memory-action-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }

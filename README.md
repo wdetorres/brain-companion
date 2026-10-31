@@ -1,21 +1,22 @@
 # Brain Companion
 
-An Explorer for an Obsidian vault, plus a shared memory MCP service. Agents write final Markdown; Jev evaluates proposals; the browser shows notes, connections, sources, and changes.
+An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents write final Markdown; Jev evaluates proposals; the browser shows notes, connections, sources, and changes.
 
 ## What is implemented
 
 - Graph, Pages, Changes, and Jev Recall views, with search, backlinks, sources, change diffs, graph pan/zoom, folder filters, and a focused neighborhood.
 - Explicit synthetic demo at `/demo`. The normal route requires the owner password and never falls back to fake live data.
-- Official MCP SDK tools: `recall`, `inspect`, and `remember`, plus `brain://guide` and the `memory-workflow` prompt.
+- Twelve MCP tools for status, local search, assessed recall, inspection, capture, shared work claims, proposal review, Inbox promotion and connection review. Portable `skills/brain-harness/SKILL.md`, `brain://guide`, `brain://policy`, and the `memory-workflow` prompt. See [the harness guide](docs/harness.md).
+- Persistent SQLite FTS5 indexing with reused parsing, revision-bound work, five-minute claims, explicit owner memory review and journaled Inbox promotion.
 - One shared brain. Single-owner browser sessions and OAuth authorization with S256 PKCE, resource binding, dynamic client registration, hashed opaque tokens, rotating refresh tokens, and revocation.
 - Persistent Markdown files and SQLite operation history. Revision checks, serialized writes, idempotency, a write journal, atomic replacement, and retained conflict/uncertain proposals.
 - Jev System One adapter with a worth-remembering gate, memory categories, recall evidence/conflict review, reviewed connection suggestions, strict result validation, recorded usage/model/question version, and a budgeted evaluation runner. No backend text generation.
 - Optional Obsidian Headless one-shot sync in the same queue as writes. Sync status is separate from server write status.
 - Vercel frontend and forwarding function; Docker/Compose service with persistent volumes.
 
-Instant search is keyword based; the explicit Recall action and MCP `recall` use Jev to assess up to eight shortlisted notes. Categories filter classified notes and proposals. Dotted graph edges are suggestions; review both notes and the exact appended link before saving. Save/dismiss are authenticated, CSRF-protected owner actions with revision checks and journaled writes. The graph uses a deterministic force layout of actual resolved links, with collision-filtered labels, scroll zoom, pan, and neighbor highlighting. The simulation settles once when its connections change; it does not animate continuously. Graph display is bounded to 200 notes per view. Semantic retrieval/QMD is not implemented. The changes view shows the most recent 100 operations; older records remain addressable by operation ID.
+Instant search uses SQLite FTS5; the explicit Recall action and MCP `recall` use Jev to assess up to eight shortlisted notes. Categories filter classified notes and proposals. Dotted graph edges are suggestions; review both notes and the exact appended link before saving. Save/dismiss are authenticated, CSRF-protected owner actions with revision checks and journaled writes. The graph uses a deterministic force layout of actual resolved links, with collision-filtered labels, scroll zoom, pan, and neighbor highlighting. The simulation settles once when its connections change; it does not animate continuously. Graph display is bounded to 200 notes per view. Semantic retrieval/QMD is not implemented. The changes view shows the most recent 100 operations; older records remain addressable by operation ID.
 
-**Evaluation status:** the frozen Brain-derived gate passed on 286 development cases and a fresh 50-case holdout: 92.9% held-out memory accuracy, 100% category/worth/recall accuracy, and 100% connection precision with 80% coverage. Automatic memory writes remain disabled; links require review. See [results, iteration history and limits](docs/jev-features.md).
+**Evaluation status:** the frozen Brain-derived gate passed on 286 development cases and a fresh 50-case holdout: 92.9% held-out memory accuracy, 100% category/worth/recall accuracy, and 100% connection precision with 80% coverage. Verified automatic writes and promotion are opt-in server settings; links require explicit review. See [results, iteration history and limits](docs/jev-features.md).
 
 ## Try the Explorer
 
@@ -48,13 +49,13 @@ Copy the generated `BRAIN_PASSWORD_HASH` into `.env`. The command reads the pass
 
 Set `JEV_API_KEY` only on the persistent service. Missing or failed Jev evaluation retains a proposal and never silently accepts it. The API key is not part of the browser bundle or Vercel environment.
 
-`AUTO_ACCEPT` is empty by default. Every proposed new/update memory stays in the change log until you enable a category. Evaluate the classifier on representative labeled examples first. Set `AUTO_ACCEPT=new` or `AUTO_ACCEPT=new,update` when ready; this is a server configuration, not a web approval flow. Existing retained proposals are not automatically replayed when the setting changes.
+`AUTO_ACCEPT` is empty by default. Set `AUTO_ACCEPT=new,update,promote` after verifying the service to enable approved, Jev-checked actions. Held proposals appear in shared work and can be rechecked or dismissed by the owner or a claimed agent reviewer. Review preserves the original expected revision and cannot force unsupported writes. Existing proposals are not automatically replayed when configuration changes.
 
 Jev receives the proposed text, source metadata and optional evidence excerpts, current page, and up to five eligible related pages. Two requests separate evidence comparison from memory value/category classification. Existing internal, client-marked, restricted and policy notes are excluded from external assessment. It does **not** fetch the original evidence URLs. Scores are model judgments, not verified probabilities of truth. Its output never overrides revision checks or protected paths.
 
 ## Deploy
 
-Use a single persistent service instance plus Vercel. Do not put the writable vault or SQLite database on a Vercel function filesystem.
+Use one persistent Docker service, either as the complete app or with the optional Vercel frontend. [Standalone managed hosting](docs/harness.md#hosting) serves its own HTTPS MCP endpoint without a bridge secret. Do not put the writable vault or SQLite database on a Vercel function filesystem.
 
 ### Temporary local Docker
 
@@ -68,7 +69,7 @@ Open `http://localhost:3010` and sign in with the owner password. The override p
 
 The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; proposals remain retained if evaluation is unavailable.
 
-This is a temporary Mac-dependent deployment. Docker must be running and the Mac awake. The hosted Vercel Explorer stays on its existing demo until an HTTPS tunnel or hosted backend is connected. Remote agents cannot reach `localhost`; connecting them requires that HTTPS route, the production Compose settings, and the canonical Vercel OAuth origin. Do not expose the localhost override through a public tunnel.
+This is a temporary Mac-dependent deployment. Docker must be running and the Mac awake. The hosted Vercel Explorer stays on its existing demo until an HTTPS tunnel or hosted backend is connected. Remote agents cannot reach `localhost`; use the managed service’s HTTPS origin, or the canonical Vercel origin when retaining the optional bridge. Do not expose the localhost override through a public tunnel.
 
 ### Hosted backend
 
@@ -137,7 +138,7 @@ For the production Compose configuration, use `docker compose up -d`. A plain `r
 4. Read `brain://guide` or request `memory-workflow`. The same portable instructions are in [docs/agent-guide.md](docs/agent-guide.md).
 5. Ask the agent to recall a subject, inspect a page, then submit a sourced `remember` proposal. Confirm the operation in Changes. Start a fresh conversation and recall the same subject.
 
-The server has one `brain` scope, not separate company/person access. All connected clients can read all indexed notes and propose writes. This OAuth implementation is intentionally single-owner: no invitations, organizations, password recovery, or client-management UI.
+The server has one `brain` scope, not separate company/person access. All connected clients can read all indexed notes and perform the owner-enabled checked writes and review actions. This OAuth implementation is intentionally single-owner: no invitations, organizations, password recovery, or client-management UI.
 
 To revoke a client, use `/oauth/revoke` with its client credentials and a current access or refresh token. To invalidate **all** connections and browser sessions in an emergency, stop the service and delete rows from the `auth` table, then restart; this does not delete note/history tables. Changing only the owner password does not revoke existing sessions or grants.
 
@@ -176,6 +177,6 @@ Never run two active services against the same vault/state volumes. After interr
 
 ## Boundaries
 
-The web app supports only reviewed link additions; it has no general text editor, memory-proposal approval, rollback, ingestion, or chat. There is no hidden LLM rewriting step. Policy files (`AGENTS.md`, `BRAIN.md`, `CONTEXT.md`, `SKILL.md`, `CLAUDE.md`, `GEMINI.md`, `README.md`), hidden paths, symlinks, and underscore-prefixed folders are blocked for MCP writes. Attachments are rendered as labels, not fetched or executed. Raw Markdown HTML is shown as text.
+The web app supports reviewed link additions and checked memory-proposal review, plus a bounded shared-work list. It has no general text editor, rollback, ingestion, or chat. MCP promotion is limited to verified Inbox filing into existing folders and refuses moves that change resolved link targets. There is no hidden LLM rewriting step. Policy files (`AGENTS.md`, `BRAIN.md`, `CONTEXT.md`, `SKILL.md`, `CLAUDE.md`, `GEMINI.md`, `README.md`), hidden paths, symlinks, and underscore-prefixed folders are blocked for MCP writes. Attachments are rendered as labels, not fetched or executed. Raw Markdown HTML is shown as text.
 
 Do not expose this initial single-owner service as a public multi-user product without further security review, operational limits, and load testing.

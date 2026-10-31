@@ -1,6 +1,6 @@
 # Jev memory and retrieval update
 
-Authorized 2026-10-31: implement all four roles, use minimized personal/project Brain excerpts in a private ignored eval dataset, spend at most 2,000 total Jev requests (increased from 1,000, then 1,500), update the local Docker service and hosted demo. Keep automatic memory writes disabled. Existing uncommitted work is part of the baseline.
+Authorized 2026-10-31: implement all four roles, use minimized personal/project Brain excerpts in a private ignored eval dataset, spend at most 2,000 total Jev requests (increased from 1,000, then 1,500), update the local Docker service and hosted demo. Automatic writes stayed disabled during this evaluation. Wilson subsequently authorized the harness implementation but deferred activating its workflows until deployment; see [harness.md](harness.md). Existing uncommitted work was part of the baseline.
 
 Scope: shared types, Jev adapter, keyword shortlist, store/history, authenticated HTTP and MCP recall, graph and review UI, synthetic demo, evaluator/fixtures/tests, agent guidance and deployment documentation. No generative answers, embeddings, bulk reclassification, automatic link writes, or Brain workflow changes.
 
@@ -28,7 +28,7 @@ Suggested connections classify a pair as connected, unrelated or an evaluator-di
 
 ## Evaluation outcome — October 31, 2026
 
-**The frozen acceptance gate passed on development and the final untouched holdout.** Automatic memory writes remain disabled; suggested links still require explicit owner review.
+**The frozen acceptance gate passed on development and the final untouched holdout.** At the time of this gate, automatic writes were disabled. The subsequent harness supports verified writes and explicit link review by the owner or an authorized agent, but automatic writes remain disabled until deployment/adoption.
 
 The private dataset contains **336 distinct cases from 29 Brain notes**: 286 development cases and a fresh 50-case holdout. It covers personal preferences, project constraints/results, pending checks, dated service/travel status, career records, decisions, duplicates, sourced revisions, conflicting accounts, unsupported inferences, chatter and authored attacks. Two final-holdout preferences are explicitly authored variants grounded in the source topics, not claims about Wilson. Client material, credentials, account identifiers, raw transcripts and third-party personal details were excluded. Exact source paths, minimized evidence, fingerprints and label rationale stay in ignored local files.
 
@@ -65,3 +65,7 @@ These are small-set observed rates, not production reliability guarantees. Conne
 Validation: **46 tests**, TypeScript and the production build passed. Tests cover deterministic comparison facts, response validation, authorization, reviewed links, revision checks, idempotency, recovery and budget enforcement. Deployment evidence is in [deployment-status.md](deployment-status.md).
 
 Design references: [TypeSafe memory gating](https://docs.typesafe.ai/cookbooks/basic_memory), [passage classification](https://docs.typesafe.ai/cookbooks/classifying_rag_passages), [structured choice criteria](https://docs.typesafe.ai/primitives/choice), and [citation relationships](https://docs.typesafe.ai/cookbooks/citation_check).
+
+## Harness integration follow-up
+
+The unchanged v21 adapter passed an isolated synthetic capture/review/promotion/recall workflow using seven additional Jev requests. Total cumulative usage is now **1,841 / 2,000**. This is integration evidence, not a new accuracy holdout. Promotion additionally verifies supplied source evidence independently of the unresolved Inbox note.

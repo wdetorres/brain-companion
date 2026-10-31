@@ -1,5 +1,10 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import { safeUrl, diffLines, visibleGraph } from '../src/presentation.ts';
+import { createNoteResolver } from '../src/links.ts';
+test('explicit Markdown filename resolves by stem without conflating a title of the bare stem',()=>{
+ const resolve=createNoteResolver([{path:'A/Real.md',title:'Launch'},{path:'B/Launch.md',title:'Other'}]);
+ assert.equal(resolve('Home.md','Launch.md'),'B/Launch.md');assert.equal(resolve('Home.md','Launch'),undefined);
+});
 test('blocks executable URLs while allowing evidence links',()=>{
  for(const url of ['javascript:alert(1)','data:text/html,evil','//evil.example','vbscript:bad'])assert.equal(safeUrl(url),undefined);
  assert.equal(safeUrl('https://example.com/source'),'https://example.com/source');
