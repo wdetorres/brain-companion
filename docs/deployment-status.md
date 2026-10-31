@@ -16,6 +16,7 @@ Use local Docker temporarily. Paid Render deployment is paused at the owner's re
 - Saved the bridge key as a sensitive, production-only Vercel variable. The hosted monochrome UI remains at https://brain-companion-hazel.vercel.app; no backend URL or tunnel is connected.
 - Verified 27 application tests, TypeScript, and production asset build during deployment preparation. Then validated both Compose configurations, localhost binding, all three volume targets, unchanged production bridge settings, exclusion of the plaintext owner password, and `git diff --check`.
 - Reviewed the published source before changing visibility: no live credentials or real-vault files were included. Demo content is synthetic.
+- Reworked the graph after real-vault visual feedback: connected clusters, a monochrome charcoal canvas, faint links, and collision-aware labels. Published application commit `676bd7a4fe5a2f84ec7c1d61371c49b79673592d`; 29 tests, TypeScript, build, and synthetic desktop/mobile browser checks passed. The local image must be rebuilt to use it.
 
 ## Start locally
 
@@ -32,7 +33,7 @@ Browser checks against http://localhost:3010 passed: `/healthz` returned `{"ok":
 Local `.env` now has `SYNC_ENABLED=true`, but the running container still needs recreation to apply it. Its API currently reports `Not configured` because the successful first sync ran manually outside the application scheduler. Run:
 
 ```sh
-docker compose -f compose.yaml -f compose.local.yaml up -d --force-recreate --no-build brain
+docker compose -f compose.yaml -f compose.local.yaml up -d --build --force-recreate brain
 ```
 
 After recreation, confirm the same notes and browser session, then a fresh `Last sync succeeded` status without reauthenticating Obsidian. This verifies the mounted vault, SQLite session, and Headless credentials. No operation history exists yet, so operation and OAuth-token persistence require separate checks. A full OAuth code exchange, authenticated MCP tool calls, and live restart persistence remain unverified.
