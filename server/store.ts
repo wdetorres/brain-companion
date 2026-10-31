@@ -15,7 +15,8 @@ export class BrainStore {
   constructor(options:{vault:string;data:string;judge:Judge;accept?:string[]}) {
     this.vault=resolve(options.vault); mkdirSync(this.vault,{recursive:true});mkdirSync(options.data,{recursive:true});
     this.db=new DatabaseSync(resolve(options.data,'brain.sqlite'));this.judge=options.judge;this.accept=new Set(options.accept||[]);
-    this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, idem TEXT UNIQUE, fingerprint TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS observed (path TEXT PRIMARY KEY, revision TEXT, markdown TEXT); CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL);');
+    this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, idem TEXT UNIQUE, fingerprint TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS observed (path TEXT PRIMARY KEY, revision TEXT, markdown TEXT); CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
+    this.lastSync=(this.db.prepare('SELECT value FROM metadata WHERE key=?').get('lastSync')?.value as string)||null;
   }
   close(){if(!this.closed){this.db.close();this.closed=true;}}
   exclusive<T>(fn:()=>Promise<T>):Promise<T>{const next=this.queue.then(fn,fn);this.queue=next.catch(()=>{});return next;}

@@ -1,0 +1,18 @@
+import React,{useMemo,useRef,useState}from'react';import{Minus,Plus,Scan,Move}from'lucide-react';import type{Note}from'./shared.ts';
+type Point={x:number;y:number};
+const centers:Record<string,Point>={brain:{x:48,y:49},projects:{x:28,y:28},areas:{x:73,y:28},resources:{x:30,y:76},archives:{x:77,y:76},inbox:{x:52,y:14},system:{x:53,y:87}};
+function arrange(notes:Note[]):Map<string,Point>{const positions=new Map<string,Point>();const groups:Record<string,Note[]>={};notes.forEach(n=>(groups[n.folder]??=[]).push(n));for(const[group,list]of Object.entries(groups)){const center=centers[group]||centers.brain;list.forEach((n,i)=>{const hub=n.title.toLowerCase()===group||n.path==='Brain.md';const angle=(i/Math.max(1,list.length))*Math.PI*2-.8;positions.set(n.path,hub?center:{x:center.x+Math.cos(angle)*(12+(i%2)*3),y:center.y+Math.sin(angle)*14});});}return positions;}
+export function Graph({notes,allNotes,selected,onSelect}:{notes:Note[];allNotes:Note[];selected:string|null;onSelect:(path:string)=>void}){
+ const positions=useMemo(()=>arrange(allNotes),[allNotes]);const [view,setView]=useState({x:0,y:0,k:1});const [hover,setHover]=useState<string|null>(null);const viewport=useRef<HTMLDivElement>(null);const drag=useRef<{x:number;y:number;px:number;py:number}|null>(null);
+ const active=hover||selected;const related=new Set(active?[active,...(allNotes.find(n=>n.path===active)?.links||[]),...allNotes.filter(n=>n.links.includes(active)).map(n=>n.path)]:[]);
+ const shown=new Set(notes.map(n=>n.path));const links=notes.flatMap(n=>n.links.filter(p=>shown.has(p)).map(p=>({a:n.path,b:p}))).filter((e,i,a)=>a.findIndex(x=>(x.a===e.a&&x.b===e.b)||(x.b===e.a&&x.a===e.b))===i);
+ return <div className="graph-stage" ref={viewport} onPointerDown={e=>{if((e.target as Element).closest('button'))return;drag.current={x:e.clientX,y:e.clientY,px:view.x,py:view.y};e.currentTarget.setPointerCapture(e.pointerId);}} onPointerMove={e=>{if(drag.current)setView(v=>({...v,x:drag.current!.px+e.clientX-drag.current!.x,y:drag.current!.py+e.clientY-drag.current!.y}));}} onPointerUp={()=>drag.current=null} onPointerCancel={()=>drag.current=null}>
+  <div className="graph-hint"><Move size={12}/><span>Drag to explore · click a note to read</span></div>
+  <div className="graph-world" style={{transform:`translate(${view.x}px, ${view.y}px) scale(${view.k})`}}>
+   <svg className="graph-lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{links.map((e,i)=>{const a=positions.get(e.a)!,b=positions.get(e.b)!;return <line key={i} x1={a.x} y1={a.y} x2={b.x} y2={b.y} className={active?(e.a===active||e.b===active?'lit':'dim'):''}/>;})}</svg>
+   {notes.map(n=>{const p=positions.get(n.path)!;const hub=n.title.toLowerCase()===n.folder||n.path==='Brain.md';return <button key={n.path} className={`graph-node ${hub?'hub':''} ${n.path===selected?'selected':''} ${active&&!related.has(n.path)?'dim':''}`} data-folder={n.folder} style={{left:p.x+'%',top:p.y+'%'}} onClick={()=>onSelect(n.path)} onMouseEnter={()=>setHover(n.path)} onMouseLeave={()=>setHover(null)} onFocus={()=>setHover(n.path)} onBlur={()=>setHover(null)} aria-label={'Read '+n.title} aria-pressed={selected===n.path}><span className="node-dot"/><span className="node-name">{n.title}</span></button>;})}
+  </div>
+  {!notes.length&&<div className="graph-empty">No notes in this view.</div>}
+  <div className="zoom-controls"><button aria-label="Zoom in" onClick={()=>setView(v=>({...v,k:Math.min(2.5,v.k+.2)}))}><Plus size={16}/></button><button aria-label="Zoom out" onClick={()=>setView(v=>({...v,k:Math.max(.55,v.k-.2)}))}><Minus size={16}/></button><button aria-label="Reset graph" onClick={()=>setView({x:0,y:0,k:1})}><Scan size={16}/></button></div>
+ </div>;
+}

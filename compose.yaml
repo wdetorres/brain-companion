@@ -1,0 +1,23 @@
+services:
+  brain:
+    build: .
+    init: true
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      VAULT_PATH: /data/vault
+      STATE_PATH: /data/state
+      PORT: 3000
+      HOST: 0.0.0.0
+    ports:
+      - "127.0.0.1:3010:3000"
+    volumes:
+      - vault:/data/vault
+      - state:/data/state
+      - headless-home:/home/node
+    stop_grace_period: 150s
+    # One replica owns this vault and SQLite database.
+volumes:
+  vault:
+  state:
+  headless-home:

@@ -7,3 +7,5 @@ data/
 .npm-logs/
 .superpowers/
 *.log
+
+.render-test-*/
