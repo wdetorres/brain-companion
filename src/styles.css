@@ -126,43 +126,45 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .busy svg { animation: spin 1.5s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .graph-layout { display: flex; flex: 1; min-height: 0; border-top: 1px solid var(--line); }
-.graph-panel { display: flex; flex-direction: column; flex: 1; min-width: 0; position: relative; background: #1c1c1c; color: #aaa; }
+.graph-panel { display: flex; flex-direction: column; flex: 1; min-width: 0; position: relative; background: var(--canvas); color: var(--muted); }
 .graph-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 19px 24px 10px; }
-.graph-counts { display: flex; align-items: center; gap: 16px; color: #a0a0a0; font-size: 11px; }
-.graph-counts>span+span::before { content: '·'; margin-right: 16px; color: #666; }
+.graph-counts { display: flex; align-items: center; gap: 16px; color: var(--muted); font-size: 11px; }
+.graph-counts>span+span::before { content: '·'; margin-right: 16px; color: var(--muted); }
 .graph-options { display: flex; align-items: center; gap: 12px; }
-.checkbox-label { display: flex; align-items: center; gap: 7px; font-size: 11px; color: #aaa; white-space: nowrap; }
-.graph-panel input[type=checkbox] { accent-color: #d0d0d0; }
-.graph-panel .text-button { color: #ddd; }
+.checkbox-label { display: flex; align-items: center; gap: 7px; font-size: 11px; color: var(--muted); white-space: nowrap; }
+.graph-panel input[type=checkbox] { accent-color: var(--accent); }
+.graph-panel .text-button { color: var(--ink); }
 .graph-stage { position: relative; flex: 1; min-height: 280px; overflow: hidden; touch-action: none; cursor: grab; user-select: none; }
 .graph-stage:active { cursor: grabbing; }
 .graph-lines { position: absolute; inset: 0; pointer-events: none; }
-.graph-lines line { stroke: #bcbcbc; stroke-opacity: .14; stroke-width: .7; transition: stroke-opacity 160ms; }
-.graph-lines line.lit { stroke: #ddd; stroke-opacity: .65; stroke-width: 1; }
-.graph-lines line.dim { stroke-opacity: .035; }
+.graph-lines line { stroke: var(--muted); stroke-opacity: .25; stroke-width: .7; transition: stroke-opacity 160ms; }
+.graph-lines line.lit { stroke: var(--ink); stroke-opacity: .65; stroke-width: 1; }
+.graph-lines line.dim { stroke-opacity: .06; }
 .graph-node { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; padding: 0; width: 24px; height: 24px; z-index: 2; border-radius: 50%; }
-.node-dot { border-radius: 50%; background: #969696; flex-shrink: 0; transition: opacity 160ms, background 160ms; }
-.node-name { position: absolute; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11px; line-height: 14px; font-weight: 400; color: #b5b5b5; text-align: center; overflow-wrap: anywhere; pointer-events: none; text-shadow: 0 1px 3px #1c1c1c, 0 -1px 3px #1c1c1c, 1px 0 3px #1c1c1c, -1px 0 3px #1c1c1c; }
-.graph-node.active-node .node-dot, .graph-node.selected .node-dot { background: #f1f1f1; }
-.graph-node.selected .node-dot { outline: 1px solid #bdbdbd; outline-offset: 4px; }
-.graph-node.active-node .node-name { color: #f1f1f1; -webkit-line-clamp: unset; }
+.node-dot { border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: opacity 160ms, background 160ms; }
+.node-name { position: absolute; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11px; line-height: 14px; font-weight: 400; color: var(--muted); text-align: center; overflow-wrap: anywhere; pointer-events: none; text-shadow: 0 1px 3px var(--canvas), 0 -1px 3px var(--canvas), 1px 0 3px var(--canvas), -1px 0 3px var(--canvas); }
+.graph-node.active-node .node-dot, .graph-node.selected .node-dot { background: var(--ink); }
+.graph-node.selected .node-dot { outline: 1px solid var(--ink); outline-offset: 4px; }
+.graph-node.active-node .node-name { color: var(--ink); -webkit-line-clamp: unset; }
 .graph-node.dim .node-dot { opacity: .22; }
 .graph-node.selected, .graph-node.active-node { z-index: 4; }
-.graph-node:focus-visible { outline-color: #fff; outline-offset: 1px; }
-.graph-panel button:focus-visible { outline-color: #fff; }
-.graph-hint { position: absolute; bottom: 20px; left: 24px; display: flex; align-items: center; gap: 7px; color: #929292; font-size: 10px; pointer-events: none; z-index: 5; }
-.zoom-controls { position: absolute; bottom: 14px; right: 23px; display: flex; align-items: center; background: #252525; border: 1px solid #414141; border-radius: 6px; z-index: 5; overflow: hidden; }
-.zoom-controls button { display: grid; place-items: center; width: 34px; height: 34px; color: #bdbdbd; }
-.zoom-controls button+button { border-left: 1px solid #414141; }
-.zoom-controls button:hover { background: #383838; color: #fff; }
-.zoom-controls button[aria-pressed="true"] { background: #383838; color: #fff; }
-.graph-footer { padding: 12px 24px; border-top: 1px solid #303030; }
+.graph-node:focus-visible { outline-color: var(--accent); outline-offset: 1px; }
+.graph-panel button:focus-visible { outline-color: var(--accent); }
+.graph-hint { position: absolute; bottom: 20px; left: 24px; display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10px; pointer-events: none; z-index: 5; }
+.zoom-controls { position: absolute; bottom: 14px; right: 23px; display: flex; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: 6px; z-index: 5; overflow: hidden; }
+.zoom-controls button { display: grid; place-items: center; width: 34px; height: 34px; color: var(--muted); }
+.zoom-controls button+button { border-left: 1px solid var(--line); }
+.zoom-controls button:hover { background: var(--accent-soft); color: var(--ink); }
+.zoom-controls button[aria-pressed="true"] { background: var(--accent); color: var(--paper); }
+.zoom-controls button:focus-visible { outline-offset: -3px; }
+.zoom-controls button[aria-pressed="true"]:focus-visible { outline-color: var(--paper); }
+.graph-footer { padding: 12px 24px; border-top: 1px solid var(--line); }
 .legend { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
-.legend button { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: #aaa; padding: 3px 0; }
-.legend button:hover, .legend button[aria-pressed=true] { color: #fff; text-decoration: underline; text-underline-offset: 4px; }
-.legend .folder-dot { width: 5px; height: 5px; background: #969696; }
-.graph-limit { padding: 0 24px 12px; font-size: 10px; color: #999; }
-.graph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: #aaa; font-size: 14px; }
+.legend button { display: inline-flex; align-items: center; gap: 6px; font-size: 10px; color: var(--muted); padding: 3px 0; }
+.legend button:hover, .legend button[aria-pressed=true] { color: var(--ink); text-decoration: underline; text-underline-offset: 4px; }
+.legend .folder-dot { width: 5px; height: 5px; background: var(--muted); }
+.graph-limit { padding: 0 24px 12px; font-size: 10px; color: var(--muted); }
+.graph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
 .inspector { width: 328px; flex-shrink: 0; border-left: 1px solid var(--line); background: var(--paper); display: flex; flex-direction: column; }
 .inspector-bar { display: flex; align-items: center; justify-content: space-between; min-height: 56px; flex-shrink: 0; padding: 12px 22px; border-bottom: 1px solid #ececec; }
 .inspector-bar>span { display: flex; align-items: center; gap: 8px; color: #6a6a6a; font-size: 11px; }
@@ -441,8 +443,8 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 }
 
 /* Jev evidence review and explicitly reviewed connections. */
-.graph-lines line.suggested-edge { stroke: #dfba74; stroke-width: 1.5; stroke-opacity: .85; }
-.suggestion-legend, .dotted-symbol { color: #dfba74; }
+.graph-lines line.suggested-edge { stroke: var(--accent); stroke-width: 1.5; stroke-opacity: .85; }
+.suggestion-legend, .dotted-symbol { color: var(--accent); }
 .dotted-symbol { width: 20px; border-top: 2px dotted currentColor; }
 .connection-proposal { margin: 12px 0; }
 .connection-proposal > small { display: block; padding-left: 12px; color: var(--muted, #aaa); }

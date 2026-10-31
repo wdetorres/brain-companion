@@ -255,7 +255,7 @@ Pages and Changes use flat rows, a pale hover tone, and a slightly darker select
 
 ### Graph nodes
 
-Nodes represent whole notes, with larger dots and stronger labels for hubs. Selection adds an offset ring and a white bordered caption. Hover or keyboard focus emphasizes the active note’s direct connections and dims unrelated elements; selected note identity persists. Dot scaling and edge emphasis transition over 220ms. At the narrowest breakpoint, only hub and active captions remain visible; unselected hub labels sit above their nodes so selected captions keep their lower position. Pan and zoom change the graph transform, while the legend and zoom controls remain anchored to the graph panel.
+The graph uses the shared off-white canvas with dark gray nodes and readable ink labels. Neutral edges stay faint until active; suggested relationships remain distinct through dotted strokes. Zoom controls use the paper surface, charcoal selection and an inset keyboard focus outline. Nodes represent whole notes, with larger dots and stronger labels for hubs. Selection adds a dark offset ring and stronger caption. Hover or keyboard focus emphasizes the active note’s direct connections and dims unrelated elements; selected note identity persists. Dot scaling and edge emphasis transition over 220ms. At the narrowest breakpoint, only hub and active captions remain visible; unselected hub labels sit above their nodes so selected captions keep their lower position. Pan and zoom change the graph transform, while the legend and zoom controls remain anchored to the graph panel.
 
 ### Reader and links
 
