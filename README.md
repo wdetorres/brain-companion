@@ -13,7 +13,7 @@ An Explorer for an Obsidian vault, plus a shared memory MCP service. Agents writ
 - Optional Obsidian Headless one-shot sync in the same queue as writes. Sync status is separate from server write status.
 - Vercel frontend and forwarding function; Docker/Compose service with persistent volumes.
 
-Search is keyword based. Graph layouts group pages by folder and show actual resolved links. Graph display is bounded to 200 notes per view. Semantic retrieval/QMD and a force simulation are not implemented. The changes view shows the most recent 100 operations; older records remain addressable by operation ID.
+Search is keyword based. The graph uses a deterministic force layout of actual resolved links, with collision-filtered labels, scroll zoom, pan, and neighbor highlighting. The simulation settles once when its connections change; it does not animate continuously. Graph display is bounded to 200 notes per view. Semantic retrieval/QMD is not implemented. The changes view shows the most recent 100 operations; older records remain addressable by operation ID.
 
 ## Try the Explorer
 
