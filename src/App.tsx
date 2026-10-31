@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronRight, Circle, FileText, Folder, GitBranch, History, Link2, LockKeyhole, LogOut, Network, PanelRightClose, RefreshCw, Search, SlidersHorizontal, Sparkles, X, ArrowRight, Layers } from 'lucide-react';
 import { Graph } from './Graph.tsx';
+import { JevReview } from './JevReview.tsx';
 import { Markdown } from './Markdown.tsx';
 import { demoSnapshot } from './demo.ts';
 import { diffLines, folderLabels, safeUrl, visibleGraph } from './presentation.ts';
@@ -9,6 +10,7 @@ import type { BrainSnapshot, Note, Operation, Source } from './shared.ts';
 type View = 'graph' | 'pages' | 'changes';
 const isStandalone = document.documentElement.dataset.demo === 'true';
 const isDemo = isStandalone || location.pathname === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
+const initialView: View = new URLSearchParams(location.search).get('view') === 'changes' ? 'changes' : 'graph';
 const statuses: Record<Operation['status'], string> = { applied: 'Applied', duplicate: 'Already remembered', needs_attention: 'Needs attention', failed: 'Failed', external: 'From Obsidian', pending: 'Pending' };
 const when = (s: string) => new Date(s).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const titleFor = (p: string) => p.split('/').pop()?.replace(/\.md$/, '') || p;
@@ -34,9 +36,9 @@ function NoteReader({ note, notes, onOpen, compact = false }: { note: Note; note
 }
 function ChangeReader({ operation: op, onOpen }: { operation: Operation; onOpen: (path: string) => void }) {
   const lines = useMemo(() => diffLines(op.before ?? '', op.proposed), [op.before, op.proposed]);
-  return <article className="change-reader"><h1>{titleFor(op.path)}</h1><div className="change-info"><span className={'status ' + op.status}>{statuses[op.status]}</span><span>{when(op.at)}</span></div><p className="change-reason">{op.reason}</p><div className="change-actor"><Sparkles size={14} />{op.actor}</div>
-    {op.decision && <div className="decision"><span>Evaluation</span><strong>{op.decision.outcome}</strong><small>{op.decision.model} · {(op.decision.confidence * 100).toFixed(0)}% score</small></div>}
-    <div className="diff-label"><span>{op.status === 'needs_attention' ? 'Current → proposed' : 'Before → submitted'}</span><button onClick={() => onOpen(op.path)}>Open current page <ArrowUpRight size={12} /></button></div>
+  return <article className="change-reader"><h1>{titleFor(op.path)}</h1><div className="change-info"><span className={'status ' + op.status}>{statuses[op.status]}</span><span>{when(op.at)}</span></div><div className="change-actor"><Sparkles size={14} />{op.actor}</div>
+    <JevReview operation={op} sample={isDemo} />
+    <div className="diff-label"><span>{op.status === 'needs_attention' ? 'Current → proposed' : 'Before → submitted'}</span>{(op.before !== null || op.status === 'applied') && <button onClick={() => onOpen(op.path)}>Open current page <ArrowUpRight size={12} /></button>}</div>
     <div className="diff" aria-label="Markdown change">{lines.map((line, i) => <div key={i} className={'diff-line ' + line.kind}><span aria-hidden="true">{line.kind === 'add' ? '+' : line.kind === 'remove' ? '−' : ' '}</span><code>{line.text || ' '}</code></div>)}</div>
     <Sources sources={op.sources} /><div className="revision">Operation {op.id}</div>
   </article>;
@@ -55,13 +57,13 @@ export function App() {
   const [csrf, setCsrf] = useState('');
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [view, setView] = useState<View>('graph');
+  const [view, setView] = useState<View>(initialView);
   const [folder, setFolder] = useState('all');
   const [system, setSystem] = useState(false);
   const [focus, setFocus] = useState<string | undefined>();
   const [selected, setSelected] = useState<string | null>(isDemo ? 'Projects/Weekend build.md' : null);
   const [note, setNote] = useState<Note | null>(null);
-  const [operationId, setOperationId] = useState<string | null>(null);
+  const [operationId, setOperationId] = useState<string | null>(isDemo && initialView === 'changes' ? demoSnapshot.operations[0]?.id || null : null);
   const [operation, setOperation] = useState<Operation | null>(null);
   const [detailError, setDetailError] = useState('');
   const [query, setQuery] = useState('');
@@ -144,7 +146,7 @@ export function App() {
       {error && <div className="error-banner" role="alert">{error}</div>}
       <div className="view-header">
         <div><h1>{view === 'graph' ? (focus ? titleFor(focus) : 'Your graph') : view === 'pages' ? 'Your pages' : 'What changed'}</h1><p>{view === 'graph' ? (focus ? 'This note and its direct connections.' : 'Follow a connection. Find a new perspective.') : view === 'pages' ? 'A home for everything worth remembering.' : 'Every update, with its evidence attached.'}</p></div>
-        <div className="view-actions">{view !== 'changes' && <label className="collection-select"><span className="sr-only">Filter notes by collection</span><select value={folder} onChange={e => { setFolder(e.target.value); setFocus(undefined); }}>{Object.entries(folderLabels).filter(([key]) => !['system', 'inbox'].includes(key)).map(([key, value]) => <option value={key} key={key}>{value}</option>)}</select></label>}<button className={'quiet-button refresh-button ' + (refreshing ? 'busy' : '')} disabled={refreshing || isDemo} onClick={() => void refresh()} title={isDemo ? 'Sample data does not refresh' : 'Read the latest server vault'}><RefreshCw size={15} /><span>{refreshing ? 'Refreshing' : 'Refresh'}</span></button></div>
+        <div className="view-actions">{view !== 'changes' && <button className="quiet-button jev-shortcut" aria-label="View Jev reviews" title="View Jev reviews" onClick={() => changeView('changes')}><GitBranch size={15} /><span>Jev review</span></button>}{view !== 'changes' && <label className="collection-select"><span className="sr-only">Filter notes by collection</span><select value={folder} onChange={e => { setFolder(e.target.value); setFocus(undefined); }}>{Object.entries(folderLabels).filter(([key]) => !['system', 'inbox'].includes(key)).map(([key, value]) => <option value={key} key={key}>{value}</option>)}</select></label>}<button className={'quiet-button refresh-button ' + (refreshing ? 'busy' : '')} disabled={refreshing || isDemo} onClick={() => void refresh()} title={isDemo ? 'Sample data does not refresh' : 'Read the latest server vault'}><RefreshCw size={15} /><span>{refreshing ? 'Refreshing' : 'Refresh'}</span></button></div>
       </div>
       <div className="graph-layout" style={{ display: view === 'graph' ? undefined : 'none' }}>
         <section className="graph-panel" aria-label="Note graph">
@@ -160,7 +162,7 @@ export function App() {
         </aside> : null}
       </div>
       {view === 'pages' && <div className="reading-layout"><section className="page-list" aria-label="Pages"><div className="list-heading"><span>{folderLabels[folder]}</span><span>{pages.length}</span></div>{pages.map(n => <button data-folder={n.folder} key={n.path} className={'page-row ' + (selected === n.path ? 'selected' : '')} aria-pressed={selected === n.path} onClick={() => openNote(n.path)}><FileText size={17} /><div><strong>{n.title}</strong><small>{folderLabels[n.folder] || n.folder} · {n.links.length} links</small></div><ChevronRight size={15} /></button>)}{!pages.length && <p className="empty-text">No pages here yet. Choose another collection.</p>}<label className="system-toggle"><input type="checkbox" checked={system} onChange={e => setSystem(e.target.checked)} />Show inbox & system</label></section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : note ? <NoteReader note={note} notes={notes} onOpen={openNote} /> : <div className="reading-empty"><BookOpen size={30} /><h2>{selected ? 'Loading page…' : 'Pick a page. Get curious.'}</h2><p>Read and follow connections here. Keep writing in Obsidian or with an agent.</p></div>}</div></div>}
-      {view === 'changes' && <div className="reading-layout"><section className="page-list change-list" aria-label="Recent changes"><div className="list-heading"><span>Recent activity</span><span>{operations.length}</span></div>{operations.map(o => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{statuses[o.status]}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>)}{!operations.length && <p className="empty-text">Changes appear when an agent submits a memory or an existing page changes in Obsidian.</p>}</section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} /> : <div className="reading-empty"><History size={30} /><h2>{operationId ? 'Loading change…' : 'Every memory has a story.'}</h2><p>Select a change to see the submitted text and its outcome.</p></div>}</div></div>}
+      {view === 'changes' && <div className="reading-layout"><section className="page-list change-list" aria-label="Recent changes"><div className="list-heading"><span>Recent activity</span><span>{operations.length}</span></div>{operations.map(o => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{statuses[o.status]}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>)}{!operations.length && <p className="empty-text">Agent proposals and Obsidian edits will appear here. Select a proposal to see its Jev review.</p>}</section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} /> : <div className="reading-empty"><History size={30} /><h2>{operationId ? 'Loading change…' : 'See how memories are reviewed.'}</h2><p>Jev checks evidence support, duplication, and conflicts. Select a change to see its recorded scores and outcome.</p></div>}</div></div>}
       <footer className="statusbar"><span>{isDemo ? <><span className="demo-dot" />Sample notes & activity</> : <><LockKeyhole size={12} />Read-only explorer</>}</span><span>{isDemo ? (isStandalone ? 'Local demo' : 'Demo workspace') : snapshot.status.sync}{snapshot.status.lastSync ? ' · ' + when(snapshot.status.lastSync) : ''}<span className="status-separator">/</span>{snapshot.status.search}</span></footer>
     </main>
   </div>;
