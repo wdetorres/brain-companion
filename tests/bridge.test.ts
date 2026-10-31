@@ -19,3 +19,18 @@ test('Vercel bridge binds its destination and preserves OAuth query and response
   await bridge({ url: '/api/bridge?route=https://evil.test', method: 'GET', headers: {} } as any, blocked as any);
   assert.equal(blocked.statusCode, 404);
 });
+
+test('Vercel forwards authenticated recall and connection review without widening route access', async t => {
+  const previous = { fetch: globalThis.fetch, backend: process.env.BRAIN_SERVICE_URL, key: process.env.BRAIN_BRIDGE_KEY };
+  t.after(() => { globalThis.fetch = previous.fetch; if (previous.backend === undefined) delete process.env.BRAIN_SERVICE_URL; else process.env.BRAIN_SERVICE_URL=previous.backend; if(previous.key===undefined)delete process.env.BRAIN_BRIDGE_KEY;else process.env.BRAIN_BRIDGE_KEY=previous.key; });
+  process.env.BRAIN_SERVICE_URL='https://private.example.test';process.env.BRAIN_BRIDGE_KEY='test';
+  const seen:string[]=[];
+  globalThis.fetch=async(input,init)=>{seen.push(new URL(String(input)).pathname);assert.equal(init?.method,'POST');assert.match(String(init?.body),/csrf/);return new Response('{}');};
+  for(const route of ['api/recall','api/connections/suggest','api/connections/review']){
+    const res={statusCode:200,setHeader(){},write(){},end(){}};
+    await bridge({url:'/api/bridge?route='+route,method:'POST',headers:{'content-type':'application/json'},body:{csrf:'test'}} as any,res as any);assert.equal(res.statusCode,200);
+  }
+  assert.deepEqual(seen,['/api/recall','/api/connections/suggest','/api/connections/review']);
+  const res={statusCode:200,setHeader(){},write(){},end(){}};
+  await bridge({url:'/api/bridge?route=api/connections/delete',method:'POST',headers:{},body:{}} as any,res as any);assert.equal(res.statusCode,404);
+});

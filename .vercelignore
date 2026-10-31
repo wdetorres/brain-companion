@@ -1,0 +1,10 @@
+.env
+.env.*
+data/
+.git/
+node_modules/
+dist/
+.superpowers/
+.impeccable/
+.render-test-*/
+*.log

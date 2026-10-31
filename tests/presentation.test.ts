@@ -20,3 +20,12 @@ test('page-relative links win over matching titles and ambiguous basenames stay 
   assert.equal(resolveNoteLink(notes,'Home.md','Plan.md'),undefined);
   assert.equal(resolveNoteLink(notes,'A/Index.md','../Home.md#Heading'),'Home.md');
 });
+
+
+test('reviewed links resolve to the chosen target even with an overlapping folder name', async () => {
+  const {connectionMarkdown,resolveNoteLink}=await import('../src/links.ts');
+  const nodes=[{path:'Projects/Source.md',title:'Source'},{path:'Resources/Guide.md',title:'Guide'},{path:'Projects/Resources/Guide.md',title:'Other guide'}];
+  const text=connectionMarkdown(nodes[0].path,nodes[1].path);
+  assert.equal(text,'\n\nRelated: [[../Resources/Guide]]\n');
+  assert.equal(resolveNoteLink(nodes,nodes[0].path,text.match(/\[\[(.*?)\]\]/)![1]),nodes[1].path);
+});

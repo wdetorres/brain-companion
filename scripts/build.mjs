@@ -9,3 +9,4 @@ const { readFile, writeFile } = await import('node:fs/promises');
 const css = await readFile('dist/assets/app.css', 'utf8');
 const js = (await readFile('dist/assets/app.js', 'utf8')).replaceAll('</script', '<\\/script');
 await writeFile('dist/brain-explorer-demo.html', `<!doctype html><html lang="en" data-demo="true"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brain Explorer · sample demo</title><style>${css}</style></head><body><div id="root"></div><script type="module">${js}</script></body></html>`);
+if (process.env.VERCEL_ENV === 'preview') await import('./build-graph-preview.mjs');

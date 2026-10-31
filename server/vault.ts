@@ -3,6 +3,7 @@ import { resolve, relative, dirname, posix, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { parse } from 'yaml';
 import { resolveNoteLink } from '../src/links.ts';
+import { categories, type MemoryCategory } from '../src/shared.ts';
 import type { Note, Source } from '../src/shared.ts';
 
 export const revision = (text:string) => createHash('sha256').update(text).digest('hex');
@@ -34,7 +35,8 @@ export async function readVault(root:string):Promise<Note[]> {
     try {if(fm){const parsed=parse(fm[1],{maxAliasCount:20});if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))meta=parsed;}}catch{/* malformed frontmatter remains visible */}
     const body=fm?markdown.slice(fm[0].length):markdown;
     const sources:Source[]=Array.isArray(meta.sources)?meta.sources.filter((s:any)=>s&&typeof s.title==='string'&&typeof s.uri==='string'&&typeof s.observedAt==='string'):[];
-    notes.push({path,title:typeof meta.title==='string'?meta.title:body.match(/^#\s+(.+)$/m)?.[1]||basename(path,'.md'),folder:folderFor(path),markdown,body,revision:revision(markdown),links:[],unresolved:[],tags:Array.isArray(meta.tags)?meta.tags.filter((s:unknown)=>typeof s==='string'):[],sources,modifiedAt:stat.mtime.toISOString()});
+    const assessmentAllowed = !path.split('/').some(p=>p.startsWith('_')||/^(AGENTS|BRAIN|CONTEXT|SKILL|CLAUDE|GEMINI|README)\.md$/i.test(p)) && meta.contains_client_data !== true && !['internal','restricted','confidential'].includes(meta.sensitivity) && (meta.portability !== 'internal' && !String(meta.scope||'').startsWith('work') || meta.portability === 'portable');
+    notes.push({path,assessmentAllowed,category:categories.includes(meta.memory_category ?? meta.type) ? (meta.memory_category ?? meta.type) as MemoryCategory : undefined,title:typeof meta.title==='string'?meta.title:body.match(/^#\s+(.+)$/m)?.[1]||basename(path,'.md'),folder:folderFor(path),markdown,body,revision:revision(markdown),links:[],unresolved:[],tags:Array.isArray(meta.tags)?meta.tags.filter((s:unknown)=>typeof s==='string'):[],sources,modifiedAt:stat.mtime.toISOString()});
   }
   for(const n of notes){for(const raw of rawLinks(n.body)){
     const match=resolveNoteLink(notes,n.path,raw);

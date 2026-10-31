@@ -3,22 +3,78 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "functions": { "api/bridge.ts": { "maxDuration": 60 } },
+  "functions": {
+    "api/bridge.ts": {
+      "maxDuration": 60
+    }
+  },
   "rewrites": [
-    { "source": "/mcp", "destination": "/api/bridge?route=mcp" },
-    { "source": "/oauth/:path*", "destination": "/api/bridge?route=oauth/:path*" },
-    { "source": "/.well-known/:path*", "destination": "/api/bridge?route=.well-known/:path*" },
-    { "source": "/api/auth/:path*", "destination": "/api/bridge?route=api/auth/:path*" },
-    { "source": "/api/brain", "destination": "/api/bridge?route=api/brain" },
-    { "source": "/api/note", "destination": "/api/bridge?route=api/note" },
-    { "source": "/api/operation", "destination": "/api/bridge?route=api/operation" },
-    { "source": "/api/search", "destination": "/api/bridge?route=api/search" },
-    { "source": "/demo", "destination": "/index.html" }
+    {
+      "source": "/mcp",
+      "destination": "/api/bridge?route=mcp"
+    },
+    {
+      "source": "/oauth/:path*",
+      "destination": "/api/bridge?route=oauth/:path*"
+    },
+    {
+      "source": "/.well-known/:path*",
+      "destination": "/api/bridge?route=.well-known/:path*"
+    },
+    {
+      "source": "/api/auth/:path*",
+      "destination": "/api/bridge?route=api/auth/:path*"
+    },
+    {
+      "source": "/api/brain",
+      "destination": "/api/bridge?route=api/brain"
+    },
+    {
+      "source": "/api/note",
+      "destination": "/api/bridge?route=api/note"
+    },
+    {
+      "source": "/api/operation",
+      "destination": "/api/bridge?route=api/operation"
+    },
+    {
+      "source": "/api/search",
+      "destination": "/api/bridge?route=api/search"
+    },
+    {
+      "source": "/api/recall",
+      "destination": "/api/bridge?route=api/recall"
+    },
+    {
+      "source": "/api/connections/:path*",
+      "destination": "/api/bridge?route=api/connections/:path*"
+    },
+    {
+      "source": "/demo",
+      "destination": "/index.html"
+    }
   ],
-  "headers": [{ "source": "/(.*)", "headers": [
-    { "key": "X-Content-Type-Options", "value": "nosniff" },
-    { "key": "Referrer-Policy", "value": "no-referrer" },
-    { "key": "X-Frame-Options", "value": "DENY" },
-    { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" }
-  ] }]
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"
+        }
+      ]
+    }
+  ]
 }

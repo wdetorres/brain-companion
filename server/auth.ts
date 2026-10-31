@@ -22,7 +22,7 @@ export class AuthService {
   private remove(key:string){this.db.prepare('DELETE FROM auth WHERE key=?').run(key);}
   private setCookie(name:string,value:string,maxAge=3600){return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${this.origin.startsWith('https:')?'; Secure':''}`;}
   private limited(bucket:string,max:number,seconds:number){const key='rate:'+bucket;const prev=this.get(key)||{count:0,until:Date.now()+seconds*1000};prev.count++;this.put(key,prev,Math.max(1,(prev.until-Date.now())/1000));return prev.count>max;}
-  private csrf(req:Request,value:unknown){return req.headers.get('origin')===this.origin&&typeof value==='string'&&value.length>=32&&equal(cookie(req,'brain_csrf'),value);}
+  csrf(req:Request,value:unknown){return req.headers.get('origin')===this.origin&&typeof value==='string'&&value.length>=32&&equal(cookie(req,'brain_csrf'),value);}
   session(req:Request):boolean{return !!this.get('session:'+digest(cookie(req,'brain_session')));}
   bearer(header:string|null):Grant|undefined {if(!header?.startsWith('Bearer '))return;const grant=this.get('access:'+digest(header.slice(7)));if(grant&&grant.resource===this.resource&&!this.get('revoked:'+grant.family))return grant;}
   private issue(grant:Grant){const access=token(),refresh=token();this.put('access:'+digest(access),grant,3600);this.put('refresh:'+digest(refresh),grant,30*86400);return {access_token:access,token_type:'Bearer',expires_in:3600,refresh_token:refresh,scope:grant.scope};}

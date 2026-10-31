@@ -1,6 +1,36 @@
+# Jev feature checkpoint — October 31, 2026
+
+The four requested features are implemented and deployed locally and to the existing synthetic hosted demo. The browser includes worth-remembering review, category filters, evidence/conflict recall, and dotted connection proposals with explicit review/save. The same recall assessment is available through MCP.
+
+The subsequent Recall refinement aligns its form, categories, help and result rows with the monochrome reader theme. Desktop/mobile interaction checks passed; local Docker and the hosted demo include the refinement. The approved release is committed to local `main`; no Git push was requested or performed.
+
+Validation: 46 tests, TypeScript, production/Docker builds, authenticated local API checks, preservation across two container recreations, successful scheduled sync, and hosted desktop/mobile browser checks. The evaluator is pinned to Jev 1.14.0 and automatic memory writes remain disabled. Private cases and reports were excluded from uploads.
+
+**Acceptance gate passed:** v21 passed 286 development cases and a fresh 50-case holdout: 92.9% exact memory accuracy, 100% categories/worth/recall, 100% connection precision and 80% useful-connection coverage. Unsafe acceptances/routes and API failures were zero. Total usage: 1,834 / 2,000 authorized requests. Earlier failed holdouts and rejected candidates remain in the audit. [Evaluation details](jev-features.md) · [Deployment evidence](deployment-status.md).
+
+The historical handoff below predates this feature work.
+
+---
+
 # Build progress
 
 Plan: docs/superpowers/plans/2026-10-31-brain-companion.md
+
+## Session handoff: 2026-10-31
+
+This checkpoint supersedes the historical implementation status below. See [deployment-status.md](deployment-status.md) for setup details and remaining verification.
+
+- All 20 locally changed source/configuration/test/documentation files were compared with public GitHub `main` and matched exactly before this handoff update. Published source is at https://github.com/wdetorres/brain-companion. No credentials, private vault notes, or ignored runtime data were published.
+- Temporary local Docker is the chosen backend; the owner built and started it, authenticated official Obsidian Headless, and reported a completed real-vault sync. Paid Render provisioning remains paused. The Docker image stays portable for a later host migration.
+- The monochrome Vercel explorer is live at https://brain-companion-hazel.vercel.app/demo. The graph now uses resolved-link force layout, readable zoom-aware labels, and a label toggle for demos.
+- Jev reviews are visible in Changes, showing stored support/duplicate/conflict scores, classification, and actual operation disposition. The four public demo scenarios are explicitly illustrative and make no Jev request: https://brain-companion-hazel.vercel.app/demo?view=changes.
+- Latest verified production application commit: `3ea5bce9651f59981cabc78b010417cb505870f3`; deployment `dpl_8w2eLwL8sm8GwMhZLynegoQ1BEyr`. TypeScript, 30 tests, production build, desktop/mobile review scenarios, and navigation checks passed.
+- The owner's live `jev-1.14.0` smoke run scored 5/6 exact matches, zero unsafe acceptances, zero API failures, and 324 ms mean latency. The remaining new-memory case was conservatively retained. The isolated MCP/Jev/SQLite workflow passed: note unchanged, proposal persisted after reopen, retries idempotent, one judge call. Automatic acceptance remains disabled; six cases do not establish production accuracy.
+- Remaining: rebuild/recreate local Docker for current UI/evaluator/scheduled-sync settings; verify real restart persistence; complete a live OAuth/MCP client connection. The hosted UI still lacks a connected persistent backend. Do not confuse unit/integration coverage with a completed remote connection.
+- Wilson explicitly deferred additional Jev roles to a separate session: worth-remembering judgments, recall relevance filtering/ranking, suggested graph connections, and memory categories. They are proposals, not implemented features. Resume with an evaluation set for the chosen role.
+- Local `main` still has its original ancestry and the working-tree changes because `.git` is read-only in this session. GitHub publication used the connector. Reconcile histories before a normal push; do not force-push local history over remote `main`.
+
+## Initial implementation history
 
 - User accepted Explorer and Vercel plus persistent worker; instructed implementation.
 - New isolated project directory; no existing repository or worktree to protect.

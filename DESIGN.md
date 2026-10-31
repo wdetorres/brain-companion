@@ -261,6 +261,10 @@ Nodes represent whole notes, with larger dots and stronger labels for hubs. Sele
 
 White reader panes use readable Markdown, understated source rows, and fine section dividers. Resolved wiki links are neutral tinted inline buttons with an underline; unresolved links have a dashed underline. Code uses a gray background and monospace; code blocks and tables scroll when needed. Backlinks are text rows with small SVG icons. Attachments are represented as text, rather than shipping decorative imagery.
 
+### Recall
+
+Recall uses the white reader surface with a bounded 800px working column. Its introductory heading is 18px; explanatory text and excerpts are 13px, question input and result titles 14px, and controls 12px. The question field uses the neutral canvas fill. Category choices are native radios presented as a wrapping segmented group, with charcoal selection and visible keyboard focus. Operational details sit in a native disclosure. Evidence is separated by fine rules; conflicts retain explicit warning icons and labels in the same monochrome palette. Narrow layouts wrap categories and move the submit action onto its own row.
+
 ### Change diff
 
 The diff is a softly rounded, bordered container with a near-white background. Added and removed rows use adjacent gray tones and explicit plus/minus signs. Monospace text wraps inside each line. The reason, actor, outcome, source evidence, and operation identity remain outside the diff in the same reading column.

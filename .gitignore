@@ -11,3 +11,4 @@ data/
 .render-test-*/
 .impeccable/review/
 .impeccable/questions/
+.vercel/

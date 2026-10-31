@@ -4,19 +4,25 @@ import { mkdir, readFile, writeFile, rename, open, unlink } from 'node:fs/promis
 import { resolve, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import { relatedNotes } from './retrieval.ts';
+import { connectionMarkdown } from '../src/links.ts';
+import { questionVersion } from './jev.ts';
+import { relatedNotes, shortlist } from './retrieval.ts';
 import { readVault, revision, safePath } from './vault.ts';
-import type { BrainSnapshot, Judge, Note, Operation, RememberInput } from '../src/shared.ts';
+import { categories } from '../src/shared.ts';
+import type { BrainSnapshot, Judge, Note, Operation, RememberInput, RecallJudge, ConnectionJudge, Connection, MemoryCategory, RecallResult, RecallHit } from '../src/shared.ts';
 
-export const rememberSchema=z.object({path:z.string().max(512),markdown:z.string().min(1).refine(v=>Buffer.byteLength(v)<=131072,'Note exceeds 128 KiB'),sources:z.array(z.object({title:z.string().min(1).max(300),uri:z.string().min(1).max(2000).refine(v=>/^(https?:|obsidian:|urn:)/.test(v),'Source must be a URL or URN'),observedAt:z.iso.datetime({offset:true})})).min(1).max(20),expectedRevision:z.string().max(100).nullable(),idempotencyKey:z.string().min(8).max(128)}).strict();
+export const rememberSchema=z.object({path:z.string().max(512),markdown:z.string().min(1).refine(v=>Buffer.byteLength(v)<=131072,'Note exceeds 128 KiB'),sources:z.array(z.object({title:z.string().min(1).max(300),uri:z.string().min(1).max(2000).refine(v=>/^(https?:|obsidian:|urn:)/.test(v),'Source must be a URL or URN'),observedAt:z.iso.datetime({offset:true}),excerpt:z.string().min(1).max(6000).optional()})).min(1).max(20),expectedRevision:z.string().max(100).nullable(),idempotencyKey:z.string().min(8).max(128)}).strict();
 export class BrainStore {
   readonly db:DatabaseSync; readonly vault:string; readonly judge:Judge; readonly accept:Set<string>;
+  private recallJudge?:RecallJudge; private connectionJudge?:ConnectionJudge;
+  private recallCache = new Map<string, { at:number; result:RecallResult }>();
   private queue:Promise<unknown>=Promise.resolve(); private closed=false;
   syncStatus='Not configured'; lastSync:string|null=null;
-  constructor(options:{vault:string;data:string;judge:Judge;accept?:string[]}) {
+  constructor(options:{vault:string;data:string;judge:Judge;accept?:string[];recallJudge?:RecallJudge;connectionJudge?:ConnectionJudge}) {
     this.vault=resolve(options.vault); mkdirSync(this.vault,{recursive:true});mkdirSync(options.data,{recursive:true});
-    this.db=new DatabaseSync(resolve(options.data,'brain.sqlite'));this.judge=options.judge;this.accept=new Set(options.accept||[]);
+    this.db=new DatabaseSync(resolve(options.data,'brain.sqlite'));this.judge=options.judge;this.accept=new Set(options.accept||[]);this.recallJudge=options.recallJudge;this.connectionJudge=options.connectionJudge;
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, idem TEXT UNIQUE, fingerprint TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS observed (path TEXT PRIMARY KEY, revision TEXT, markdown TEXT); CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
+    this.db.exec('CREATE TABLE IF NOT EXISTS connections (id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
     this.lastSync=(this.db.prepare('SELECT value FROM metadata WHERE key=?').get('lastSync')?.value as string)||null;
   }
   close(){if(!this.closed){this.db.close();this.closed=true;}}
@@ -32,12 +38,66 @@ export class BrainStore {
     const present=new Set(notes.map(n=>n.path));for(const row of this.db.prepare('SELECT path,markdown FROM observed').all() as {path:string;markdown:string}[]){if(!present.has(row.path)){this.save({id:randomUUID(),path:row.path,actor:'Obsidian / external',at:new Date().toISOString(),status:'external',reason:'Observed a removed page',before:row.markdown,proposed:'',sources:[]});this.db.prepare('DELETE FROM observed WHERE path=?').run(row.path);}}
   }
   private markObserved(n:Note){this.db.prepare('INSERT INTO observed VALUES(?,?,?) ON CONFLICT(path) DO UPDATE SET revision=excluded.revision,markdown=excluded.markdown').run(n.path,n.revision,n.markdown);}
-  private async scan(){const notes=await readVault(this.vault);this.observe(notes);return notes;}
-  snapshot():Promise<BrainSnapshot>{return this.exclusive(async()=>({notes:await this.scan(),operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}}));}
+  private async scan(){
+    const notes=await readVault(this.vault);this.observe(notes);
+    const applied=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='applied' ORDER BY rowid DESC").all();
+    for(const row of applied){const op:Operation=JSON.parse(row.payload as string);const note=notes.find(n=>n.path===op.path&&n.revision===op.revision);if(note&&!note.category&&(op.category||op.decision?.category))note.category=op.category||op.decision?.category;}
+    for(const c of this.connections())if(c.status==='proposed'&&(!notes.some(n=>n.path===c.source&&n.revision===c.sourceRevision)||!notes.some(n=>n.path===c.target&&n.revision===c.targetRevision))){c.status='stale';this.saveConnection(c);}
+    return notes;
+  }
+  private connections():Connection[]{return this.db.prepare('SELECT payload FROM connections').all().map(row=>JSON.parse(row.payload as string));}
+  private saveConnection(c:Connection){this.db.prepare('INSERT OR REPLACE INTO connections VALUES(?,?)').run(c.id,JSON.stringify(c));}
+  snapshot():Promise<BrainSnapshot>{return this.exclusive(async()=>({notes:await this.scan(),operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),connections:this.connections().filter(c=>c.status==='proposed').slice(0,200),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}}));}
   async inspect(path:string){const s=await this.snapshot();const n=s.notes.find(n=>n.path===path);if(!n)throw Error('Page not found');return n;}
   private operationRecord(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
   operation(id:string):Promise<Operation|undefined>{return this.exclusive(async()=>{const op=this.operationRecord(id);if(op?.status==='pending')await this.scan();return this.operationRecord(id);});}
-  async recall(query:string){const terms=query.toLowerCase().split(/\s+/).filter(Boolean).slice(0,12);const {notes}=await this.snapshot();return notes.map(n=>({n,score:terms.reduce((s,t)=>s+(n.title.toLowerCase().includes(t)?5:0)+(n.body.toLowerCase().includes(t)?1:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12).map(({n})=>({...n,body:n.body.slice(0,1200),markdown:n.markdown.slice(0,1200)}));}
+  async search(query:string){const {notes}=await this.snapshot();return shortlist(query,notes,12).map(n=>({...n,body:n.body.slice(0,1200),markdown:n.markdown.slice(0,1200)}));}
+  recall(query:string,category?:MemoryCategory):Promise<RecallResult>{return this.exclusive(async()=>{
+    z.string().trim().min(1).max(1000).parse(query);if(category)z.enum(categories).parse(category);
+    const notes=await this.scan(), selected=shortlist(query,notes.filter(n=>n.assessmentAllowed!==false&&(!category||n.category===category)));
+    const key=revision(JSON.stringify([query,category,selected.map(n=>[n.path,n.revision])]));
+    const cached=this.recallCache.get(key);if(cached&&Date.now()-cached.at<600000)return cached.result;
+    const unavailable:RecallResult={notes:[],evidence:[],conflicts:[],excluded:0,status:'unavailable',search:'Keyword shortlist; Jev unavailable',warning:'No assessed evidence is available. Use keyword search and inspect sources before answering.'};
+    if(!this.recallJudge)return unavailable;
+    const hits:RecallHit[]=[];
+    try{
+      for(let i=0;i<selected.length;i+=4){const batch=await Promise.allSettled(selected.slice(i,i+4).map(async note=>({note:{...note,body:note.body.slice(0,Math.max(0,12000-(note.markdown.length-note.body.length))),markdown:note.markdown.slice(0,12000)},assessment:await this.recallJudge!(query,note,selected)})));for(const r of batch){if(r.status==='rejected')throw Error('Assessment failed');hits.push(r.value);}}
+    }catch{return unavailable;}
+    const evidence=hits.filter(h=>h.assessment.route==='evidence').sort((a,b)=>b.assessment.probabilities.evidence*b.assessment.probabilities.relevant-a.assessment.probabilities.evidence*a.assessment.probabilities.relevant);
+    const conflicts=hits.filter(h=>h.assessment.route==='conflict');
+    const result:RecallResult={notes:evidence.map(h=>h.note),evidence,conflicts,excluded:hits.length-evidence.length-conflicts.length,status:'assessed',search:'Keyword shortlist + Jev evidence review',...(conflicts.length?{warning:'Conflicting evidence found. Address these conflicts and preserve dates/scope before answering.'}:{})};
+    if(this.recallCache.size>=100)this.recallCache.delete(this.recallCache.keys().next().value!);this.recallCache.set(key,{at:Date.now(),result});return result;
+  });}
+  suggestConnections(path:string):Promise<Connection[]>{return this.exclusive(async()=>{
+    await safePath(this.vault,path,true);if(!this.connectionJudge)throw Error('Jev is not configured');
+    const notes=await this.scan(),source=notes.find(n=>n.path===path);if(!source)throw Error('Page not found');if(source.assessmentAllowed===false)throw Error('This note is excluded from external assessment');
+    const eligible=notes.filter(n=>n.assessmentAllowed!==false&&n.path!==path&&!source.links.includes(n.path)&&!n.links.includes(path)&&!/[%\[\]#|\r\n]/.test(n.path));
+    const candidates=relatedNotes({path,markdown:source.markdown,sources:[],expectedRevision:source.revision,idempotencyKey:''},eligible);
+    for(const target of candidates){
+      try{await safePath(this.vault,target.path,true);}catch{continue;}
+      const id=revision(JSON.stringify([questionVersion,source.path,source.revision,target.path,target.revision]));
+      if(this.connections().some(c=>c.id===id))continue;
+      const assessment=await this.connectionJudge(source,target);
+      this.saveConnection({id,source:path,target:target.path,sourceRevision:source.revision,targetRevision:target.revision,status:assessment.useful?'proposed':'dismissed',assessment});
+    }
+    await this.scan();return this.connections().filter(c=>c.source===path&&c.status==='proposed');
+  });}
+  reviewConnection(id:string,action:'accept'|'dismiss'):Promise<Connection>{return this.exclusive(async()=>{
+    z.string().min(1).max(128).parse(id);z.enum(['accept','dismiss']).parse(action);
+    const notes=await this.scan(),c=this.connections().find(c=>c.id===id);if(!c)throw Error('Suggestion not found');
+    if(c.operationId){const previous=this.operationRecord(c.operationId);if(previous?.status==='applied'){c.status='accepted';this.saveConnection(c);return c;}}
+    if(c.status!=='proposed')return c;
+    if(action==='dismiss'){c.status='dismissed';this.saveConnection(c);return c;}
+    const source=notes.find(n=>n.path===c.source)!,target=notes.find(n=>n.path===c.target)!;
+    const path=await safePath(this.vault,source.path,true);await safePath(this.vault,target.path,true);
+    // Recheck both files after review; a suggestion never authorizes overwriting a later edit.
+    if(revision(await readFile(path,'utf8'))!==c.sourceRevision||revision(await readFile(await safePath(this.vault,target.path),'utf8'))!==c.targetRevision){c.status='stale';this.saveConnection(c);return c;}
+    if(/[%\[\]#|\r\n]/.test(target.path))throw Error('Target cannot be represented as a wiki link');
+    const op:Operation={id:randomUUID(),path:source.path,actor:'Owner · connection review',at:new Date().toISOString(),status:'needs_attention',reason:'Reviewed connection',category:source.category,before:source.markdown,proposed:source.markdown+connectionMarkdown(source.path,target.path),sources:[{title:'Reviewed link to '+target.title,uri:'urn:brain:connection:'+c.id,observedAt:new Date().toISOString()}]};
+    c.operationId=op.id;this.saveConnection(c);
+    await this.apply(op,path,c.sourceRevision,()=>{this.save(op);return op;});
+    c.status=op.status==='applied'?'accepted':'stale';this.saveConnection(c);return c;
+  });}
   remember(raw:RememberInput,actor:string):Promise<Operation>{return this.exclusive(async()=>{
     const input=rememberSchema.parse(raw);const target=await safePath(this.vault,input.path,true);const fingerprint=revision(JSON.stringify(input));
     const existing=this.db.prepare('SELECT payload,fingerprint FROM operations WHERE idem=?').get(input.idempotencyKey);
@@ -47,18 +107,23 @@ export class BrainStore {
     const finish=()=>{this.save(op,input.idempotencyKey,fingerprint);return op;};
     if((current?.revision??null)!==input.expectedRevision){op.reason='Revision conflict: inspect the current page and resubmit';return finish();}
     if(current?.markdown===input.markdown){op.status='duplicate';op.reason='Exact content already present';return finish();}
+    if(current?.assessmentAllowed===false){op.reason='Current note is excluded from external assessment; proposal retained';return finish();}
     try{op.decision=await this.judge(input,current,relatedNotes(input,notes));}catch{op.reason='Jev unavailable or invalid response; proposal retained';return finish();}
     if(op.decision.outcome==='duplicate'){op.status='duplicate';op.reason='Jev assessed this as already remembered; no content changed';return finish();}
+    if(op.decision.outcome==='not_worth_remembering'){op.reason='Temporary chatter; not saved as a memory. Proposal retained for inspection';return finish();}
     const expected=current?'update':'new';if(op.decision.outcome!==expected||!this.accept.has(expected)||op.decision.confidence<.95){op.reason=op.decision.outcome==='conflict'?'Conflicting evidence; current page preserved':'Automatic acceptance is not enabled or evidence is uncertain';return finish();}
+    return this.apply(op,target,input.expectedRevision,finish);
+  });}
+  private async apply(op:Operation,target:string,expectedRevision:string|null,finish:()=>Operation):Promise<Operation>{
     let latest:string|null=null;try{latest=await readFile(target,'utf8')}catch(e:any){if(e.code!=='ENOENT')throw e;}
-    if((latest===null?null:revision(latest))!==input.expectedRevision){op.reason='Page changed during evaluation; proposal retained';return finish();}
+    if((latest===null?null:revision(latest))!==expectedRevision){op.reason='Page changed during evaluation; proposal retained';return finish();}
     op.status='pending';op.reason='Write journaled';finish();let temp='';
     try{
-      await mkdir(dirname(target),{recursive:true});await safePath(this.vault,input.path,true);temp=target+'.'+randomUUID()+'.tmp';
-      const fd=await open(temp,'wx',0o600);try{await fd.writeFile(input.markdown,'utf8');await fd.sync();}finally{await fd.close();}
+      await mkdir(dirname(target),{recursive:true});await safePath(this.vault,op.path,true);temp=target+'.'+randomUUID()+'.tmp';
+      const fd=await open(temp,'wx',0o600);try{await fd.writeFile(op.proposed,'utf8');await fd.sync();}finally{await fd.close();}
       await rename(temp,target);temp='';const parent=await open(dirname(target),'r');try{await parent.sync();}finally{await parent.close();}
-      op.status='applied';op.reason='Applied to server vault; device sync is separate';op.revision=revision(input.markdown);finish();
-      this.db.prepare('INSERT INTO observed VALUES(?,?,?) ON CONFLICT(path) DO UPDATE SET revision=excluded.revision,markdown=excluded.markdown').run(input.path,op.revision,input.markdown);return op;
+      op.status='applied';op.reason='Applied to server vault; device sync is separate';op.revision=revision(op.proposed);finish();
+      this.db.prepare('INSERT INTO observed VALUES(?,?,?) ON CONFLICT(path) DO UPDATE SET revision=excluded.revision,markdown=excluded.markdown').run(op.path,op.revision,op.proposed);return op;
     }catch(e){if(temp)await unlink(temp).catch(()=>{});op.status='needs_attention';op.reason='Write interrupted; inspect server state before retry';return finish();}
-  });}
+  }
 }

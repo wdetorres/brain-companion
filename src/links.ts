@@ -20,3 +20,10 @@ export function resolveNoteLink(notes: Pick<Note, 'path' | 'title'>[], from: str
   const candidates = notes.filter(n => n.path.split('/').pop()?.replace(/\.md$/, '') === stem || n.title === raw);
   return candidates.length === 1 ? candidates[0].path : undefined;
 }
+
+export function connectionMarkdown(source: string, target: string): string {
+  const from = source.split('/').slice(0, -1), to = target.split('/');
+  while (from.length && to.length && from[0] === to[0]) { from.shift(); to.shift(); }
+  const link = [...from.map(() => '..'), ...to].join('/').replace(/\.md$/, '');
+  return '\n\nRelated: [[' + link + ']]\n';
+}
