@@ -2,7 +2,7 @@
 
 The four requested features are implemented and deployed locally and to the existing synthetic hosted demo. The browser includes worth-remembering review, category filters, evidence/conflict recall, and dotted connection proposals with explicit review/save. The same recall assessment is available through MCP.
 
-The subsequent Recall refinement aligns its form, categories, help and result rows with the monochrome reader theme. Desktop/mobile interaction checks passed; local Docker and the hosted demo include the refinement. The approved release is committed to local `main`; no Git push was requested or performed.
+The subsequent Recall refinement aligns its form, categories, help and result rows with the monochrome reader theme and centers the working column. Desktop/mobile interaction checks passed; local Docker and the hosted demo include the refinement. The independent local and GitHub histories have been reconciled and merged into `main`, preserving both histories and the verified application source without a force push.
 
 Validation: 46 tests, TypeScript, production/Docker builds, authenticated local API checks, preservation across two container recreations, successful scheduled sync, and hosted desktop/mobile browser checks. The evaluator is pinned to Jev 1.14.0 and automatic memory writes remain disabled. Private cases and reports were excluded from uploads.
 
