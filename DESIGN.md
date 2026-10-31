@@ -263,7 +263,7 @@ White reader panes use readable Markdown, understated source rows, and fine sect
 
 ### Recall
 
-Recall uses the white reader surface with a bounded 800px working column. Its introductory heading is 18px; explanatory text and excerpts are 13px, question input and result titles 14px, and controls 12px. The question field uses the neutral canvas fill. Category choices are native radios presented as a wrapping segmented group, with charcoal selection and visible keyboard focus. Operational details sit in a native disclosure. Evidence is separated by fine rules; conflicts retain explicit warning icons and labels in the same monochrome palette. Narrow layouts wrap categories and move the submit action onto its own row.
+Recall uses the white reader surface with a bounded 800px working column, centered horizontally within the workspace while its text stays left-aligned. Its introductory heading is 18px; explanatory text and excerpts are 13px, question input and result titles 14px, and controls 12px. The question field uses the neutral canvas fill. Category choices are native radios presented as a wrapping segmented group, with charcoal selection and visible keyboard focus. Operational details sit in a native disclosure. Evidence is separated by fine rules; conflicts retain explicit warning icons and labels in the same monochrome palette. Narrow layouts wrap categories and move the submit action onto its own row.
 
 ### Change diff
 

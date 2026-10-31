@@ -2,6 +2,8 @@
 
 ## Recall refinement
 
+Wide-screen follow-up: centered the 800px content column with automatic inline margins after user feedback. At 1920 × 1080 both workspace margins measured 444px; at 390 × 844 both were 20px. Neither viewport overflowed horizontally. Text remains left-aligned. Local state/session checks and the Docker build passed; no new model calls or behavior changes.
+
 2026-10-31. Disposition: **ship**. Matched Recall to the existing monochrome reader: white pane, compact introduction and question field, native radio categories with charcoal selection, operational details behind a disclosure, and flat evidence rows. Conflict warnings retain explicit labels and icons. No evaluator or retrieval behavior changed.
 
 TypeScript, all 46 tests, production and Docker builds passed. Browser checks at 1280 × 800 and 390 × 844 covered the real local empty form, keyboard category selection/focus, category clicks and help disclosure, then synthetic evidence, filtered-empty and conflict results. No horizontal overflow or console warnings/errors were observed. The manual design scan found no Recall warnings; its 18px/14px typography advisories are intentional local roles documented in DESIGN.md. Existing findings outside Recall were not part of this refinement. No billable Jev calls were needed.
