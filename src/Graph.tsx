@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Minus, Plus, Scan, Move } from 'lucide-react';
+import { Minus, Plus, Scan, Move, Type } from 'lucide-react';
 import { graphLabels, layoutGraph } from './graph-layout.ts';
 import type { Note } from './shared.ts';
 
@@ -9,6 +9,7 @@ export function Graph({ notes, selected, onSelect }: { notes: Note[]; selected: 
   const [view, setView] = useState({ x: 0, y: 0, k: 1 });
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [hover, setHover] = useState<string | null>(null);
+  const [showLabels, setShowLabels] = useState(true);
   const viewport = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; px: number; py: number } | null>(null);
   useEffect(() => { setView({ x: 0, y: 0, k: 1 }); setHover(null); }, [graphKey]);
@@ -46,7 +47,7 @@ export function Graph({ notes, selected, onSelect }: { notes: Note[]; selected: 
     radius: (3 + Math.min(4, Math.sqrt(n.degree) * .55)) * Math.min(1.5, Math.sqrt(view.k)),
   }));
   const positions = new Map(points.map(n => [n.path, n]));
-  const labels = new Map(graphLabels(points, size.width, size.height, view.k, active, related).map(l => [l.path, l]));
+  const labels = new Map((showLabels ? graphLabels(points, size.width, size.height, view.k, active, related) : []).map(l => [l.path, l]));
   return <div className="graph-stage" ref={viewport} onPointerDown={e => {
     if (e.button !== 0 || (e.target as Element).closest('button')) return;
     drag.current = { x: e.clientX, y: e.clientY, px: view.x, py: view.y };
@@ -62,6 +63,6 @@ export function Graph({ notes, selected, onSelect }: { notes: Note[]; selected: 
     </button>; })}
     {!notes.length && <div className="graph-empty">No notes in this view.</div>}
     <div className="graph-hint"><Move size={12} /><span>Scroll to zoom · drag to pan · select a note</span></div>
-    <div className="zoom-controls"><button aria-label="Zoom in" onClick={() => zoom(1.3)}><Plus size={16} /></button><button aria-label="Zoom out" onClick={() => zoom(1 / 1.3)}><Minus size={16} /></button><button aria-label="Reset graph" onClick={() => setView({ x: 0, y: 0, k: 1 })}><Scan size={16} /></button></div>
+    <div className="zoom-controls"><button aria-label="Show labels" aria-pressed={showLabels} title={showLabels ? 'Hide note labels' : 'Show note labels'} onClick={() => setShowLabels(value => !value)}><Type size={16} /></button><button aria-label="Zoom in" onClick={() => zoom(1.3)}><Plus size={16} /></button><button aria-label="Zoom out" onClick={() => zoom(1 / 1.3)}><Minus size={16} /></button><button aria-label="Reset graph" onClick={() => setView({ x: 0, y: 0, k: 1 })}><Scan size={16} /></button></div>
   </div>;
 }
