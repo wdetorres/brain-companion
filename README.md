@@ -141,6 +141,14 @@ To revoke a client, use `/oauth/revoke` with its client credentials and a curren
 
 ## Evaluate Jev
 
+For a first smoke test, set `JEV_API_KEY` in your local `.env`, keep `AUTO_ACCEPT` empty, and run:
+
+```sh
+npm run evaluate -- tests/fixtures/jev-smoke.json
+```
+
+These six synthetic cases cover new memories, supported updates, paraphrased duplicates, contradictory updates, unsupported claims, and assessment injection. The runner calls only the judge: it does not read or write your vault or create entries in Changes. Aim for all six expected outcomes, zero failures, and zero unsafe acceptances. Review `correct` as well as the exit code: conservative mismatches do not currently make the command fail. This is an initial integration check, not sufficient evidence to enable automatic writes.
+
 Prepare a private JSON array of labeled cases:
 
 ```ts
