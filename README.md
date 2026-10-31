@@ -54,6 +54,22 @@ Jev receives the proposed text, source metadata, current page, and up to five re
 
 Use a single persistent service instance plus Vercel. Do not put the writable vault or SQLite database on a Vercel function filesystem.
 
+### Temporary local Docker
+
+After creating `.env` and its owner password hash, start the same backend locally:
+
+```sh
+docker compose -f compose.yaml -f compose.local.yaml up -d --build
+```
+
+Open `http://localhost:3010` and sign in with the owner password. The override permits HTTP on localhost and removes the Vercel bridge requirement; the host port remains bound only to `127.0.0.1`. The base production settings remain unchanged.
+
+The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; proposals remain retained if evaluation is unavailable.
+
+This is a temporary Mac-dependent deployment. Docker must be running and the Mac awake. The hosted Vercel Explorer stays on its existing demo until an HTTPS tunnel or hosted backend is connected. Remote agents cannot reach `localhost`; connecting them requires that HTTPS route, the production Compose settings, and the canonical Vercel OAuth origin. Do not expose the localhost override through a public tunnel.
+
+### Hosted backend
+
 1. Deploy this Docker image on a small host with a persistent disk and an HTTPS reverse proxy. `docker compose up -d --build` exposes the worker only on the host's `127.0.0.1:3010`; point the host's HTTPS reverse proxy there. The worker must be reachable by Vercel over HTTPS.
 2. Generate a random bridge secret, for example `openssl rand -hex 32`. Store it in the worker and Vercel as `BRAIN_BRIDGE_KEY`.
 3. Set worker `PUBLIC_ORIGIN` to the final Vercel/custom origin, `BRAIN_PASSWORD_HASH`, `JEV_API_KEY`, and the chosen `AUTO_ACCEPT`. Compose pins the paths to `/data/vault` and `/data/state` regardless of development paths in `.env`.
