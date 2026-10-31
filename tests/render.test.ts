@@ -21,3 +21,21 @@ test('actual Markdown component renders hostile HTML inert and links safely', as
   const ambiguous=render('[Plan](Plan.md)',notes,'Home.md');
   assert.doesNotMatch(ambiguous,/class="wiki-link"/);
 });
+
+test('Jev review separates classification from disposition and does not invent missing scores', async t => {
+  const dir = await mkdtemp(resolve('.render-test-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const compiled = await build({ stdin: { contents: `import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {JevReview} from './src/JevReview.tsx'; export const render=(operation,sample=false)=>renderToStaticMarkup(React.createElement(JevReview,{operation,sample}));`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'esm', packages: 'external', write: false });
+  const path = resolve(dir, 'review.mjs'); await writeFile(path, compiled.outputFiles[0].contents);
+  const { render } = await import(pathToFileURL(path).href);
+  const operation = { status: 'needs_attention', reason: 'Automatic writes are disabled. Proposal retained.', decision: { outcome: 'update', confidence: .98, model: 'jev-test', probabilities: { supported: .98, duplicate: .03, conflict: .04 } } };
+  const html = render(operation);
+  assert.match(html, /Supported update/); assert.match(html, /Proposal retained/);
+  assert.equal((html.match(/role="meter"/g) || []).length, 3);
+  assert.match(html, /aria-label="Evidence support"[^>]*aria-valuenow="98"/);
+  assert.doesNotMatch(html, /Illustrative example/);
+  const missing = render({ ...operation, decision: { ...operation.decision, probabilities: undefined } });
+  assert.equal((missing.match(/Not recorded/g) || []).length, 3); assert.doesNotMatch(missing, /role="meter"/);
+  assert.match(render(operation, true), /Illustrative example/);
+  assert.match(render({ status: 'external', reason: 'Synced from Obsidian' }), /No Jev decision recorded/);
+});
