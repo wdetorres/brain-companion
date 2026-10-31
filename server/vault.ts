@@ -2,6 +2,7 @@ import { readdir, readFile, lstat, realpath } from 'node:fs/promises';
 import { resolve, relative, dirname, posix, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { parse } from 'yaml';
+import { resolveNoteLink } from '../src/links.ts';
 import type { Note, Source } from '../src/shared.ts';
 
 export const revision = (text:string) => createHash('sha256').update(text).digest('hex');
@@ -35,11 +36,8 @@ export async function readVault(root:string):Promise<Note[]> {
     const sources:Source[]=Array.isArray(meta.sources)?meta.sources.filter((s:any)=>s&&typeof s.title==='string'&&typeof s.uri==='string'&&typeof s.observedAt==='string'):[];
     notes.push({path,title:typeof meta.title==='string'?meta.title:body.match(/^#\s+(.+)$/m)?.[1]||basename(path,'.md'),folder:folderFor(path),markdown,body,revision:revision(markdown),links:[],unresolved:[],tags:Array.isArray(meta.tags)?meta.tags.filter((s:unknown)=>typeof s==='string'):[],sources,modifiedAt:stat.mtime.toISOString()});
   }
-  const paths=new Set(notes.map(n=>n.path));
-  for(const n of notes){for(let raw of rawLinks(n.body)){
-    try{raw=decodeURIComponent(raw)}catch{continue} const md=raw.endsWith('.md')?raw:raw+'.md';
-    const local=posix.normalize(posix.join(dirname(n.path),md)); let match=paths.has(local)?local:paths.has(md)?md:undefined;
-    if(!match&&!raw.includes('/')){const candidates=notes.filter(x=>basename(x.path,'.md')===raw.replace(/\.md$/,'')||x.title===raw);if(candidates.length===1)match=candidates[0].path;}
+  for(const n of notes){for(const raw of rawLinks(n.body)){
+    const match=resolveNoteLink(notes,n.path,raw);
     if(match&&match!==n.path)n.links.push(match);else if(!match)n.unresolved.push(raw);
   } n.links=[...new Set(n.links)];n.unresolved=[...new Set(n.unresolved)];}
   return notes;

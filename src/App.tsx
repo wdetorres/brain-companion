@@ -24,7 +24,7 @@ function NoteReader({ note, notes, onOpen, compact = false }: { note: Note; note
   const backlinks = notes.filter(n => n.links.includes(note.path));
   return <>
     <div className="note-heading"><div className="eyebrow" data-folder={note.folder}><span className="folder-dot" />{folderLabels[note.folder] || note.folder}</div><h1>{note.title}</h1><div className="note-meta"><FileText size={12} />{note.path}</div></div>
-    <Markdown text={note.body.replace(/^# [^\n]+\n+/, '')} notes={notes} onOpen={onOpen} />
+    <Markdown path={note.path} text={note.body.replace(/^# [^\n]+\n+/, '')} notes={notes} onOpen={onOpen} />
     <Sources sources={note.sources} />
     <section className="detail-section"><h3>Linked mentions <span>{backlinks.length}</span></h3>{backlinks.length ? backlinks.map(n => <button className="backlink" key={n.path} onClick={() => onOpen(n.path)}><FileText size={13} /><span>{n.title}</span><ChevronRight size={13} /></button>) : <p className="muted small">No other pages link here yet.</p>}</section>
     {!!note.unresolved.length && <section className="detail-section"><h3>Unresolved links</h3><p className="muted small">{note.unresolved.join(' · ')}</p></section>}

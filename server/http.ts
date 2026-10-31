@@ -16,7 +16,7 @@ export function createHandler(store:BrainStore,config:{origin:string;passwordHas
    if(req.method!=='GET')return json({error:'Web access is read-only'},405);
    if(url.pathname==='/api/brain'){const snapshot=await store.snapshot();return json({...snapshot,notes:snapshot.notes.map(n=>({...n,markdown:'',body:''})),operations:snapshot.operations.map(o=>({...o,before:null,proposed:''}))});}
    if(url.pathname==='/api/note'){const path=url.searchParams.get('path');if(!path)return json({error:'Missing path'},400);return json(await store.inspect(path));}
-   if(url.pathname==='/api/operation'){const operation=store.operation(url.searchParams.get('id')||'');return operation?json(operation):json({error:'Not found'},404);}
+   if(url.pathname==='/api/operation'){const operation=await store.operation(url.searchParams.get('id')||'');return operation?json(operation):json({error:'Not found'},404);}
    if(url.pathname==='/api/search')return json({notes:await store.recall(url.searchParams.get('q')||'')});
    return json({error:'Not found'},404);
   }catch{return json({error:'Request could not be completed'},400);}

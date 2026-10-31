@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile, rename, open, unlink } from 'node:fs/promis
 import { resolve, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
+import { relatedNotes } from './retrieval.ts';
 import { readVault, revision, safePath } from './vault.ts';
 import type { BrainSnapshot, Judge, Note, Operation, RememberInput } from '../src/shared.ts';
 
@@ -23,7 +24,7 @@ export class BrainStore {
   private save(op:Operation,key?:string,fingerprint?:string){this.db.prepare('INSERT INTO operations(id,idem,fingerprint,payload) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload').run(op.id,key||null,fingerprint||null,JSON.stringify(op));}
   private observe(notes:Note[]){
     const pending=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='pending'").all() as {payload:string}[];
-    for(const row of pending){const op:Operation=JSON.parse(row.payload); const current=notes.find(n=>n.path===op.path);op.status=current?.revision===revision(op.proposed)?'applied':'needs_attention';op.reason=op.status==='applied'?'Recovered committed write after restart':'Interrupted write retained for inspection';this.save(op);if(op.status==='applied')this.markObserved(current!);}
+    for(const row of pending){const op:Operation=JSON.parse(row.payload); const current=notes.find(n=>n.path===op.path);op.status=current?.revision===revision(op.proposed)?'applied':'needs_attention';op.reason=op.status==='applied'?'Recovered committed write after restart':'Interrupted write retained for inspection';if(op.status==='applied')op.revision=current!.revision;this.save(op);if(op.status==='applied')this.markObserved(current!);}
     for(const n of notes){const prev=this.db.prepare('SELECT revision,markdown FROM observed WHERE path=?').get(n.path) as {revision:string;markdown:string}|undefined;
       if(prev&&prev.revision!==n.revision)this.save({id:randomUUID(),path:n.path,actor:'Obsidian / external',at:new Date().toISOString(),status:'external',reason:'Observed a change outside the memory API',before:prev.markdown,proposed:n.markdown,sources:n.sources,revision:n.revision});
       this.markObserved(n);
@@ -34,18 +35,19 @@ export class BrainStore {
   private async scan(){const notes=await readVault(this.vault);this.observe(notes);return notes;}
   snapshot():Promise<BrainSnapshot>{return this.exclusive(async()=>({notes:await this.scan(),operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}}));}
   async inspect(path:string){const s=await this.snapshot();const n=s.notes.find(n=>n.path===path);if(!n)throw Error('Page not found');return n;}
-  operation(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
+  private operationRecord(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
+  operation(id:string):Promise<Operation|undefined>{return this.exclusive(async()=>{const op=this.operationRecord(id);if(op?.status==='pending')await this.scan();return this.operationRecord(id);});}
   async recall(query:string){const terms=query.toLowerCase().split(/\s+/).filter(Boolean).slice(0,12);const {notes}=await this.snapshot();return notes.map(n=>({n,score:terms.reduce((s,t)=>s+(n.title.toLowerCase().includes(t)?5:0)+(n.body.toLowerCase().includes(t)?1:0),0)})).filter(x=>x.score>0).sort((a,b)=>b.score-a.score).slice(0,12).map(({n})=>({...n,body:n.body.slice(0,1200),markdown:n.markdown.slice(0,1200)}));}
   remember(raw:RememberInput,actor:string):Promise<Operation>{return this.exclusive(async()=>{
     const input=rememberSchema.parse(raw);const target=await safePath(this.vault,input.path,true);const fingerprint=revision(JSON.stringify(input));
     const existing=this.db.prepare('SELECT payload,fingerprint FROM operations WHERE idem=?').get(input.idempotencyKey);
-    if(existing){if(existing.fingerprint!==fingerprint)throw Error('Idempotency key reused with different content');return JSON.parse(existing.payload as string);}
+    if(existing){if(existing.fingerprint!==fingerprint)throw Error('Idempotency key reused with different content');const op:Operation=JSON.parse(existing.payload as string);if(op.status==='pending'){await this.scan();return this.operationRecord(op.id)!;}return op;}
     const notes=await this.scan();const current=notes.find(n=>n.path===input.path);
     const op:Operation={id:randomUUID(),path:input.path,actor,at:new Date().toISOString(),status:'needs_attention',reason:'Proposal retained',before:current?.markdown??null,proposed:input.markdown,sources:input.sources};
     const finish=()=>{this.save(op,input.idempotencyKey,fingerprint);return op;};
     if((current?.revision??null)!==input.expectedRevision){op.reason='Revision conflict: inspect the current page and resubmit';return finish();}
     if(current?.markdown===input.markdown){op.status='duplicate';op.reason='Exact content already present';return finish();}
-    try{op.decision=await this.judge(input,current,notes.filter(n=>n.path!==input.path).sort((a,b)=>Number(b.folder===current?.folder)-Number(a.folder===current?.folder)).slice(0,5));}catch{op.reason='Jev unavailable or invalid response; proposal retained';return finish();}
+    try{op.decision=await this.judge(input,current,relatedNotes(input,notes));}catch{op.reason='Jev unavailable or invalid response; proposal retained';return finish();}
     if(op.decision.outcome==='duplicate'){op.status='duplicate';op.reason='Jev assessed this as already remembered; no content changed';return finish();}
     const expected=current?'update':'new';if(op.decision.outcome!==expected||!this.accept.has(expected)||op.decision.confidence<.95){op.reason=op.decision.outcome==='conflict'?'Conflicting evidence; current page preserved':'Automatic acceptance is not enabled or evidence is uncertain';return finish();}
     let latest:string|null=null;try{latest=await readFile(target,'utf8')}catch(e:any){if(e.code!=='ENOENT')throw e;}

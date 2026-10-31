@@ -68,3 +68,25 @@ test('rejects missing evidence and oversized notes before a write',async t=>{
   await assert.rejects(store.remember({path:'Plan.md',markdown:'# Plan',sources:[],expectedRevision:null,idempotencyKey:'no-evidence-001'},'agent'));
   await assert.rejects(store.remember({path:'Plan.md',markdown:'x'.repeat(131073),sources:[source],expectedRevision:null,idempotencyKey:'too-large-001'},'agent'));
 });
+test('recovers a journaled commit on direct idempotent retry and operation inspection after restart', async t => {
+  const {store,vault,dir}=await fixture(t);
+  const input={path:'Plan.md',markdown:'# Plan',sources:[source],expectedRevision:null,idempotencyKey:'recover-direct-001'};
+  const applied=await store.remember(input,'agent');
+  const pending={...applied,status:'pending',revision:undefined};
+  store.db.prepare('UPDATE operations SET payload=? WHERE id=?').run(JSON.stringify(pending),applied.id);
+  store.close();
+  const restarted=new BrainStore({vault,data:join(dir,'state'),judge:async()=>{throw Error('must not evaluate twice')}});t.after(()=>restarted.close());
+  const recovered=await restarted.remember(input,'agent');
+  assert.equal(recovered.status,'applied');assert.equal(recovered.revision,applied.revision);
+  restarted.db.prepare('UPDATE operations SET payload=? WHERE id=?').run(JSON.stringify(pending),applied.id);
+  const inspected=await restarted.operation(applied.id);
+  assert.equal(inspected?.status,'applied');assert.equal(inspected?.revision,applied.revision);
+});
+test('selects directly relevant existing evidence for a new memory instead of alphabetical neighbors',async t=>{
+  let seen:string[]=[];
+  const {store,vault}=await fixture(t,async(_input:any,_current:any,related:any[])=>{seen=related.map(n=>n.path);return{outcome:'uncertain',confidence:.5,model:'test',usage:{}}});
+  for(let i=0;i<7;i++)await writeFile(join(vault,`A${i}.md`),'# Unrelated\nCoffee brewing guide.');
+  await writeFile(join(vault,'Z-existing.md'),'# Launch plan\nThe Apollo launch date is Monday.');
+  await store.remember({path:'New launch.md',markdown:'# Launch plan\nThe Apollo launch date is Friday.',sources:[source],expectedRevision:null,idempotencyKey:'relevant-context-001'},'agent');
+  assert.ok(seen.includes('Z-existing.md'));assert.ok(seen.length<=5);
+});

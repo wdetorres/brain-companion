@@ -12,3 +12,11 @@ test('local graph includes inbound and outbound neighbors and bounds large views
  assert.deepEqual(visibleGraph(notes,'all',false,'A').map(n=>n.path),['A','B','C']);
  assert.equal(visibleGraph(Array.from({length:400},(_,i)=>({path:String(i),folder:'projects',links:[]})) as any,'all',false).length,200);
 });
+
+test('page-relative links win over matching titles and ambiguous basenames stay unresolved', async () => {
+  const {resolveNoteLink}=await import('../src/links.ts');
+  const notes=[{path:'Home.md',title:'Home'},{path:'A/Plan.md',title:'Renamed title'},{path:'B/Plan.md',title:'Plan'}];
+  assert.equal(resolveNoteLink(notes,'A/Index.md','Plan'),'A/Plan.md');
+  assert.equal(resolveNoteLink(notes,'Home.md','Plan.md'),undefined);
+  assert.equal(resolveNoteLink(notes,'A/Index.md','../Home.md#Heading'),'Home.md');
+});
