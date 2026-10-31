@@ -2,35 +2,41 @@
 
 Updated 2026-10-31 (Asia/Manila).
 
-## Completed
+## Current decision
 
-- Published all 54 tracked source files from local main at `9d7b5f7`, with the small deployment changes, to the private repository `wdetorres/brain-companion`.
-- Published application commit: `4d5e68cfab6178498a09e6ef3da168758392592f`.
-- Pinned official Obsidian Headless to `0.0.14`; Docker health check uses `PORT`.
-- Documented one Render disk at `/data`, with vault at `/data/vault`, SQLite at `/data/state`, and `XDG_CONFIG_HOME=/data/config` for Obsidian credentials/registration.
-- Verified 27 tests, TypeScript check, production build, and `git diff --check`.
-- Generated owner password/hash and bridge key in the gitignored local `.env` (mode 0600). `BRAIN_OWNER_PASSWORD` is for the owner and verification only; do not send it to Render or Vercel. Keep it in a password manager.
-- Saved `BRAIN_BRIDGE_KEY` as a sensitive, production-only Vercel variable.
-- Existing monochrome UI remains at https://brain-companion-hazel.vercel.app. No frontend redeploy in this session.
+Use local Docker temporarily. Paid Render deployment is paused at the owner's request. No Render service or disk was created. The workspace is still Hobby. The repository is public at https://github.com/wdetorres/brain-companion.
 
-## Immediate blocker
+## Ready
 
-Render MCP works in workspace `tea-dbinvp0u01pc73dfr990` (My Workspace), but service creation was rejected because Render cannot fetch the private repository. No service was created and no disk was provisioned.
+- Published the application source, based on local main at `9d7b5f7`.
+- Pinned official Obsidian Headless to `0.0.14`; Docker health check honors `PORT`.
+- Added `compose.local.yaml`: localhost origin, development HTTP, no Vercel bridge secret required locally. The host port stays bound to `127.0.0.1:3010`; owner password authentication remains required.
+- Reused the existing named volumes for Markdown, SQLite, and the Obsidian account home. The desktop vault is not mounted or copied.
+- The generated password hash and bridge secret are in the ignored mode-0600 `.env`. The owner password is in ignored `data/owner-password.txt` (mode 0600), outside the container environment. Store it in a password manager.
+- Saved the bridge key as a sensitive, production-only Vercel variable. The hosted monochrome UI remains at https://brain-companion-hazel.vercel.app; no backend URL or tunnel is connected.
+- Verified 27 application tests, TypeScript, and production asset build during deployment preparation. Then validated both Compose configurations, localhost binding, all three volume targets, unchanged production bridge settings, exclusion of the plaintext owner password, and `git diff --check`.
+- Reviewed the published source before changing visibility: no live credentials or real-vault files were included. Demo content is synthetic.
 
-The existing Render deployment credential identifies `wdetorres`, but only has access to an unrelated repository. The GitHub Render installation page is staged with **only** `wdetorres/brain-companion` selected. Installing grants new repository access and needs user confirmation at that action.
+## Start locally
 
-## Resume
+Run in a normal terminal, from the repository directory:
 
-1. Complete the Render GitHub app installation scoped to this repository.
-2. Use Render MCP to create one Docker web service: `brain-companion`, `main`, Singapore, Starter ($7/month compute), on the existing Hobby workspace. Keep automatic deploys off during setup.
-3. Set the existing hash/key from `.env`, the canonical Vercel origin, the persistent paths above, `PORT=3000`, `HOST=0.0.0.0`, `SYNC_ENABLED=false`, and empty `AUTO_ACCEPT`.
-4. Attach a 1 GB disk at `/data` in the dashboard (the MCP tool has no disk capability). Configure `/healthz` and a 150-second shutdown delay. Verify filesystem write permission on the mounted disk.
-5. Set the actual Render HTTPS URL as Vercel's production-only `BRAIN_SERVICE_URL`, then redeploy the existing Vercel project `prj_Wk2y2R5MThgBhkiSGQk5GrUVIZlc` in `team_QuB3ofEQtT1zmI46VJ9iBMna`.
-6. Obtain the Jev key securely and set it only on Render. Keep auto-accept disabled until a representative evaluation is complete.
-7. Authenticate Obsidian interactively in the Render service Shell, choose the real remote vault, configure conflict copies, and perform the first sync. Credentials were not available locally and no real-vault data was copied. Then enable scheduled sync and deploy.
-8. Verify browser login, anonymous rejection, OAuth discovery/PKCE/token/refresh, and MCP tools through the canonical Vercel URL. Connect ChatGPT and verify recall in a fresh conversation.
-9. Restart Render and verify note revisions, operation history, auth tokens, and Obsidian login/sync survive. No live persistence result is claimed yet.
+```sh
+docker compose -f compose.yaml -f compose.local.yaml up -d --build
+```
+
+Open http://localhost:3010. This agent session cannot access the Docker socket, so the image build, service start, and live checks have not been performed. Do not use `down -v`; it deletes the data volumes.
+
+## Remaining setup
+
+1. Build/start Docker and verify `/healthz`, owner login, anonymous rejection, and MCP discovery.
+2. Add the Jev key only to the local service's `.env`. Leave `AUTO_ACCEPT` empty until evaluation is complete.
+3. With `SYNC_ENABLED=false`, authenticate official Obsidian Headless inside the container and select the real remote vault using the README commands. Keep this separate from the desktop vault. Enable automatic sync only after the initial manual sync succeeds.
+4. Verify a container restart preserves notes, operation history, OAuth/browser sessions, and Obsidian login/sync. No live restart or real-vault result is claimed yet.
+5. For remote agents and the hosted Vercel UI, connect a stable HTTPS tunnel to the **production** Compose configuration and set Vercel's `BRAIN_SERVICE_URL`. Do not expose the local override publicly. No tunnel was provisioned.
+
+The Mac must remain awake and Docker running. Render or Railway can replace it later using the existing portable Docker image and persistent paths; resuming paid Render provisioning requires a new instruction from the owner.
 
 ## Source-control boundary
 
-The shell cannot resolve GitHub and local `.git` is read-only in this session. Publishing used the GitHub connector, so remote history begins with a source snapshot, not the original local commit ancestry. Local `main` remains at `9d7b5f7` with Dockerfile/README changes and this checkpoint. Do not force-push the local branch over remote main; fetch and reconcile the histories in a normal terminal before further git-based work.
+The shell cannot resolve GitHub and local `.git` is read-only in this session. Source publication used the GitHub connector, so remote history starts with a snapshot rather than the original local ancestry. Local main remains at `9d7b5f7` with deployment changes in the working tree. Do not force-push it over remote main; reconcile the histories in a normal terminal before further git-based work.
