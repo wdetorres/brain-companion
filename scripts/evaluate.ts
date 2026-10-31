@@ -18,8 +18,8 @@ for (const item of cases) {
     if (decision.outcome === item.expected) correct++;
     if (['new', 'update'].includes(decision.outcome) && decision.outcome !== item.expected) unsafeAccepts++;
     for (const [key, value] of Object.entries(decision.usage)) usage[key] = (usage[key] || 0) + value;
-    console.log(JSON.stringify({ case: item.name, expected: item.expected, actual: decision.outcome, model: decision.model, ms, usage: decision.usage }));
+    console.log(JSON.stringify({ case: item.name, expected: item.expected, actual: decision.outcome, probabilities: decision.probabilities, model: decision.model, ms, usage: decision.usage }));
   } catch { failures++; console.log(JSON.stringify({ case: item.name, error: 'Evaluation failed' })); }
 }
 console.log(JSON.stringify({ cases: cases.length, correct, unsafeAccepts, failures, meanSuccessfulMs: Math.round(elapsed / Math.max(1, cases.length - failures)), usage }));
-if (unsafeAccepts || failures) process.exitCode = 1;
+if (correct !== cases.length || failures) process.exitCode = 1;
