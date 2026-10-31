@@ -25,11 +25,13 @@ Run in a normal terminal, from the repository directory:
 docker compose -f compose.yaml -f compose.local.yaml up -d --build
 ```
 
-Open http://localhost:3010. This agent session cannot access the Docker socket, so the image build, service start, and live checks have not been performed. Do not use `down -v`; it deletes the data volumes.
+The owner ran the command successfully: the Docker image built, all three named volumes were created, and `brain-companion-brain-1` started. This agent session still cannot access the Docker socket directly. Do not use `down -v`; it deletes the data volumes.
+
+Browser checks against http://localhost:3010 passed: `/healthz` returned `{"ok":true}`, anonymous vault/MCP requests required authentication, both OAuth discovery documents used the local origin, owner login succeeded, and the authenticated vault API returned live mode with zero notes and zero operations. The session remained signed in after navigation. Obsidian reports `Not configured`; a full OAuth code exchange, authenticated MCP tool calls, and restart persistence have not yet been verified live.
 
 ## Remaining setup
 
-1. Build/start Docker and verify `/healthz`, owner login, anonymous rejection, and MCP discovery.
+1. Complete a live OAuth code exchange and authenticated MCP tool calls after configuring the vault.
 2. Add the Jev key only to the local service's `.env`. Leave `AUTO_ACCEPT` empty until evaluation is complete.
 3. With `SYNC_ENABLED=false`, authenticate official Obsidian Headless inside the container and select the real remote vault using the README commands. Keep this separate from the desktop vault. Enable automatic sync only after the initial manual sync succeeds.
 4. Verify a container restart preserves notes, operation history, OAuth/browser sessions, and Obsidian login/sync. No live restart or real-vault result is claimed yet.
