@@ -1,0 +1,7 @@
+# Local browser/MCP access. The base file remains the production deployment.
+services:
+  brain:
+    environment:
+      NODE_ENV: development
+      PUBLIC_ORIGIN: http://localhost:3010
+      BRAIN_BRIDGE_KEY: ""
