@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { layoutGraph, graphLabels } from '../src/graph-layout.ts';
 
 test('layout follows connections, remains deterministic, and preserves input', () => {
-  const notes = Array.from({ length: 40 }, (_, i) => ({ path: String(i).padStart(2, '0'), links: [String(Math.floor(i / 10) * 10).padStart(2, '0')] }));
+  const notes = Array.from({ length: 200 }, (_, i) => ({ path: String(i).padStart(3, '0'), links: [String(Math.floor(i / 10) * 10).padStart(3, '0')] }));
   const before = structuredClone(notes);
   const { nodes, edges } = layoutGraph(notes);
   assert.deepEqual(notes, before);
@@ -24,7 +24,7 @@ test('layout follows connections, remains deterministic, and preserves input', (
 test('dense graphs have nonoverlapping labels, with more detail on zoom and focus', () => {
   const nodes = Array.from({ length: 200 }, (_, i) => ({ path: String(i), title: 'Connected note ' + i, x: 90 + i % 10 * 160, y: 50 + Math.floor(i / 10) * 65, radius: 4, degree: i % 9 }));
   const labels = graphLabels(nodes, 1700, 1400, 1, null, new Set());
-  assert.ok(labels.length > 0 && labels.length <= 18);
+  assert.ok(labels.length > 0 && labels.length < nodes.length / 2);
   for (const a of labels) for (const b of labels) if (a !== b) {
     assert.ok(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
   }

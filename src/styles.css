@@ -142,7 +142,7 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .graph-lines line.dim { stroke-opacity: .035; }
 .graph-node { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; padding: 0; width: 24px; height: 24px; z-index: 2; border-radius: 50%; }
 .node-dot { border-radius: 50%; background: #969696; flex-shrink: 0; transition: opacity 160ms, background 160ms; }
-.node-name { position: absolute; left: 50%; transform: translateX(-50%); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11px; line-height: 14px; font-weight: 400; color: #b5b5b5; text-align: center; overflow-wrap: anywhere; pointer-events: none; text-shadow: 0 1px 3px #1c1c1c, 0 -1px 3px #1c1c1c, 1px 0 3px #1c1c1c, -1px 0 3px #1c1c1c; }
+.node-name { position: absolute; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11px; line-height: 14px; font-weight: 400; color: #b5b5b5; text-align: center; overflow-wrap: anywhere; pointer-events: none; text-shadow: 0 1px 3px #1c1c1c, 0 -1px 3px #1c1c1c, 1px 0 3px #1c1c1c, -1px 0 3px #1c1c1c; }
 .graph-node.active-node .node-dot, .graph-node.selected .node-dot { background: #f1f1f1; }
 .graph-node.selected .node-dot { outline: 1px solid #bdbdbd; outline-offset: 4px; }
 .graph-node.active-node .node-name { color: #f1f1f1; -webkit-line-clamp: unset; }

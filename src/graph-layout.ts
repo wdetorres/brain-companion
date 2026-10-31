@@ -53,7 +53,7 @@ export type LabelNode = GraphPoint & { title: string; radius: number };
 export type GraphLabel = { path: string; x: number; y: number; width: number; height: number };
 export function graphLabels(nodes: LabelNode[], width: number, height: number, zoom: number, active: string | null, related: Set<string>) {
   const labels: GraphLabel[] = [];
-  const limit = nodes.length <= 30 ? nodes.length : Math.min(nodes.length, Math.round(18 * zoom * zoom));
+  const limit = nodes.length <= 30 ? nodes.length : Math.min(nodes.length, Math.max(8, Math.round(width * height / 50000 * zoom * zoom)));
   const priority = (n: LabelNode) => (n.path === active ? 100000 : related.has(n.path) ? 10000 : 0) + n.degree;
   const candidates = [...nodes].sort((a, b) => priority(b) - priority(a) || a.path.localeCompare(b.path));
   for (const node of candidates) {
@@ -61,11 +61,20 @@ export function graphLabels(nodes: LabelNode[], width: number, height: number, z
     if (active && !related.has(node.path)) continue;
     const labelWidth = Math.min(node.path === active ? 220 : 156, Math.max(40, node.title.length * 6.5));
     const labelHeight = Math.min(node.path === active ? Infinity : 2, Math.ceil(node.title.length * 6.5 / labelWidth)) * 14;
-    const label = { path: node.path, x: node.x - labelWidth / 2, y: node.y + node.radius + 6, width: labelWidth, height: labelHeight };
-    if (label.x < 8 || label.x + label.width > width - 8 || label.y < 8 || label.y + label.height > height - 48) continue;
-    if (labels.some(b => label.x < b.x + b.width + 8 && label.x + label.width + 8 > b.x && label.y < b.y + b.height + 5 && label.y + label.height + 5 > b.y)) continue;
-    if (node.path !== active && nodes.some(n => n.path !== node.path && n.x + n.radius > label.x - 4 && n.x - n.radius < label.x + label.width + 4 && n.y + n.radius > label.y - 3 && n.y - n.radius < label.y + label.height + 3)) continue;
-    labels.push(label);
+    const placements = [
+      [node.x - labelWidth / 2, node.y + node.radius + 6],
+      [node.x - labelWidth / 2, node.y - node.radius - labelHeight - 6],
+      [node.x + node.radius + 8, node.y - labelHeight / 2],
+      [node.x - node.radius - labelWidth - 8, node.y - labelHeight / 2],
+    ];
+    for (const [x, y] of placements) {
+      const label = { path: node.path, x, y, width: labelWidth, height: labelHeight };
+      if (x < 8 || x + labelWidth > width - 8 || y < 8 || y + labelHeight > height - 48) continue;
+      if (labels.some(b => x < b.x + b.width + 8 && x + labelWidth + 8 > b.x && y < b.y + b.height + 5 && y + labelHeight + 5 > b.y)) continue;
+      if (node.path !== active && nodes.some(n => n.path !== node.path && n.x + n.radius > x - 4 && n.x - n.radius < x + labelWidth + 4 && n.y + n.radius > y - 3 && n.y - n.radius < y + labelHeight + 3)) continue;
+      labels.push(label);
+      break;
+    }
   }
   return labels;
 }

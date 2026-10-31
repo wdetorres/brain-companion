@@ -58,7 +58,7 @@ export function Graph({ notes, selected, onSelect }: { notes: Note[]; selected: 
     })}</svg>
     {points.map(n => { const label = labels.get(n.path); return <button key={n.path} className={`graph-node ${n.path === selected ? 'selected' : ''} ${n.path === active ? 'active-node' : ''} ${active && !related.has(n.path) ? 'dim' : ''}`} style={{ left: n.x, top: n.y }} onClick={() => onSelect(n.path)} onMouseEnter={() => setHover(n.path)} onMouseLeave={() => setHover(null)} onFocus={() => setHover(n.path)} onBlur={() => setHover(null)} aria-label={'Read ' + n.title} aria-pressed={selected === n.path}>
       <span className="node-dot" style={{ width: n.radius * 2, height: n.radius * 2 }} />
-      {label && <span className="node-name" style={{ width: label.width, top: 12 + n.radius + 6 }}>{n.title}</span>}
+      {label && <span className="node-name" style={{ width: label.width, left: label.x - n.x + 12, top: label.y - n.y + 12 }}>{n.title}</span>}
     </button>; })}
     {!notes.length && <div className="graph-empty">No notes in this view.</div>}
     <div className="graph-hint"><Move size={12} /><span>Scroll to zoom · drag to pan · select a note</span></div>
