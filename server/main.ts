@@ -1,3 +1,4 @@
+import { validateRuntimeConfig } from './config.ts';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname } from 'node:path';
@@ -8,13 +9,10 @@ import { json } from './auth.ts';
 import { scheduleSync } from './runtime.ts';
 
 const port = Number(process.env.PORT || 3000);
-const origin = process.env.PUBLIC_ORIGIN || `http://localhost:${port}`;
+const origin = validateRuntimeConfig(process.env);
 const hash = process.env.BRAIN_PASSWORD_HASH;
 const bridgeKey = process.env.BRAIN_BRIDGE_KEY;
 const live = !!hash;
-if (live && !/^[a-f0-9]{32}:[a-f0-9]{128}$/.test(hash)) throw Error('Invalid BRAIN_PASSWORD_HASH');
-if (live && origin.startsWith('https:') && (!bridgeKey || bridgeKey.length < 32)) throw Error('Production requires a random BRAIN_BRIDGE_KEY of at least 32 characters');
-if (process.env.NODE_ENV === 'production' && !live) throw Error('Production requires an owner password hash');
 const accepted = (process.env.AUTO_ACCEPT || '').split(',').filter(Boolean);
 if (accepted.some(v => !['new', 'update'].includes(v))) throw Error('AUTO_ACCEPT supports only new,update');
 const store = live ? new BrainStore({ vault: resolve(process.env.VAULT_PATH || 'data/vault'), data: resolve(process.env.STATE_PATH || 'data/state'), judge: createJevJudge(process.env.JEV_API_KEY || '', process.env.JEV_MODEL || 'jev-latest'), accept: accepted }) : undefined;
