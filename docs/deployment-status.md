@@ -40,8 +40,10 @@ After recreation, confirm the same notes and browser session, then a fresh `Last
 
 ## Remaining setup
 
+The owner configured the local Jev key and completed live synthetic evaluation with `jev-1.14.0`. Clarified evidence/duplicate/conflict questions improved exact matches from 2/6 to 5/6, with zero unsafe acceptances or API failures; mean response time was 324 ms. The remaining new-memory case was retained as uncertain (support 0.93, duplicate 0.03, conflict 0.06). Thresholds remain unchanged and `AUTO_ACCEPT` remains empty. This small sample does not validate automatic writes. The isolated MCP/Jev/SQLite workflow runner is ready; its live result is pending.
+
 1. Complete a live OAuth code exchange and authenticated MCP tool calls after configuring the vault.
-2. Add the Jev key only to the local service's `.env`. Leave `AUTO_ACCEPT` empty until evaluation is complete.
+2. Recreate Docker to load the local Jev key and revised evaluator, then verify a retained proposal through the authenticated service. Leave `AUTO_ACCEPT` empty while evaluating unseen representative cases.
 3. Recreate the local service with both Compose files to activate scheduled sync after the completed manual sync. Keep this container vault separate from the desktop vault.
 4. Verify container recreation preserves notes and browser sessions and that scheduled sync succeeds with the persisted Obsidian credentials. Then verify operation history and OAuth grants after creating a test proposal and connection. No live restart result is claimed yet.
 5. For remote agents and the hosted Vercel UI, connect a stable HTTPS tunnel to the **production** Compose configuration and set Vercel's `BRAIN_SERVICE_URL`. Do not expose the local override publicly. No tunnel was provisioned.
