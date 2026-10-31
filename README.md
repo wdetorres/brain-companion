@@ -33,7 +33,7 @@ npm run check
 npm run build
 ```
 
-Tests exercise real temporary vaults, SQLite restart behavior, the OAuth and MCP request handlers, bridge routing, safe Markdown rendering, and sync/write serialization. This build environment prohibits listening sockets, so browser interaction and real HTTP deployment checks still need to run after deployment. Real Jev, Obsidian Sync, Docker image construction, and ChatGPT connection have not yet been exercised with account credentials.
+Tests exercise real temporary vaults, SQLite restart behavior, the OAuth and MCP request handlers, bridge routing, safe Markdown rendering, and sync/write serialization. See the [deployment checkpoint](docs/deployment-status.md) for live deployment checks and remaining credential-dependent verification.
 
 ## Configure a local private service
 
@@ -101,7 +101,7 @@ Verify persistence by recording a real note's revision, the latest operation ID,
 
 Vercel receives only `BRAIN_SERVICE_URL` and `BRAIN_BRIDGE_KEY`, scoped to **production**. The public OAuth issuer and resource stay on the Vercel origin. The Docker image and these environment variables also work on Railway with a volume at `/data`; no Render SDK is required.
 
-The frontend is deployed in the personal Vercel account at [brain-companion-hazel.vercel.app/demo](https://brain-companion-hazel.vercel.app/demo). The demo uses clearly labeled sample notes and activity. The persistent worker, Jev credentials, and Obsidian Sync still need to be configured before private memory and MCP access work.
+The frontend is deployed in the personal Vercel account at [brain-companion-hazel.vercel.app/demo](https://brain-companion-hazel.vercel.app/demo). The demo uses clearly labeled sample notes and activity. See the [deployment checkpoint](docs/deployment-status.md) for backend, real-vault sync, and agent connectivity status.
 
 ## Connect Obsidian Sync
 
@@ -119,7 +119,13 @@ docker compose exec brain ob sync --path /data/vault
 
 Enter any encryption password interactively, rather than putting it in shell arguments. The `headless-home` volume keeps the CLI's account configuration; the vault volume keeps the vault and its local Sync configuration.
 
-Then set `SYNC_ENABLED=true` and recreate the service with `docker compose up -d`. The service runs bounded one-shot sync jobs, never `ob sync --continuous`, so its own writes cannot overlap its sync process. Do not run additional sync writers against these volumes. An `applied` operation means the server file was written; it does not claim every desktop or phone has already received it.
+Then set `SYNC_ENABLED=true` and recreate the service. For temporary local Docker, keep both Compose files so the localhost origin and login continue to work:
+
+```sh
+docker compose -f compose.yaml -f compose.local.yaml up -d --force-recreate --no-build brain
+```
+
+For the production Compose configuration, use `docker compose up -d`. A plain `restart` does not apply changed environment variables. Both configurations reuse the existing named volumes. The service runs bounded one-shot sync jobs, never `ob sync --continuous`, so its own writes cannot overlap its sync process. Do not run additional sync writers against these volumes. An `applied` operation means the server file was written; it does not claim every desktop or phone has already received it.
 
 ## Connect ChatGPT and other agents
 
