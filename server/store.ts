@@ -12,27 +12,35 @@ import { NoteIndex } from './note-index.ts';
 import { WorkQueue } from './work.ts';
 import { createNoteFile, promotionLinkChanges, readOptional, syncDirectory } from './promotion.ts';
 import { categories } from '../src/shared.ts';
-import type { BrainSnapshot, Judge, Note, Operation, RememberInput, RecallJudge, ConnectionJudge, Connection, MemoryCategory, RecallResult, RecallHit } from '../src/shared.ts';
+import type { BrainSnapshot, Judge, Note, Operation, RememberInput, RecallJudge, ConnectionJudge, Connection, MemoryCategory, RecallResult, RecallHit, AssessMemoryInput, Assessment, AssessmentNote, WriteAssessor } from '../src/shared.ts';
 
 export const rememberSchema=z.object({path:z.string().max(512),markdown:z.string().min(1).refine(v=>Buffer.byteLength(v)<=131072,'Note exceeds 128 KiB'),sources:z.array(z.object({title:z.string().min(1).max(300),uri:z.string().min(1).max(2000).refine(v=>/^(https?:|obsidian:|urn:)/.test(v),'Source must be a URL or URN'),observedAt:z.iso.datetime({offset:true}),excerpt:z.string().min(1).max(6000).optional()})).min(1).max(20),expectedRevision:z.string().max(100).nullable(),idempotencyKey:z.string().min(8).max(128)}).strict();
 export const promoteSchema=rememberSchema.extend({sourcePath:z.string().min(1).max(512),expectedRevision:z.string().min(1).max(100),claimToken:z.string().min(1).max(128)});
+export const assessMemorySchema=rememberSchema.extend({intent:z.enum(['capture','consolidate','promote']),sourcePath:z.string().min(1).max(512).optional(),contextPaths:z.array(z.string().min(1).max(512)).max(5).refine(v=>new Set(v).size===v.length,'Context paths must be distinct').optional()})
+  .refine(v=>v.intent==='promote'?!!v.sourcePath&&!!v.expectedRevision:!v.sourcePath,'Only promotion requires a source path and revision')
+  .refine(v=>v.sources.some(s=>!!s.excerpt?.trim()),'Assessment requires a verified source excerpt');
 export class BrainStore {
   readonly db:DatabaseSync; readonly vault:string; readonly judge:Judge; readonly accept:Set<string>;
   readonly index:NoteIndex;
   readonly work:WorkQueue;
-  private recallJudge?:RecallJudge; private connectionJudge?:ConnectionJudge;
+  private recallJudge?:RecallJudge; private connectionJudge?:ConnectionJudge; private writeAssessor?:WriteAssessor;
   private recallCache = new Map<string, { at:number; result:RecallResult }>();
   private queue:Promise<unknown>=Promise.resolve(); private closed=false;
   private syncReady?:Promise<void>;
   private syncView?:{snapshot:BrainSnapshot;status:ReturnType<BrainStore['statusFrom']>};
   syncStatus='Not configured'; lastSync:string|null=null;
-  constructor(options:{vault:string;data:string;judge:Judge;accept?:string[];recallJudge?:RecallJudge;connectionJudge?:ConnectionJudge}) {
+  constructor(options:{vault:string;data:string;judge:Judge;accept?:string[];recallJudge?:RecallJudge;connectionJudge?:ConnectionJudge;writeAssessor?:WriteAssessor}) {
     this.vault=resolve(options.vault); mkdirSync(this.vault,{recursive:true});mkdirSync(options.data,{recursive:true});
     this.db=new DatabaseSync(resolve(options.data,'brain.sqlite'));this.judge=options.judge;this.accept=new Set(options.accept||[]);this.recallJudge=options.recallJudge;this.connectionJudge=options.connectionJudge;
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, idem TEXT UNIQUE, fingerprint TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS observed (path TEXT PRIMARY KEY, revision TEXT, markdown TEXT); CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
     this.db.exec('CREATE TABLE IF NOT EXISTS connections (id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
+    this.db.exec('CREATE TABLE IF NOT EXISTS assessments (id TEXT PRIMARY KEY, idem TEXT UNIQUE NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL, progress TEXT NOT NULL DEFAULT \'{}\')');this.writeAssessor=options.writeAssessor;
     this.index=new NoteIndex(this.db,this.vault);
     this.work=new WorkQueue(this.db);
+    for(const row of this.db.prepare("SELECT id,payload FROM assessments WHERE json_extract(payload,'$.status')='assessing'").all()){
+      const a:Assessment=JSON.parse(row.payload as string);a.status='unavailable';a.error='Assessment interrupted; inspect the saved candidate before continuing';
+      this.db.prepare('UPDATE assessments SET payload=? WHERE id=?').run(JSON.stringify(a),row.id as string);
+    }
     if(!this.db.prepare('SELECT value FROM metadata WHERE key=?').get('workIndexed')){
       for(const row of this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='needs_attention'").all()){
         const op:Operation=JSON.parse(row.payload as string);if(!op.resolution&&op.decision?.outcome!=='not_worth_remembering')this.work.enqueue('operation:'+op.id,revision(op.proposed),op.path,'proposal',op.reason,op.id);
@@ -127,6 +135,34 @@ export class BrainStore {
     });
   }
   private operationRecord(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
+  private assessmentRecord(id:string):Assessment|undefined{const row=this.db.prepare('SELECT payload,progress FROM assessments WHERE id=?').get(id);return row?{...JSON.parse(row.payload as string),progress:JSON.parse(row.progress as string)}:undefined;}
+  assessment(id:string):Promise<Assessment|undefined>{return this.exclusive(async()=>this.assessmentRecord(id));}
+  async assessMemory(raw:AssessMemoryInput,actor:string):Promise<{assessment:Assessment;workId:string;claimToken?:string}>{
+    const input=assessMemorySchema.parse(raw),fingerprint=revision(JSON.stringify(input));let evaluate=false;
+    const assessment=await this.exclusive(async()=>{
+      const prior=this.db.prepare('SELECT id,fingerprint FROM assessments WHERE idem=?').get(input.idempotencyKey);
+      if(prior){if(prior.fingerprint!==fingerprint)throw Error('Idempotency key reused with different content');return this.assessmentRecord(prior.id as string)!;}
+      await safePath(this.vault,input.path,true);if(input.sourcePath)await safePath(this.vault,input.sourcePath,true);
+      const notes=await this.scan(),current=notes.find(n=>n.path===(input.sourcePath||input.path));
+      if((current?.revision??null)!==input.expectedRevision)throw Error('Revision conflict: inspect current context');
+      if(input.intent==='promote'&&(current?.folder!=='inbox'||notes.some(n=>n.path===input.path)))throw Error('Promotion requires an Inbox source and absent destination');
+      if(current?.assessmentAllowed===false||parseNote(input.path,input.markdown,'').assessmentAllowed===false)throw Error('Candidate is outside the hosted assessment privacy scope');
+      const explicit:Note[]=[];for(const path of input.contextPaths||[]){await safePath(this.vault,path);const n=notes.find(n=>n.path===path);if(!n)throw Error('Context note not found');if(n.assessmentAllowed===false)throw Error('Context is outside the hosted assessment privacy scope');explicit.push(n);}
+      const bounded=(n:Note):AssessmentNote=>({...n,markdown:n.markdown.slice(0,12000),body:n.body.slice(0,12000),truncated:n.markdown.length>12000});
+      const selected=[...explicit,...relatedNotes(input,notes)].filter((n,i,all)=>n.path!==current?.path&&all.findIndex(x=>x.path===n.path)===i).slice(0,5);
+      const id=randomUUID(),a:Assessment={id,actor,at:new Date().toISOString(),input,fingerprint,workId:'',status:'assessing',context:{current:current?bounded(current):undefined,related:selected.map(bounded)}};
+      this.db.exec('BEGIN');try{
+        const job=this.work.enqueue('assessment:'+id,fingerprint,input.path,'assessment','Awaiting agent decision',undefined,id);a.workId=job.id;this.work.claim(job.id,actor);
+        this.db.prepare('INSERT INTO assessments(id,idem,fingerprint,payload) VALUES(?,?,?,?)').run(id,input.idempotencyKey,fingerprint,JSON.stringify(a));this.db.exec('COMMIT');
+      }catch(e){this.db.exec('ROLLBACK');throw e;}evaluate=true;return a;
+    });
+    if(evaluate){
+      try{if(!this.writeAssessor)throw Error('Unavailable');const result=await this.writeAssessor(input,assessment.context.current,assessment.context.related);Object.assign(assessment,result,{status:'assessed'});}
+      catch{assessment.status='unavailable';assessment.error='Assessment unavailable; inspect sources before continuing or explicitly retry with a new key';}
+      await this.exclusive(async()=>{this.db.prepare('UPDATE assessments SET payload=? WHERE id=?').run(JSON.stringify(assessment),assessment.id);});
+    }
+    return this.exclusive(async()=>{const a=this.assessmentRecord(assessment.id)!,job=this.work.get(a.workId);return{assessment:a,workId:a.workId,...(job?.status==='claimed'&&job.owner===actor&&(job.leaseUntil||0)>Date.now()?{claimToken:job.claimToken}:{})};});
+  }
   operation(id:string):Promise<Operation|undefined>{return this.exclusive(async()=>{const op=this.operationRecord(id);if(op?.status==='pending')await this.scan();return this.operationRecord(id);});}
   private statusFrom(notes:Note[]){return {version:2,notes:notes.length,autoAccept:[...this.accept],folders:[...new Set(notes.map(n=>dirname(n.path)).filter(p=>p!=='.'))].sort().slice(0,200),work:this.db.prepare('SELECT status,COUNT(*) AS count FROM work GROUP BY status').all(),sync:this.syncStatus,lastSync:this.lastSync,search:'SQLite FTS5 + Jev evidence review',index:{parsedThisRefresh:this.index.lastReadCount},claimSeconds:300,guide:'brain://guide',policy:'brain://policy'};}
   async status(){await this.syncReady;if(this.syncView)return this.syncView.status;return this.exclusive(async()=>this.statusFrom(await this.scan()));}
