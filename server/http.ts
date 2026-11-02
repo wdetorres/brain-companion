@@ -1,20 +1,27 @@
 import { z } from 'zod';
 import { categories } from '../src/shared.ts';
 import { timingSafeEqual } from 'node:crypto';
-import { AuthService, json } from './auth.ts';import{createMemoryMcp}from'./mcp.ts';import type{BrainStore}from'./store.ts';
-export function createHandler(store:BrainStore,config:{origin:string;passwordHash:string;bridgeKey?:string}){
- const auth=new AuthService(store.db,config);return async(req:Request):Promise<Response>=>{
+import { type AuthService, json } from './auth.ts';import{createMemoryMcp}from'./mcp.ts';import type{BrainStore}from'./store.ts';
+export function createHandler(store:BrainStore,config:{auth:AuthService;bridgeKey?:string}){
+ const auth=config.auth;return async(req:Request):Promise<Response>=>{
   try{
    const url=new URL(req.url);if(url.pathname==='/healthz')return json({ok:true});
    if(config.bridgeKey){const key=req.headers.get('x-brain-bridge')||'';if(key.length!==config.bridgeKey.length||!timingSafeEqual(Buffer.from(key),Buffer.from(config.bridgeKey)))return json({error:'Forbidden'},403);}
-   const origin=req.headers.get('origin');if(url.pathname==='/mcp'){const body=req.method==='POST'?await req.clone().json().catch(()=>null):null;const operation=['initialize','notifications/initialized','tools/list','tools/call'].includes(body?.method)?body.method:'other';console.info('MCP diagnostic',JSON.stringify({method:req.method,operation,shape:body===null?'empty-or-invalid':Array.isArray(body)?'array':typeof body,hasMethod:typeof body?.method==='string',contentType:req.headers.get('content-type')?.includes('application/json')?'json':'other',origin:origin?(origin===auth.origin?'same':origin==='https://chatgpt.com'?'chatgpt':'other'):'none',authorization:!!req.headers.get('authorization')}));}if(origin&&origin!==auth.origin)return json({error:'Origin not allowed'},403);
+   const origin=req.headers.get('origin');if(origin&&origin!==auth.origin)return json({error:'Origin not allowed'},403);
    const authResponse=await auth.handle(req);if(authResponse)return authResponse;
    if(url.pathname==='/mcp'){
-    const grant=auth.bearer(req.headers.get('authorization'));if(!grant)return json({error:'Authentication required'},401,{'WWW-Authenticate':`Bearer resource_metadata="${auth.origin}/.well-known/oauth-protected-resource/mcp", scope="brain"`});
+    const grant=await auth.bearer(req.headers.get('authorization'));if(!grant)return json({error:'Authentication required'},401,{'WWW-Authenticate':`Bearer resource_metadata="${auth.origin}/.well-known/oauth-protected-resource/mcp", scope="brain"`});
     if(grant.scope!=='brain')return json({error:'Insufficient scope'},403);
-    const response=await createMemoryMcp(store,grant.name+' ('+grant.clientId+')').fetch(req);const error=response.status===400?await response.clone().json().catch(()=>null):null;console.info('MCP diagnostic result',JSON.stringify({status:response.status,code:typeof error?.error?.code==='number'?error.error.code:null}));return response;
+    const response=await createMemoryMcp(store,grant.name+' ('+grant.clientId+')').fetch(req);if(response.ok)auth.recordUse(grant.clientId);return response;
    }
-   if(!auth.session(req))return json({error:'Sign in to your Brain'},401);
+   if(!await auth.session(req))return json({error:'Sign in to your Brain'},401);
+   if(url.pathname==='/api/apps'&&req.method==='GET')return json({apps:await auth.clients(req)});
+   if(req.method==='POST'&&['/api/apps/revoke','/api/consent'].includes(url.pathname)){
+    const text=await req.text();if(text.length>16384)return json({error:'Request too large'},413);
+    const body=JSON.parse(text);if(!auth.csrf(req,body?.csrf))return json({error:'Invalid origin or CSRF token'},403);
+    if(url.pathname==='/api/apps/revoke'){const input=z.object({csrf:z.string(),clientId:z.string().min(1).max(256)}).strict().parse(body);await auth.revokeClient(req,input.clientId);return json({ok:true});}
+    const input=z.object({csrf:z.string(),query:z.string().min(1).max(12000)}).strict().parse(body);return json(await auth.consentDetails(req,input.query));
+   }
    if(req.method==='POST'&&['/api/recall','/api/connections/suggest','/api/connections/review','/api/memories/review'].includes(url.pathname)){
     const text=await req.text();if(text.length>4096)return json({error:'Request too large'},413);
     const body=JSON.parse(text);if(!auth.csrf(req,body?.csrf))return json({error:'Invalid origin or CSRF token'},403);

@@ -1,3 +1,5 @@
+> Google SSO cutover (2026-11-02): implementation and isolated tests are complete; live Google/ChatGPT acceptance is still pending. See [Google SSO operations](google-sso.md). The password-based checks below are historical and do not verify the new auth flow.
+
 # Harness deployment status — October 31, 2026
 
 This section supersedes all historical checkpoints below.

@@ -1,94 +1,131 @@
-import { randomBytes, scryptSync, timingSafeEqual, createHash } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
+import { betterAuth, type BetterAuthOptions } from 'better-auth';
+import { APIError, isAPIError, createAuthEndpoint } from 'better-auth/api';
+import { getMigrations } from 'better-auth/db/migration';
+import { mcp } from '@better-auth/mcp';
+import { getOAuthProviderApi, verifyOAuthQueryParams } from '@better-auth/oauth-provider';
+import { z } from 'zod';
 
-const token=()=>randomBytes(32).toString('base64url');
-const digest=(s:string)=>createHash('sha256').update(s).digest('hex');
-const equal=(a:string,b:string)=>a.length===b.length&&timingSafeEqual(Buffer.from(a),Buffer.from(b));
-const escape=(s:string)=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-export function hashPassword(password:string):string {if(password.length<16)throw Error('Use at least 16 characters');const salt=randomBytes(16).toString('hex');return salt+':'+scryptSync(password,salt,64).toString('hex');}
-export function verifyPassword(password:string,hash:string){if(password.length>1024)return false;const [salt,want]=hash.split(':');if(!salt||!want||!/^[a-f0-9]{128}$/.test(want))return false;return equal(scryptSync(password,salt,64).toString('hex'),want);}
-export function json(data:unknown,status=200,extra:Record<string,string>={}){return new Response(JSON.stringify(data),{status,headers:{'Content-Type':'application/json','Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...extra}});}
-function cookie(req:Request,name:string){return (req.headers.get('cookie')||'').split(';').map(v=>v.trim()).find(v=>v.startsWith(name+'='))?.slice(name.length+1)||'';}
-type Grant={clientId:string;name:string;resource:string;scope:string;family:string};
-export class AuthService {
-  readonly db:DatabaseSync; readonly origin:string;readonly resource:string;private passwordHash:string;
-  constructor(db:DatabaseSync,config:{origin:string;passwordHash:string}){
-    this.db=db;this.origin=new URL(config.origin).origin;this.resource=this.origin+'/mcp';this.passwordHash=config.passwordHash;
-    if(!/^https:\/\//.test(this.origin)&&!/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(this.origin))throw Error('HTTPS public origin required');
-    db.exec('CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY,payload TEXT NOT NULL,expires INTEGER NOT NULL)');
-  }
-  private put(key:string,value:unknown,seconds:number){this.db.prepare('INSERT OR REPLACE INTO auth VALUES(?,?,?)').run(key,JSON.stringify(value),Date.now()+seconds*1000);}
-  private get(key:string):any{const r=this.db.prepare('SELECT payload FROM auth WHERE key=? AND expires>?').get(key,Date.now());return r?JSON.parse(r.payload as string):undefined;}
-  private remove(key:string){this.db.prepare('DELETE FROM auth WHERE key=?').run(key);}
-  private setCookie(name:string,value:string,maxAge=3600){return `${name}=${value}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}${this.origin.startsWith('https:')?'; Secure':''}`;}
-  private limited(bucket:string,max:number,seconds:number){const key='rate:'+bucket;const prev=this.get(key)||{count:0,until:Date.now()+seconds*1000};prev.count++;this.put(key,prev,Math.max(1,(prev.until-Date.now())/1000));return prev.count>max;}
-  csrf(req:Request,value:unknown){return req.headers.get('origin')===this.origin&&typeof value==='string'&&value.length>=32&&equal(cookie(req,'brain_csrf'),value);}
-  session(req:Request):boolean{return !!this.get('session:'+digest(cookie(req,'brain_session')));}
-  bearer(header:string|null):Grant|undefined {if(!header?.startsWith('Bearer '))return;const grant=this.get('access:'+digest(header.slice(7)));if(grant&&grant.resource===this.resource&&!this.get('revoked:'+grant.family))return grant;}
-  private issue(grant:Grant){const access=token(),refresh=token();this.put('access:'+digest(access),grant,3600);this.put('refresh:'+digest(refresh),grant,30*86400);return {access_token:access,token_type:'Bearer',expires_in:3600,refresh_token:refresh,scope:grant.scope};}
-  async handle(req:Request):Promise<Response|undefined>{
-    const url=new URL(req.url),path=url.pathname;
-    if(path==='/.well-known/oauth-protected-resource'||path==='/.well-known/oauth-protected-resource/mcp')return json({resource:this.resource,authorization_servers:[this.origin],scopes_supported:['brain'],bearer_methods_supported:['header'],resource_name:'Brain companion'});
-    if(path==='/.well-known/oauth-authorization-server')return json({issuer:this.origin,authorization_endpoint:this.origin+'/oauth/authorize',token_endpoint:this.origin+'/oauth/token',registration_endpoint:this.origin+'/oauth/register',revocation_endpoint:this.origin+'/oauth/revoke',response_types_supported:['code'],grant_types_supported:['authorization_code','refresh_token'],code_challenge_methods_supported:['S256'],token_endpoint_auth_methods_supported:['none','client_secret_post'],scopes_supported:['brain'],authorization_response_iss_parameter_supported:true});
-    if(!path.startsWith('/oauth/')&&!path.startsWith('/api/auth/'))return;
-    if(req.method==='OPTIONS')return new Response(null,{status:204});
-    let body:any={};
-    if(req.method==='POST'){
-      const text=await req.text();if(text.length>16384)return json({error:'invalid_request'},413);
-      try{body=req.headers.get('content-type')?.includes('application/json')?JSON.parse(text):Object.fromEntries(new URLSearchParams(text));}catch{return json({error:'invalid_request'},400)}
-      if(!body||typeof body!=='object'||Array.isArray(body))return json({error:'invalid_request'},400);
-    }
-    if(path==='/api/auth/session'&&req.method==='GET'){const csrf=token();return json({authenticated:this.session(req),csrf},200,{'Set-Cookie':this.setCookie('brain_csrf',csrf)});}
-    if(path==='/api/auth/login'&&req.method==='POST'){
-      if(!this.csrf(req,body.csrf))return json({error:'Invalid login origin or CSRF token'},403);
-      if(this.limited('login',10,60))return json({error:'Try again in a minute'},429);
-      if(typeof body.password!=='string'||!verifyPassword(body.password,this.passwordHash))return json({error:'Incorrect password'},401);
-      const session=token();this.put('session:'+digest(session),{owner:true},86400);return json({authenticated:true},200,{'Set-Cookie':this.setCookie('brain_session',session,86400)});
-    }
-    if(path==='/api/auth/logout'&&req.method==='POST'){if(!this.csrf(req,body.csrf))return json({error:'Forbidden'},403);this.remove('session:'+digest(cookie(req,'brain_session')));return json({ok:true},200,{'Set-Cookie':this.setCookie('brain_session','',0)});}
-    if(path==='/oauth/register'&&req.method==='POST'){
-      if(this.limited('register',30,3600))return json({error:'temporarily_unavailable'},429);
-      const redirects=body.redirect_uris;
-      if(!Array.isArray(redirects)||!redirects.length||redirects.length>5||redirects.some((s:unknown)=>{try{if(typeof s!=='string'||s.length>2000)return true;const u=new URL(s);return u.protocol!=='https:'||!!u.username||!!u.password||!!u.hash;}catch{return true;}}))return json({error:'invalid_redirect_uri'},400);
-      const method=body.token_endpoint_auth_method||'none';if(!['none','client_secret_post'].includes(method))return json({error:'invalid_client_metadata'},400);
-      const id=token(),secret=method==='none'?undefined:token();const client={client_id:id,client_name:typeof body.client_name==='string'?body.client_name.slice(0,120):'MCP client',redirect_uris:redirects,token_endpoint_auth_method:method,grant_types:['authorization_code','refresh_token'],response_types:['code']};
-      this.put('client:'+id,{...client,secret:secret?digest(secret):undefined},365*86400);return json({...client,...(secret?{client_secret:secret,client_secret_expires_at:0}:{})},201);
-    }
-    if(path==='/oauth/authorize'&&req.method==='GET'){
-      const q=Object.fromEntries(url.searchParams);const client=this.get('client:'+q.client_id);
-      if(!client||!client.redirect_uris.includes(q.redirect_uri)||q.response_type!=='code'||q.resource!==this.resource||q.code_challenge_method!=='S256'||!/^[A-Za-z0-9_-]{43}$/.test(q.code_challenge||'')||(q.scope&&q.scope!=='brain')||(q.state||'').length>2000)return json({error:'invalid_request'},400);
-      if(this.limited('authorize',60,60))return json({error:'temporarily_unavailable'},429);
-      const ticket=token(),csrf=token();this.put('pending:'+digest(ticket),{...q,csrf},600);
-      return new Response(`<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><title>Connect to Brain</title><style>body{font:16px system-ui;background:#17191e;color:#eee;max-width:440px;margin:12vh auto;padding:24px}h1{font-size:28px}p{line-height:1.6;color:#b6bac4}label{display:block;margin:24px 0 8px}input,button{box-sizing:border-box;width:100%;padding:14px;border-radius:8px;border:1px solid #444;font:inherit}button{margin-top:16px;background:#e7b758;color:#17191e}small{overflow-wrap:anywhere}</style></head><body><h1>Connect to your Brain</h1><p><strong>${escape(client.client_name)}</strong> requests access to read your shared brain, submit sourced notes, review shared work and file verified Inbox notes. Writes follow your server settings and Jev checks.</p><p>Only continue if you started this connection.</p><small>Return to ${escape(q.redirect_uri)}</small><form method="post" action="/oauth/consent"><input type="hidden" name="ticket" value="${ticket}"><input type="hidden" name="csrf" value="${csrf}"><label for="password">Brain owner password</label><input id="password" type="password" name="password" autocomplete="current-password" required><button type="submit">Allow connection</button></form><p><a href="/" style="color:inherit">Cancel</a></p></body></html>`,{headers:{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Set-Cookie':this.setCookie('brain_csrf',csrf),'Content-Security-Policy':`default-src 'none'; style-src 'unsafe-inline'; form-action 'self' ${new URL(q.redirect_uri).origin}; frame-ancestors 'none'; base-uri 'none'`,'Referrer-Policy':'strict-origin'}});
-    }
-    if(path==='/oauth/consent'&&req.method==='POST'){
-      if(!this.csrf(req,body.csrf))return json({error:'Invalid consent origin'},403);
-      if(this.limited('consent',10,60))return json({error:'Try again in a minute'},429);
-      const pending=typeof body.ticket==='string'?this.get('pending:'+digest(body.ticket)):undefined;
-      if(!pending||pending.csrf!==body.csrf||typeof body.password!=='string'||!verifyPassword(body.password,this.passwordHash))return json({error:'Invalid or expired consent'},400);
-      this.remove('pending:'+digest(body.ticket));const code=token();this.put('code:'+digest(code),pending,300);
-      const redirect=new URL(pending.redirect_uri);redirect.searchParams.set('code',code);redirect.searchParams.set('iss',this.origin);if(pending.state)redirect.searchParams.set('state',pending.state);
-      return new Response(null,{status:303,headers:{Location:redirect.toString(),'Cache-Control':'no-store','Referrer-Policy':'no-referrer'}});
-    }
-    if((path==='/oauth/token'||path==='/oauth/revoke')&&req.method==='POST'){
-      if(this.limited('token',120,60))return json({error:'temporarily_unavailable'},429);
-      const client=typeof body.client_id==='string'?this.get('client:'+body.client_id):undefined;
-      if(!client||(client.secret&&(typeof body.client_secret!=='string'||!equal(digest(body.client_secret),client.secret))))return json({error:'invalid_client'},401);
-      if(path==='/oauth/revoke'){if(typeof body.token==='string'){for(const prefix of ['access:','refresh:']){const g=this.get(prefix+digest(body.token));if(g?.clientId===client.client_id)this.put('revoked:'+g.family,true,30*86400);}}return json({});}
-      if(body.resource!==this.resource)return json({error:'invalid_target'},400);
-      if(body.grant_type==='authorization_code'){
-        const code=typeof body.code==='string'?this.get('code:'+digest(body.code)):undefined;
-        if(!code||code.client_id!==client.client_id||code.redirect_uri!==body.redirect_uri||code.resource!==body.resource||typeof body.code_verifier!=='string'||!/^[A-Za-z0-9._~-]{43,128}$/.test(body.code_verifier)||!equal(createHash('sha256').update(body.code_verifier).digest('base64url'),code.code_challenge))return json({error:'invalid_grant'},400);
-        this.remove('code:'+digest(body.code));return json(this.issue({clientId:client.client_id,name:client.client_name,resource:this.resource,scope:'brain',family:token()}));
-      }
-      if(body.grant_type==='refresh_token'&&typeof body.refresh_token==='string'){
-        const key=digest(body.refresh_token),grant=this.get('refresh:'+key),used=this.get('used:'+key);
-        if(used){if(used.clientId===client.client_id)this.put('revoked:'+used.family,true,30*86400);return json({error:'invalid_grant'},400);}
-        if(!grant||grant.clientId!==client.client_id||grant.resource!==body.resource||this.get('revoked:'+grant.family))return json({error:'invalid_grant'},400);
-        this.remove('refresh:'+key);this.put('used:'+key,grant,30*86400);return json(this.issue(grant));
-      }
-      return json({error:'unsupported_grant_type'},400);
-    }
-    return json({error:'Not found'},404);
-  }
+export interface AuthConfig { origin: string; secret: string; ownerEmail: string; googleClientId: string; googleClientSecret: string }
+export function json(data: unknown, status = 200, extra: Record<string, string> = {}) {
+  return new Response(JSON.stringify(data), { status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', ...extra } });
 }
+const googleIdentity = z.object({ sub: z.string().min(1), email: z.email(), email_verified: z.literal(true) });
+export function pinGoogleOwner(db: DatabaseSync, ownerEmail: string, profile: unknown) {
+  const identity = googleIdentity.parse(profile);
+  const pinned = db.prepare('SELECT subject FROM brainOwner WHERE id=1').get();
+  if (pinned ? pinned.subject !== identity.sub : identity.email.toLowerCase() !== ownerEmail.toLowerCase()) throw new APIError('FORBIDDEN', { message: 'This Google account is not the Brain owner.' });
+  db.prepare('INSERT OR IGNORE INTO brainOwner(id,subject) VALUES(1,?)').run(identity.sub);
+  return identity;
+}
+function cookie(req: Request, name: string) { return (req.headers.get('cookie') || '').split(';').map(v => v.trim()).find(v => v.startsWith(name + '='))?.slice(name.length + 1) || ''; }
+
+export async function createAuthService(db: DatabaseSync, config: AuthConfig) {
+  const origin = new URL(config.origin).origin;
+  const issuer = origin + '/api/auth', resource = origin + '/mcp';
+  db.exec('CREATE TABLE IF NOT EXISTS brainOwner(id INTEGER PRIMARY KEY CHECK(id=1), subject TEXT NOT NULL); CREATE TABLE IF NOT EXISTS brainClientUse(clientId TEXT PRIMARY KEY,lastUsed TEXT NOT NULL)');
+  const providerOptions = {
+    resource, loginPage: '/sign-in', consentPage: '/consent',
+    scopes: ['brain', 'offline_access'], grantTypes: ['authorization_code', 'refresh_token'] as ['authorization_code', 'refresh_token'],
+    allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true,
+    disableJwtPlugin: true, accessTokenExpiresIn: 3600, refreshTokenExpiresIn: 30 * 86400, refreshTokenReuseInterval: 0,
+  };
+  function isOwner(userId: string) {
+    return !!db.prepare('SELECT 1 FROM account a JOIN brainOwner o ON a.accountId=o.subject WHERE a.userId=? AND a.providerId=?').get(userId, 'google');
+  }
+  const options = {
+    appName: 'Brain Companion', baseURL: origin, basePath: '/api/auth', secret: config.secret, database: db,
+    trustedOrigins: [origin],
+    emailAndPassword: { enabled: false },
+    account: { accountLinking: { enabled: false }, encryptOAuthTokens: true },
+    session: { expiresIn: 86400, cookieCache: { enabled: false } },
+    rateLimit: { enabled: true, storage: 'database', window: 60, max: 100 },
+    socialProviders: { google: {
+      prompt: 'select_account',
+      clientId: config.googleClientId, clientSecret: config.googleClientSecret,
+      mapProfileToUser(profile) { pinGoogleOwner(db, config.ownerEmail, profile); return {}; },
+    } },
+    databaseHooks: { session: { create: { before: async session => {
+      if (!isOwner(session.userId)) throw new APIError('FORBIDDEN', { message: 'This Google account is not the Brain owner.' });
+      return { data: session };
+    } } } },
+    plugins: [mcp(providerOptions), {
+      id: 'brain-access', endpoints: { validateBrainToken: createAuthEndpoint.serverOnly({ method: 'POST', body: z.object({ token: z.string() }) }, async ctx => {
+        const claims = await getOAuthProviderApi(ctx, providerOptions).requireActiveAccessToken(ctx.body.token);
+        const audiences = Array.isArray(claims.aud) ? claims.aud : [claims.aud];
+        if (claims.iss !== issuer || !audiences.includes(resource) || typeof claims.scope !== 'string' || !claims.scope.split(' ').includes('brain') || typeof claims.sub !== 'string' || !isOwner(claims.sub) || typeof claims.client_id !== 'string') throw new APIError('UNAUTHORIZED');
+        const client = await getOAuthProviderApi(ctx, providerOptions).getClient(claims.client_id);
+        return { userId: claims.sub, clientId: claims.client_id, name: client?.name || 'MCP client', scope: 'brain' };
+      }) },
+    }],
+    onAPIError: { errorURL: '/sign-in' },
+  } satisfies BetterAuthOptions;
+  const migrations = await getMigrations(options); await migrations.runMigrations();
+  const auth = betterAuth(options);
+  const initialized = await auth.$context;
+  await initialized.checkSchema?.();
+  // Serialize issuer mutations and revocation so an in-flight refresh cannot recreate a revoked grant.
+  let tail: Promise<unknown> = Promise.resolve();
+  function exclusive<T>(fn: () => Promise<T>): Promise<T> { const result = tail.then(fn); tail = result.catch(() => {}); return result; }
+  const csrfName = origin.startsWith('https:') ? '__Host-brain_csrf' : 'brain_csrf';
+  function csrf(req: Request, value: unknown) {
+    const expected = cookie(req, csrfName);
+    return req.headers.get('origin') === origin && typeof value === 'string' && expected.length >= 32 && Buffer.byteLength(value) === Buffer.byteLength(expected) && timingSafeEqual(Buffer.from(value), Buffer.from(expected));
+  }
+  async function session(req: Request) { const value = await auth.api.getSession({ headers: req.headers }); return value && isOwner(value.user.id) ? value : null; }
+  async function bearer(header: string | null) {
+    if (!header?.startsWith('Bearer ') || header.length > 8192) return null;
+    try { return await auth.api.validateBrainToken({ body: { token: header.slice(7) } }); }
+    catch (error) { if (isAPIError(error)) return null; throw error; }
+  }
+  async function clients(req: Request) {
+    const owner = await session(req); if (!owner) throw new APIError('UNAUTHORIZED');
+    return db.prepare('SELECT c.clientId, c.name, c.redirectUris, o.scopes, u.lastUsed FROM oauthConsent o JOIN oauthClient c ON c.clientId=o.clientId LEFT JOIN brainClientUse u ON u.clientId=c.clientId WHERE o.userId=?').all(owner.user.id).map(row => ({ clientId: row.clientId, name: row.name || 'MCP client', scopes: JSON.parse(String(row.scopes)), lastUsed: row.lastUsed || null }));
+  }
+  async function revokeClient(req: Request, clientId: string) {
+    return exclusive(async () => {
+      const owner = await session(req); if (!owner) throw new APIError('UNAUTHORIZED');
+      db.exec('BEGIN');
+      try {
+        for (const table of ['oauthAccessToken', 'oauthRefreshToken', 'oauthConsent']) db.prepare(`DELETE FROM ${table} WHERE clientId=? AND userId=?`).run(clientId, owner.user.id);
+        // Issued but unexchanged codes must not recreate access after revocation.
+        db.prepare("DELETE FROM verification WHERE json_valid(value) AND json_extract(value,'$.type')='authorization_code' AND json_extract(value,'$.query.client_id')=? AND json_extract(value,'$.userId')=?").run(clientId, owner.user.id);
+        db.prepare('DELETE FROM brainClientUse WHERE clientId=?').run(clientId); db.exec('COMMIT');
+      } catch (error) { db.exec('ROLLBACK'); throw error; }
+    });
+  }
+  async function consentDetails(req: Request, query: string) {
+    if (!await session(req)) throw new APIError('UNAUTHORIZED');
+    if (!await verifyOAuthQueryParams(query, config.secret)) throw new APIError('BAD_REQUEST');
+    const params = new URLSearchParams(query), clientId = params.get('client_id');
+    if (!clientId) throw new APIError('BAD_REQUEST');
+    const client = await auth.api.getOAuthClientPublic({ headers: req.headers, query: { client_id: clientId } });
+    return { name: client.client_name || 'MCP client', clientId, redirectUri: params.get('redirect_uri'), scopes: (params.get('scope') || '').split(' ').filter(Boolean) };
+  }
+  async function handle(req: Request): Promise<Response | undefined> {
+    const path = new URL(req.url).pathname;
+    if (path === '/api/auth/session' && req.method === 'GET') {
+      const owner = await session(req), token = randomBytes(32).toString('base64url');
+      return json({ authenticated: !!owner, user: owner ? { name: owner.user.name, email: owner.user.email } : null, csrf: token }, 200, { 'Set-Cookie': `${csrfName}=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=86400${origin.startsWith('https:') ? '; Secure' : ''}` });
+    }
+    if (path.startsWith('/.well-known/')) return auth.handler(req);
+    if (path.startsWith('/oauth/')) return json({ error: 'Reconnect using the current OAuth discovery endpoints.' }, 410);
+    if (!path.startsWith('/api/auth/')) return;
+    const allowed = /^\/api\/auth\/(sign-in\/social|callback\/google|sign-out|oauth2\/(authorize|consent|token|register|revoke|public-client-prelogin))$/;
+    if (!allowed.test(path)) return json({ error: 'Not found' }, 404);
+    return exclusive(async () => {
+      const response = await auth.handler(req);
+      if (path === '/api/auth/callback/google' && response.status >= 400) {
+        const headers = new Headers({ Location: origin + '/sign-in?error=sign_in_failed', 'Cache-Control': 'no-store' });
+        for (const value of response.headers.getSetCookie()) headers.append('Set-Cookie', value);
+        return new Response(null, { status: 303, headers });
+      }
+      return response;
+    });
+  }
+  return { auth, origin, issuer, resource, session, csrf, bearer, clients, revokeClient, consentDetails, handle,
+    recordUse(clientId: string) { db.prepare('INSERT INTO brainClientUse(clientId,lastUsed) VALUES(?,?) ON CONFLICT(clientId) DO UPDATE SET lastUsed=excluded.lastUsed').run(clientId, new Date().toISOString()); },
+  };
+}
+export type AuthService = Awaited<ReturnType<typeof createAuthService>>;

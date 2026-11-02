@@ -37,7 +37,10 @@ For a standalone service, mount one volume at `/data`, run one replica, and set:
 
 ```dotenv
 PUBLIC_ORIGIN=https://YOUR-HOST
-BRAIN_PASSWORD_HASH=<generated with npm run password>
+BRAIN_OWNER_EMAIL=<approved Google account>
+GOOGLE_CLIENT_ID=<Google web client ID>
+GOOGLE_CLIENT_SECRET=<server-only secret>
+BETTER_AUTH_SECRET=<random 32-byte secret>
 JEV_API_KEY=<server-only secret>
 JEV_MODEL=jev-1.14.0
 AUTO_ACCEPT=new,update,promote
@@ -49,7 +52,7 @@ SYNC_ENABLED=false
 
 Configure the platform's port/proxy for the container's `PORT` (default 3000), health check `/healthz`, and a shutdown grace period of 150 seconds. Ensure the runtime `node` user can write the mounted volume. Do not put state on an ephemeral filesystem or run multiple replicas. Upload no `.env`, private evaluation dataset or desktop vault into the image.
 
-Generate the owner hash locally; store secrets through the hosting platform's environment UI. Follow README's separate-vault Obsidian Headless login/setup in the running service, then enable sync only after a successful manual sync. `/data/config` preserves its credentials on managed hosting. Local Compose explicitly retains `/home/node/.config` and the existing named home volume, preserving the current local login.
+Configure Google sign-in following [the setup guide](google-sso.md); store secrets through the hosting platform's environment UI. Follow README's separate-vault Obsidian Headless login/setup in the running service, then enable sync only after a successful manual sync. `/data/config` preserves its credentials on managed hosting. Local Compose explicitly retains `/home/node/.config` and the existing named home volume, preserving the current local login.
 
 Direct hosting does not require `BRAIN_BRIDGE_KEY`. If retaining Vercel as the canonical frontend, configure the existing bridge on both sides with the same random secret and use the Vercel origin as `PUBLIC_ORIGIN`; never mix issuers. Bridge-enabled workers reject requests without the bridge secret. Remote access is not verified until the owner deploys the final origin and completes a real connector OAuth roundtrip.
 

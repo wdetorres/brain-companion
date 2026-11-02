@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronRight, Circle, FileText, Folder, GitBranch, History, Link2, LockKeyhole, LogOut, Network, PanelRightClose, RefreshCw, Search, SlidersHorizontal, Sparkles, X, ArrowRight, Layers } from 'lucide-react';
+import { LoginPage, AccountSettings } from './Auth.tsx';
+import { authClient } from './auth-client.ts';
 import { Graph } from './Graph.tsx';
 import { connectionMarkdown } from './links.ts';
 import { Recall } from './Recall.tsx';
@@ -50,18 +52,11 @@ function ChangeReader({ operation: op, onOpen, onReview }: { operation: Operatio
     <Sources sources={op.sources} /><MemoryActions key={op.id} operation={op} demo={isDemo} onReview={onReview}/><div className="revision">Operation {op.id}</div>
   </article>;
 }
-function Entry({ error, csrf, onEnter }: { error: string; csrf: string; onEnter: () => void }) {
-  const [password, setPassword] = useState('');
-  const [message, setMessage] = useState('');
-  const [busy, setBusy] = useState(false);
-  return <main className="entry"><div className="entry-card"><div className="brand-mark"><Network size={23} /></div><h1>Welcome to your Brain.</h1><p>A quiet place to explore what you know, and see what your agents remember.</p>
-    {error ? <div className="setup-message"><LockKeyhole size={18} /><p>{error}</p></div> : <form onSubmit={async e => { e.preventDefault(); setBusy(true); setMessage(''); try { const r = await fetch('/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password, csrf }) }); const data = await r.json(); if (!r.ok) throw Error(data.error || 'Sign-in failed'); setPassword(''); onEnter(); } catch (e) { setMessage((e as Error).message); } finally { setBusy(false); } }}><label htmlFor="owner-password">Owner password</label><input autoFocus id="owner-password" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /><button className="primary" disabled={busy || !csrf}>{busy ? 'Signing in…' : 'Open my Brain'}<ArrowUpRight size={16} /></button>{message && <p role="alert" className="error-text">{message}</p>}</form>}
-    <a className="demo-link" href="/demo">Explore the sample brain <ArrowUpRight size={14} /></a><small>Private by default. Suggested links are saved only after review.</small></div></main>;
-}
 export function App() {
   const [snapshot, setSnapshot] = useState<BrainSnapshot | null>(isDemo ? demoSnapshot : null);
   const [ready, setReady] = useState(isDemo);
   const [csrf, setCsrf] = useState('');
+  const [user,setUser]=useState<{name:string;email:string}|null>(null);
   const [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [view, setView] = useState<View>(initialView);
@@ -90,7 +85,7 @@ export function App() {
   async function refresh() {
     if (isDemo) return;
     setRefreshing(true); setError('');
-    try { const session = await api<{ authenticated: boolean; csrf: string }>('/api/auth/session'); setCsrf(session.csrf); if (session.authenticated) setSnapshot(await api<BrainSnapshot>('/api/brain')); else setSnapshot(null); }
+    try { const session = await api<{ authenticated: boolean; csrf: string; user:{name:string;email:string}|null }>('/api/auth/session'); setCsrf(session.csrf);setUser(session.user); if (session.authenticated) setSnapshot(await api<BrainSnapshot>('/api/brain')); else setSnapshot(null); }
     catch (e) { setSnapshot(null); setError((e as Error).message); }
     finally { setRefreshing(false); setReady(true); }
   }
@@ -154,7 +149,8 @@ export function App() {
   }
   const connectionPanel = note && <ConnectionPanel key={note.path} note={note} notes={notes} connections={connections} demo={isDemo} onSuggest={suggest} onReview={reviewConnection} onOpen={openNote} />;
   if (!ready) return <main className="entry"><p className="muted">Opening your Brain…</p></main>;
-  if (!snapshot) return <Entry error={error} csrf={csrf} onEnter={() => void refresh()} />;
+  if (!snapshot) return <LoginPage error={error} />;
+  if(!isDemo && location.pathname === '/settings')return <AccountSettings csrf={csrf} status={snapshot.status} user={user}/>;
   return <div className="app-shell">
     <aside className="sidebar">
       <a href={isStandalone ? '#' : isDemo ? '/demo' : '/'} className="brand" aria-label="Brain home">
@@ -171,7 +167,7 @@ export function App() {
       </div>
       <div className="sidebar-section quick-notes"><div className="sidebar-label">Start here</div>{notes.filter(n => n.path === 'Brain.md' || n.title === 'Weekend build').map(n => <button key={n.path} className="folder-item" onClick={() => openNote(n.path)}><FileText size={15} /><span>{n.title}</span></button>)}</div>
       <div className="sidebar-footnote"><Link2 size={16} /><p>Good ideas don’t<br />have to live alone.</p></div>
-      <div className="sidebar-bottom"><LockKeyhole size={14} /><span>{isDemo ? 'Sample workspace' : 'Private workspace'}</span>{!isDemo && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={async () => { const r = await fetch('/api/auth/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ csrf }) }); if (r.ok) { setSelected(null); setOperationId(null); setSnapshot(null); } else setError('Could not sign out. Refresh and try again.'); }}><LogOut size={15} /></button>}</div>
+      <div className="sidebar-bottom"><LockKeyhole size={14} /><span>{isDemo ? 'Sample workspace' : <a href="/settings">Account & connections</a>}</span>{!isDemo && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={async () => { const r = await authClient.signOut(); if (!r.error) { setSelected(null); setOperationId(null); setSnapshot(null); } else setError('Could not sign out. Refresh and try again.'); }}><LogOut size={15} /></button>}</div>
     </aside>
     <main className="main-shell">
       <header className="topbar">

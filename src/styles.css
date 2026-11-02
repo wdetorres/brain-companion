@@ -511,3 +511,17 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .memory-actions label { display: block; font-size: 12px; margin: 15px 0 8px; }
 .memory-actions textarea { width: 100%; box-sizing: border-box; resize: vertical; background: #f6f6f6; border: 1px solid #e2e2e2; border-radius: 6px; padding: 12px; font: inherit; font-size: 13px; line-height: 1.6; }
 .memory-action-buttons { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+
+/* Owner identity and delegated app access share the existing entry surface. */
+.auth-card .brand-mark{color:#d5d5d5;text-decoration:none;margin-bottom:32px}
+.auth-card .eyebrow{display:block;font-size:11px;letter-spacing:.14em;color:var(--muted);margin-bottom:12px}
+.auth-card h1{line-height:1.12;letter-spacing:-.04em}
+.google-signin{display:flex;align-items:center;gap:12px;width:100%;margin-top:28px;padding:14px 16px;background:#f5f4f0;color:#25262a;border:1px solid #d9d8d3;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.google-signin svg{margin-left:auto}.google-letter{font-size:20px;font-weight:700}.google-signin:disabled{opacity:.6;cursor:wait}
+.auth-footer{display:flex!important;align-items:center;justify-content:center;gap:7px;margin-top:32px}
+.auth-identity{display:flex;align-items:center;gap:12px;padding:16px;border:1px solid var(--line);border-radius:10px;margin:22px 0}
+.auth-identity div{display:flex;flex-direction:column;gap:4px}.auth-identity span{font-size:13px;color:var(--muted)}
+.consent-permissions{padding:18px;background:var(--canvas);border-radius:10px}.consent-permissions ul{padding-left:20px;margin-bottom:0}.consent-permissions li{margin:10px 0;line-height:1.5;font-size:14px}
+.auth-callback{font-size:12px!important;overflow-wrap:anywhere}.consent-actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px}.consent-actions .primary{max-width:75%;overflow-wrap:anywhere;white-space:normal}
+.account-page{max-width:760px;padding:48px 24px 80px;margin:auto}.account-page h1{font-size:30px;letter-spacing:-.03em;margin:28px 0 8px}.account-section{margin-top:28px;padding:24px;border:1px solid var(--line);border-radius:14px}.account-section h2{font-size:18px;margin:0 0 12px}.connected-app{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}.connected-app div{display:flex;flex-direction:column;gap:7px;min-width:0;overflow-wrap:anywhere}.connected-app span,.connected-app small{font-size:12px;color:var(--muted)}.connected-app button{flex-shrink:0}.mcp-url{display:block;margin-top:18px;font-size:12px;overflow-wrap:anywhere}.sidebar-bottom a{color:inherit;text-decoration:none}.sidebar-bottom a:hover{text-decoration:underline}
+@media(max-width:600px){.account-page{padding:24px 16px}.account-section{padding:18px}.connected-app{align-items:flex-start;flex-direction:column}}

@@ -60,6 +60,30 @@
     {
       "source": "/demo",
       "destination": "/index.html"
+    },
+    {
+      "source": "/api/apps",
+      "destination": "/api/bridge?route=api/apps"
+    },
+    {
+      "source": "/api/apps/revoke",
+      "destination": "/api/bridge?route=api/apps/revoke"
+    },
+    {
+      "source": "/api/consent",
+      "destination": "/api/bridge?route=api/consent"
+    },
+    {
+      "source": "/sign-in",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/consent",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/settings",
+      "destination": "/index.html"
     }
   ],
   "headers": [

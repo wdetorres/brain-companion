@@ -5,7 +5,7 @@ An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents write
 ## What is implemented
 
 - Graph, Pages, Changes, and Jev Recall views, with search, backlinks, sources, change diffs, graph pan/zoom, folder filters, and a focused neighborhood.
-- Explicit synthetic demo at `/demo`. The normal route requires the owner password and never falls back to fake live data.
+- Explicit synthetic demo at `/demo`. The normal route requires the owner’s Google sign-in and never falls back to fake live data.
 - Twelve MCP tools for status, local search, assessed recall, inspection, capture, shared work claims, proposal review, Inbox promotion and connection review. Portable `skills/brain-harness/SKILL.md`, `brain://guide`, `brain://policy`, and the `memory-workflow` prompt. See [the harness guide](docs/harness.md).
 - Persistent SQLite FTS5 indexing with reused parsing, revision-bound work, five-minute claims, explicit owner memory review and journaled Inbox promotion.
 - One shared brain. Single-owner browser sessions and OAuth authorization with S256 PKCE, resource binding, dynamic client registration, hashed opaque tokens, rotating refresh tokens, and revocation.
@@ -42,10 +42,11 @@ Tests exercise real temporary vaults, SQLite restart behavior, the OAuth and MCP
 
 ```sh
 cp .env.example .env
-npm run password
 ```
 
-Copy the generated `BRAIN_PASSWORD_HASH` into `.env`. The command reads the password without displaying it. Keep the password in your password manager; it signs in to the Explorer and approves MCP clients. For local development, use `PUBLIC_ORIGIN=http://localhost:3000` and leave `BRAIN_BRIDGE_KEY` empty. Put a few non-sensitive notes in the configured `VAULT_PATH`, then run `npm start`.
+Create a Google OAuth **Web application** client with the callback `http://localhost:3000/api/auth/callback/google`. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BRAIN_OWNER_EMAIL` and a random `BETTER_AUTH_SECRET` (generate with `openssl rand -hex 32`) in `.env`. Use only the explicitly approved owner's verified Google email; the first successful login pins that account's stable Google subject. Other Google accounts are rejected. There is no password fallback.
+
+Keep `PUBLIC_ORIGIN=http://localhost:3000` and leave `BRAIN_BRIDGE_KEY` empty for local development. Put synthetic notes in `VAULT_PATH`, then run `npm start`. Production requires complete SSO configuration and fails startup if it is missing. With all four SSO settings absent, development serves only the explicit demo.
 
 Set `JEV_API_KEY` only on the persistent service. Missing or failed Jev evaluation retains a proposal and never silently accepts it. The API key is not part of the browser bundle or Vercel environment.
 
@@ -59,13 +60,13 @@ Use one persistent Docker service, either as the complete app or with the option
 
 ### Temporary local Docker
 
-After creating `.env` and its owner password hash, start the same backend locally:
+After configuring Google SSO in `.env` (register `http://localhost:3010/api/auth/callback/google` for this local port), start the same backend locally:
 
 ```sh
 docker compose -f compose.yaml -f compose.local.yaml up -d --build
 ```
 
-Open `http://localhost:3010` and sign in with the owner password. The override permits HTTP on localhost and removes the Vercel bridge requirement; the host port remains bound only to `127.0.0.1`. The base production settings remain unchanged.
+Open `http://localhost:3010` and sign in with Google. The override permits HTTP on localhost and removes the Vercel bridge requirement; the host port remains bound only to `127.0.0.1`. The base production settings remain unchanged.
 
 The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; proposals remain retained if evaluation is unavailable.
 
@@ -75,7 +76,7 @@ This is a temporary Mac-dependent deployment. Docker must be running and the Mac
 
 1. Deploy this Docker image on a small host with a persistent disk and an HTTPS reverse proxy. `docker compose up -d --build` exposes the worker only on the host's `127.0.0.1:3010`; point the host's HTTPS reverse proxy there. The worker must be reachable by Vercel over HTTPS.
 2. Generate a random bridge secret, for example `openssl rand -hex 32`. Store it in the worker and Vercel as `BRAIN_BRIDGE_KEY`.
-3. Set worker `PUBLIC_ORIGIN` to the final Vercel/custom origin, `BRAIN_PASSWORD_HASH`, `JEV_API_KEY`, and the chosen `AUTO_ACCEPT`. Compose pins the paths to `/data/vault` and `/data/state` regardless of development paths in `.env`.
+3. Set worker `PUBLIC_ORIGIN` to the final Vercel/custom origin, the four Google SSO settings above, `JEV_API_KEY`, and the chosen `AUTO_ACCEPT`. Compose pins the paths to `/data/vault` and `/data/state` regardless of development paths in `.env`.
 4. Create the **brain-companion** project in the personal Vercel account. Import this folder, use Other as framework, `npm run build` as build command, and `dist` as output. `vercel.json` configures the bridge and routes. Set `BRAIN_SERVICE_URL` to the worker's HTTPS origin and `BRAIN_BRIDGE_KEY` to the same secret. Scope private service values to production only unless a preview intentionally gets its own isolated vault.
 5. Deploy. Visit `/demo`, sign in at `/`, and verify anonymous `/api/brain` is rejected and `/mcp` advertises OAuth. Recheck authorization against the **final** canonical origin, because tokens are bound to it.
 
@@ -87,7 +88,7 @@ The Dockerfile pins Obsidian's official open-beta CLI to `0.0.14`; override with
 
 Use one Docker web service on Starter ($7/month compute), with a **1 GB disk mounted at `/data`**. Keep the workspace on Hobby. Set `/healthz` as the HTTP health-check path and allow 150 seconds for shutdown so an in-flight one-shot sync can finish. The disk adds its own storage charge.
 
-Set these worker variables, alongside the password hash, bridge key, and Jev key described above:
+Set these worker variables, alongside the Google SSO settings, bridge key, and Jev key described above:
 
 ```dotenv
 PUBLIC_ORIGIN=https://brain-companion-hazel.vercel.app
@@ -134,13 +135,15 @@ For the production Compose configuration, use `docker compose up -d`. A plain `r
 
 1. In a ChatGPT account with custom MCP/developer-mode support, add the deployed `https://YOUR-DOMAIN/mcp` as the remote MCP server and select OAuth.
 2. The client discovers protected-resource and authorization metadata. Dynamic registration supports public clients and `client_secret_post` clients.
-3. The Brain consent screen names the requesting client and its exact callback. Enter the owner password only for a connection you initiated.
+3. The Brain consent screen names the requesting client and its exact callback. Sign in with Google, then explicitly select **Connect** only for a request you initiated. Signing in alone does not approve the client.
 4. Read `brain://guide` or request `memory-workflow`. The same portable instructions are in [docs/agent-guide.md](docs/agent-guide.md).
 5. Ask the agent to recall a subject, inspect a page, then submit a sourced `remember` proposal. Confirm the operation in Changes. Start a fresh conversation and recall the same subject.
 
-The server has one `brain` scope, not separate company/person access. All connected clients can read all indexed notes and perform the owner-enabled checked writes and review actions. This OAuth implementation is intentionally single-owner: no invitations, organizations, password recovery, or client-management UI.
+The server has a `brain` permission scope and optional `offline_access` for refresh; there is no separate company/person access. All connected clients can read all indexed notes and perform the owner-enabled checked writes and review actions. This OAuth implementation is intentionally single-owner: no invitations, organizations, password recovery, or public registration UI.
 
-To revoke a client, use `/oauth/revoke` with its client credentials and a current access or refresh token. To invalidate **all** connections and browser sessions in an emergency, stop the service and delete rows from the `auth` table, then restart; this does not delete note/history tables. Changing only the owner password does not revoke existing sessions or grants.
+Open **Account & connections** (`/settings`) to see authorized apps and revoke access. Revocation deletes their access tokens, refresh tokens and consent; reconnecting does not resurrect old tokens. Signing out ends the browser session. An app with `offline_access` can refresh its grant afterwards; its current access token may need renewal. “Authorized” means consent exists; the separate last-MCP-request timestamp is evidence of successful HTTP use, not proof that every tool works.
+
+See [Google setup and auth cutover](docs/google-sso.md) before deploying or changing domains.
 
 ## Evaluate Jev
 

@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BrainStore } from '../server/store.ts';
 import { createHandler } from '../server/http.ts';
-import { hashPassword } from '../server/auth.ts';
+import { fixture, owner } from './auth-fixture.ts';
 import type { RecallJudge } from '../src/shared.ts';
 const assessment = { useful: true, score: .98, model: 'test', usage: {}, questionVersion: 'test' };
 async function setup(t: any, recallJudge?: RecallJudge) {
@@ -73,13 +73,13 @@ test('connection journal recovery recognizes a committed link after interruption
 });
 test('browser review requires owner session, same origin and CSRF; ignores client-provided note text', async t => {
   const { store } = await setup(t);
-  const origin = 'https://brain.example.com', password = 'test-owner-password-long';
-  const handle = createHandler(store, { origin, passwordHash: hashPassword(password) });
+  const origin = 'https://brain.example.com';
+  const {service:auth, db}=await fixture(t);const login=await owner(auth,db);
+  const handle = createHandler(store, { auth });
   const session = await handle(new Request(origin + '/api/auth/session')); const { csrf } = await session.json();
   const csrfCookie = session.headers.get('set-cookie')!.split(';')[0];
   const req = (path: string, body: object, cookie = csrfCookie, site = origin) => new Request(origin + path, { method: 'POST', headers: { Origin: site, Cookie: cookie, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const login = await handle(req('/api/auth/login', { password, csrf }));
-  const cookie = csrfCookie + '; ' + login.headers.get('set-cookie')!.split(';')[0];
+  const cookie = csrfCookie + '; ' + login.cookie;
   const held=await store.remember({path:'Held.md',markdown:'# Held memory',sources:[{title:'Source',uri:'urn:test:held',observedAt:new Date().toISOString()}],expectedRevision:null,idempotencyKey:'held-browser-review'},'Agent');
   const review={id:held.id,action:'dismiss',reason:'Owner checked the source',csrf};
   assert.equal((await handle(req('/api/memories/review',review))).status,401);

@@ -1,22 +1,28 @@
-import { validateRuntimeConfig } from './config.ts';
+import { validateRuntimeConfig, authConfig } from './config.ts';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
+import { DatabaseSync } from 'node:sqlite';
+import { mkdirSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 import { BrainStore } from './store.ts';
 import { createJevJudge, createRecallJudge, createConnectionJudge } from './jev.ts';
 import { createHandler } from './http.ts';
-import { json } from './auth.ts';
+import { json, createAuthService } from './auth.ts';
 import { scheduleSync } from './runtime.ts';
 
 const port = Number(process.env.PORT || 3000);
 const origin = validateRuntimeConfig(process.env);
-const hash = process.env.BRAIN_PASSWORD_HASH;
+const authSettings = authConfig(process.env, origin);
 const bridgeKey = process.env.BRAIN_BRIDGE_KEY;
-const live = !!hash;
+const live = !!authSettings;
+const statePath = resolve(process.env.STATE_PATH || 'data/state');
+if(live)mkdirSync(statePath,{recursive:true});
+const authDb = live ? new DatabaseSync(resolve(statePath,'auth.sqlite')) : undefined;
+const auth = authSettings && authDb ? await createAuthService(authDb, authSettings) : undefined;
 const accepted = (process.env.AUTO_ACCEPT || '').split(',').filter(Boolean);
 if (accepted.some(v => !['new', 'update', 'promote'].includes(v))) throw Error('AUTO_ACCEPT supports only new,update,promote');
 const store = live ? new BrainStore({ vault: resolve(process.env.VAULT_PATH || 'data/vault'), data: resolve(process.env.STATE_PATH || 'data/state'), judge: createJevJudge(process.env.JEV_API_KEY || '', process.env.JEV_MODEL || 'jev-latest'), recallJudge: createRecallJudge(process.env.JEV_API_KEY, process.env.JEV_MODEL), connectionJudge: createConnectionJudge(process.env.JEV_API_KEY, process.env.JEV_MODEL), accept: accepted }) : undefined;
-const handle = store ? createHandler(store, { origin, passwordHash: hash!, bridgeKey }) : async () => json({ error: 'The private brain service is not configured yet.' }, 503);
+const handle = store && auth ? createHandler(store, { auth, bridgeKey }) : async () => json({ error: 'The private brain service is not configured yet.' }, 503);
 const stopSync = store && process.env.SYNC_ENABLED === 'true' ? scheduleSync(store, Math.max(10000, Number(process.env.SYNC_INTERVAL_MS) || 30000)) : () => {};
 const dist = resolve('dist');
 const types: Record<string, string> = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.svg': 'image/svg+xml' };
@@ -49,5 +55,5 @@ const server = createServer(async (req, res) => {
 server.requestTimeout = 30000;
 server.headersTimeout = 15000;
 server.listen(port, process.env.HOST || '127.0.0.1', () => console.log(`Brain listening on port ${port}; ${live ? 'private API enabled' : 'demo only at /demo'}`));
-function shutdown() { stopSync(); server.close(() => { if (store) void store.exclusive(async () => store.close()); }); }
+function shutdown() { stopSync(); server.close(() => { if (store) void store.exclusive(async () => { store.close(); authDb?.close(); }); }); }
 process.on('SIGTERM', shutdown); process.on('SIGINT', shutdown);

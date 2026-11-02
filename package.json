@@ -12,23 +12,25 @@
     "start": "node --env-file-if-exists=.env server/main.ts",
     "dev": "node --env-file-if-exists=.env --watch server/main.ts",
     "check": "tsc --noEmit",
-    "password": "node scripts/password.ts",
     "evaluate": "node --env-file-if-exists=.env scripts/evaluate.ts"
   },
   "dependencies": {
+    "@better-auth/mcp": "1.7.15",
+    "@better-auth/oauth-provider": "1.7.15",
     "@modelcontextprotocol/server": "2.3.1",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
+    "better-auth": "1.7.15",
     "lucide-react": "1.40.0",
     "marked": "16.4.2",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "yaml": "2.9.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "esbuild": "0.28.2",
-    "typescript": "5.9.3",
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.7"
+    "@types/react-dom": "19.2.7",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
   }
 }

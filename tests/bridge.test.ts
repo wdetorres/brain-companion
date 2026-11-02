@@ -44,3 +44,22 @@ test('hosted harness review and work URLs reach the authenticated bridge', async
     assert.match(rule.destination, /^\/api\/bridge\?route=/);
   }
 });
+
+test('SSO bridge permits only the login/provider surface and preserves MCP protocol headers and JSON bytes', async t => {
+  const previous = { fetch: globalThis.fetch, backend: process.env.BRAIN_SERVICE_URL, key: process.env.BRAIN_BRIDGE_KEY };
+  t.after(() => { globalThis.fetch=previous.fetch; for(const [key,value] of [['BRAIN_SERVICE_URL',previous.backend],['BRAIN_BRIDGE_KEY',previous.key]]){if(value===undefined)delete process.env[key!];else process.env[key!]=value;} });
+  process.env.BRAIN_SERVICE_URL='https://worker.example';process.env.BRAIN_BRIDGE_KEY='test';
+  const response=()=>({statusCode:200,setHeader(){},write(){},end(){}});
+  let target='';globalThis.fetch=async(input,init)=>{target=String(input);return new Response('{}');};
+  for (const route of ['api/auth/sign-in/social','api/auth/callback/google','api/auth/sign-out','api/auth/oauth2/authorize','api/auth/oauth2/consent','api/auth/oauth2/register','api/auth/oauth2/token','.well-known/oauth-authorization-server/api/auth','api/apps','api/apps/revoke','api/consent']) {
+    const res=response();await bridge({url:'/api/bridge?route='+route,method:'GET',headers:{}} as any,res as any);assert.equal(res.statusCode,200,route);assert.equal(new URL(target).pathname,'/'+route);
+  }
+  for (const route of ['api/auth/sign-up/email','api/auth/admin/create-user','api/auth/oauth2/create-client','api/auth/validate-brain-token']) {
+    const res=response();await bridge({url:'/api/bridge?route='+route,method:'GET',headers:{}} as any,res as any);assert.equal(res.statusCode,404,route);
+  }
+  const payload={jsonrpc:'2.0',id:1,method:'tools/list',params:{}};
+  globalThis.fetch=async(_input,init)=>{assert.deepEqual(JSON.parse(String(init?.body)),payload);const h=new Headers(init?.headers);assert.equal(h.get('mcp-method'),'tools/list');assert.equal(h.get('mcp-name'),'search');assert.equal(h.get('mcp-protocol-version'),'2026-07-28');assert.equal(h.get('mcp-param-query'),'test');assert.equal(h.get('x-forwarded-host'),null);return new Response('{}');};
+  for (const body of [payload,JSON.stringify(payload),Buffer.from(JSON.stringify(payload)),new TextEncoder().encode(JSON.stringify(payload))]) {
+    const res=response();await bridge({url:'/api/bridge?route=mcp',method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream','mcp-method':'tools/list','mcp-name':'search','mcp-protocol-version':'2026-07-28','mcp-param-query':'test','x-forwarded-host':'evil.test'},body} as any,res as any);assert.equal(res.statusCode,200);
+  }
+});
