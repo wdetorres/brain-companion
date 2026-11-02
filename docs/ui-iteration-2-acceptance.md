@@ -1,6 +1,6 @@
 # Graph, Review and account refinement
 
-November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc9`. Integration includes production changes through `e9e2116` and performance fixes `ac07626` / `5c5ffd8`. Wilson initially held deployment, then explicitly approved all deployments. The backend fixes and deploy filters are live; the bounded performance gate passed before this UI release. Live UI verification follows the Vercel release.
+November 2, 2026. Released as `244121d` from `codex/graph-review-polish`, including production changes through `e9e2116` and performance fixes `ac07626` / `5c5ffd8`. Wilson initially held deployment, then explicitly approved all deployments. The bounded performance gate passed before the UI release. Vercel `dpl_5sMkhizE9kTDLs2DjDYKc8sAYzRJ` is READY on the canonical domain; live desktop/mobile verification passed.
 
 ## Result
 
@@ -31,6 +31,9 @@ November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc
 | Account, copy success, synthetic revoke and empty state | Browser pass |
 | Horizontal overflow | None in checked desktop 1280 × 720, intermediate 850 × 900, mobile 390 × 844 views |
 | Browser console | No unexpected errors; intentional HTTP 503s used for retry checks |
+| Live production demo | Nested folders/readers, node drag with neighbor movement, exact reset, keyboard open and Review hierarchy pass |
+| Live mobile at 390 × 844 | Review queue/detail/back focus and account fit pass; no horizontal overflow |
+| Live account and consent boundary | Existing owner session, white account surfaces and copy feedback pass; invalid consent is blocked in the new compact frame |
 
 Tests use synthetic note/account data only. Temporary account/API fixtures are outside the repository and are never included in the build. The portable demo and existing dense graph fixture use the production bundle. No real account connections or notes were changed.
 
@@ -48,6 +51,10 @@ The performance chat deployed only accepted iteration one plus its earlier loadi
 
 Wilson subsequently approved all deployments. The release owner saved the 11 included Render paths with no ignored paths and deployed backend fixes separately. `ac07626` passed warm overlap checks but exposed a 59.160-second first MCP failure. The startup follow-up `5c5ffd8` validates the local index before network sync, exposes a completed summary while syncing, and reconciles afterward while preserving write/recovery ordering.
 
+The merged UI release unexpectedly triggered Render deployment `dep-dbk3q6bbc2fs73e30tb0` despite no backend differences from `5c5ffd8`. Replacement was already underway when inspected, so it was allowed to finish; it became live at 07:35:44Z and public health recovered. A settings reload confirmed the filter persisted. Merge-history evaluation is a possible cause, not established fact. Future UI-only merges should verify the final backend delta and use Render's explicit skip phrase when the worker must stay untouched; ordinary linear documentation filtering is checked separately. The standalone Render UI now also includes this iteration because of that replacement.
+
 On `5c5ffd8`, the first post-recovery MCP read took 0.787 s; status during sync took 0.446 s. A fresh browser note opened in 0.271 s during a scheduled sync and returned 0.486 s before its completion (start inferred from the scheduler). The first MCP read after a quiet sync took 0.694 s. A full browser reload took 1.597 s and retained the owner session. No startup timeout recurred in these bounded probes. True backend replacements still interrupt this disk-backed service; the filtered UI diff has no backend deployment matches. No paid scaling or auth changes were made.
 
 Physical touch hardware, OS-level reduced-motion behavior, screen-reader output, and sustained frame-rate profiling were not tested. The reduced-motion and hidden/unmount cancellation paths were reviewed in source. No production mutations or full cross-browser accessibility audit were performed. Existing graph scope remains bounded to 200 notes; motion is a temporary exploration aid, not a persisted graph editor.
+
+The full valid long-name consent flow used synthetic local data; live verification checked the deployed frame and invalid-request rejection without creating or revoking grants. Live screenshots use the sample workspace only and are stored beside the local evidence as `live-graph.jpg`, `live-browse.jpg`, `live-review.jpg` and `live-mobile-review.jpg`.

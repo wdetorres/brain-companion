@@ -57,6 +57,8 @@ The canonical UI is on Vercel at `brain.wilsondetorres.com`. Render's standalone
 
 Render's [filter rules](https://render.com/docs/monorepo-support#setting-build-filters) say included paths form an allowlist, ignored paths override includes, and filters only affect automatic deploys. Do not add `docs/**` as an ignored path: it would suppress the required MCP guide update. Manual deploys and service configuration changes can still restart the backend.
 
+Observed rollout limit: merged UI release `244121d` triggered a redundant Render build despite its final tree having no backend delta from deployed `5c5ffd8`. The saved filter was rechecked after navigation and still matched the payload. The cause is unproven; merge-history evaluation is a possibility. For a UI-only merge that must not restart the worker, first verify no runtime/build input changed, then use Render's `[skip render]` commit phrase or a release based directly on current main. Never use the skip phrase for backend changes.
+
 ## Coordinated rollout and remaining verification
 
 1. Keep the tested UI release separate until the performance gate passes; the release owner retains sole control of pushes and deployments.
