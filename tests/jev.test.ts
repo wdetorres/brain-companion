@@ -80,12 +80,14 @@ test('append extraction requires complete unchanged history and a line boundary'
 });
 
 test('append acceptance requires independent evidence, novelty and compatible history',()=>{
-  const supported=memoryReply(memory),history={novel:.95,compatible:.95,conflict:.05};
+  const supported=memoryReply(memory),history={novel:.95,duplicate:.05,compatible:.95,conflict:.05};
   assert.equal(parseDecision(supported,true,history).outcome,'update');
+  assert.equal(parseDecision(supported,false,history).outcome,'new');
   assert.equal(parseDecision(supported,true,{...history,novel:.949}).outcome,'uncertain');
   assert.equal(parseDecision(supported,true,{...history,compatible:.949}).outcome,'uncertain');
   assert.equal(parseDecision(supported,true,{...history,compatible:.01,conflict:.99}).outcome,'conflict');
   assert.equal(parseDecision(supported,true,{...history,compatible:.1,conflict:.01}).outcome,'uncertain');
   assert.equal(parseDecision(memoryReply({...memory,supported:.94}),true,history).outcome,'uncertain');
-  assert.equal(parseDecision(supported,true,{novel:.01,compatible:.99,conflict:0}).outcome,'duplicate');
+  assert.equal(parseDecision(supported,true,{novel:.01,duplicate:.99,compatible:.99,conflict:0}).outcome,'duplicate');
+  assert.equal(parseDecision(supported,true,{novel:.01,duplicate:.01,compatible:.99,conflict:0}).outcome,'uncertain');
 });

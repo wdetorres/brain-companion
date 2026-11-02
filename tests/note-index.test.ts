@@ -5,6 +5,8 @@ import { mkdtemp, mkdir, writeFile, rm, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { NoteIndex } from '../server/note-index.ts';
+import { parseNote } from '../server/vault.ts';
+import { relatedNotes } from '../server/retrieval.ts';
 
 test('persistent index reuses unchanged parsing and reconciles edits, links and removals', async t => {
   const root=await mkdtemp(join(tmpdir(),'brain-index-'));t.after(()=>rm(root,{recursive:true,force:true}));
@@ -33,4 +35,11 @@ test('FTS input is literal, bounded and category-aware, including recorded categ
   assert.equal(index.search('Apollo',2,'decision')[0].path,'Note4.md');
   assert.doesNotThrow(()=>index.search('" OR ) NEAR( * : -',5));
   assert.equal(index.search('',5).length,0);
+});
+
+test('frontmatter cannot crowd the subject out of the related-note query',()=>{
+  const metadata=Array.from({length:90},(_,i)=>'provenance'+i).join(' ');
+  const input={path:'Capture.md',markdown:`---\nsource_ref: ${metadata}\n---\n# Lunar landing\nThe lunar rover lands Friday.`,sources:[],expectedRevision:null,idempotencyKey:'metadata-shortlist'};
+  const notes=[parseNote('Noise.md','# Provenance\n'+metadata,''),parseNote('Moon.md','# Lunar landing\nThe lunar rover lands Monday.','')];
+  assert.deepEqual(relatedNotes(input,notes).map(n=>n.path),['Moon.md']);
 });
