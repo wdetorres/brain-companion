@@ -2,7 +2,7 @@
 
 The persistent Render worker, whole-vault sync, Better Auth Google SSO and ChatGPT MCP connection are live at **https://brain.wilsondetorres.com**. Wilson confirmed the setup works. Start with the [hosting runbook and session handoff](hosting-runbook.md#session-handoff--november-2-2026), [deployment checkpoint](deployment-status.md) and [SSO operations](google-sso.md).
 
-Vercel production follows `main`; `codex/google-sso` deployments are previews. Existing agent workflows/schedules remain unchanged and `AUTO_ACCEPT` remains empty. The checkpoints below retain historical decisions, including the former localhost and paused-hosting state; they do not describe today's deployment.
+Vercel production follows `main`; other branches produce previews. The four-skill migration is deployed in `d50b773`; installed instructions and three existing Codex prompts were aligned without schedule changes. A [hosted writer trial](writer-activation.md) held both real updates, and `AUTO_ACCEPT` was restored to empty. Existing local writer routes remain selected. The checkpoints below retain historical decisions, including the former localhost and paused-hosting state; they do not describe today's deployment.
 
 ---
 

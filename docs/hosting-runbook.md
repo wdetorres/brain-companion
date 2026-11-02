@@ -132,6 +132,10 @@ Wilson confirmed the setup works and requested this handoff before changing sess
 
 The existing private Brain project note, `01 Projects/Personal/Brain Companion.md`, is the personal-context counterpart to this operational record. Additional Jev roles and adoption of the MCP write workflow remain separate decisions.
 
+## Skill deployment and writer activation trial — November 2, 2026
+
+The four-skill migration was pushed to `main` at `d50b773` and verified Ready/live on Vercel and Render. A private pre-writer backup passed stable file-copy and SQLite integrity checks. A temporary `AUTO_ACCEPT=new,update` trial held both sourced append proposals; the target note was unchanged. Acceptance was restored to empty, with the rollback deploy live and authenticated MCP/sync working. Existing local writer routes remain selected. See [the activation record](writer-activation.md) for exact deployment IDs, backup location, test limits and the next gate. No evaluator experiment was shipped.
+
 ## Resume safely
 
 - Check the current project/domain/environment state before acting; platform UI and DNS can change independently of Git.

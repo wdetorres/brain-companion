@@ -1,6 +1,10 @@
-# Custom-domain checkpoint — November 2, 2026
+# Skill deployment and writer trial — November 2, 2026
 
-This is the current deployment checkpoint. The sections below are historical.
+Commit `d50b773` is deployed to Vercel production and the Render worker at the existing canonical domain. The four skills and updated served guide are live. A subsequent `new,update` acceptance trial held both real append proposals; automatic acceptance was restored to empty and verified. Existing notes and writer routes remain unchanged. See [writer activation](writer-activation.md) for deployment IDs, backup, failed readiness evidence and the next gate.
+
+## Custom-domain checkpoint — November 2, 2026
+
+The domain/auth setup below remains in use; its deployment IDs are historical.
 
 - **Live UI:** https://brain.wilsondetorres.com. **MCP:** https://brain.wilsondetorres.com/mcp. The apex still serves the existing portfolio; its DNS records were preserved.
 - Added the subdomain to the existing Vercel project and only its assigned DNS-only CNAME in Cloudflare. DNS and the HTTPS certificate verified successfully. The former Vercel hostname redirects all tested UI/auth/MCP/discovery paths with HTTP 307.
