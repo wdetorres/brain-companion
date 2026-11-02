@@ -1,6 +1,6 @@
 # Graph, Review and account refinement
 
-November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc9`. Integration includes production changes through `e9e2116` and performance fix `ac07626`. Wilson explicitly held deployment after the performance checks found sync-overlap latency and backend replacement downtime. No part of this follow-on UI iteration or performance fix has been deployed.
+November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc9`. Integration includes production changes through `e9e2116` and performance fixes `ac07626` / `5c5ffd8`. Wilson initially held deployment, then explicitly approved all deployments. The backend fixes and deploy filters are live; the bounded performance gate passed before this UI release. Live UI verification follows the Vercel release.
 
 ## Result
 
@@ -16,9 +16,9 @@ November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc
 | Check | Result |
 |---|---|
 | TypeScript, production build, whitespace | Pass |
-| Automated suite after performance integration | 97 passed, 0 failed |
-| Sync-overlap and asynchronous cache validation | Regression tests pass; production timing pending |
-| Render build-filter dependency coverage | Tests pass; settings not applied |
+| Automated suite after performance integration | 101 passed, 0 failed |
+| Startup, sync overlap, cache validation and recovery ordering | Regression tests and bounded production checks pass |
+| Render build-filter dependency coverage | Tests pass; settings applied and verified |
 | Layout detector on changed UI files | No findings |
 | Spring response, isolated notes, finite 200-node motion, settling | Automated tests pass |
 | Review priority, resolved/low-value exclusion, empty fallback | Automated test passes |
@@ -46,6 +46,8 @@ Screenshots are outside the repository in `/Users/wilson/.codex/visualizations/2
 
 The performance chat deployed only accepted iteration one plus its earlier loading fixes. It reported median authenticated note opening improving from 898 to 268 ms over five samples, including browser automation overhead. Later checks found one 6.108-second sync-overlap read and at least 51 seconds of observed HTTP 502 recovery during a docs-only backend replacement. Wilson chose to hold deployment and address performance first.
 
-Performance commit `ac07626` is integrated locally. Its six-second synthetic sync check returned three unchanged indexed notes in 0.089–0.185 ms; those are store timings, not production browser measurements. The prepared Render filter is not applied. A separate backend-only rollout and real sync-overlap checks, including a just-invalidated index, must precede the held UI release. True backend replacements still interrupt this disk-backed service. No push, hosting settings change, paid scaling, or live UI verification was performed for this candidate.
+Wilson subsequently approved all deployments. The release owner saved the 11 included Render paths with no ignored paths and deployed backend fixes separately. `ac07626` passed warm overlap checks but exposed a 59.160-second first MCP failure. The startup follow-up `5c5ffd8` validates the local index before network sync, exposes a completed summary while syncing, and reconciles afterward while preserving write/recovery ordering.
+
+On `5c5ffd8`, the first post-recovery MCP read took 0.787 s; status during sync took 0.446 s. A fresh browser note opened in 0.271 s during a scheduled sync and returned 0.486 s before its completion (start inferred from the scheduler). The first MCP read after a quiet sync took 0.694 s. A full browser reload took 1.597 s and retained the owner session. No startup timeout recurred in these bounded probes. True backend replacements still interrupt this disk-backed service; the filtered UI diff has no backend deployment matches. No paid scaling or auth changes were made.
 
 Physical touch hardware, OS-level reduced-motion behavior, screen-reader output, and sustained frame-rate profiling were not tested. The reduced-motion and hidden/unmount cancellation paths were reviewed in source. No production mutations or full cross-browser accessibility audit were performed. Existing graph scope remains bounded to 200 notes; motion is a temporary exploration aid, not a persisted graph editor.

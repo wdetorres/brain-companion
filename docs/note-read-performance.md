@@ -1,6 +1,6 @@
 # Note reads during sync and backend deploy filters
 
-Updated November 2, 2026. The unchanged-note fast path (`ac07626`) and Render filters are live. The startup lifecycle follow-up below is locally verified and awaits the release owner’s coordinated rollout.
+Updated November 2, 2026. The unchanged-note fast path (`ac07626`), startup follow-up (`5c5ffd8`) and Render filters are live. The bounded production performance gate passed before the coordinated UI release.
 
 ## Read behavior
 
@@ -27,7 +27,13 @@ A duration-only `brain_sync` log is emitted for syncs over one second or failure
 
 On `ac07626`, the first post-deployment MCP inspection failed after **59.160 s**; subsequent reads took **0.651 s** and **1.582 s**. App/request logs did not establish the failed request’s exact cause. The cold index can demonstrably queue behind startup sync, and the bridge aborts at 55 seconds, but this is not proof of that individual failure’s cause.
 
-A later unchanged note read took **0.424 s** and returned **5.478 s before** the real sync finished. The first read after a quiet completed sync took **0.548 s**. The note revision and modification time remained unchanged. These are external MCP tool round trips, not backend-only timings. The startup follow-up still needs the same production check after deployment.
+A later unchanged note read took **0.424 s** and returned **5.478 s before** the real sync finished. The first read after a quiet completed sync took **0.548 s**. The note revision and modification time remained unchanged. These are external MCP tool round trips, not backend-only timings.
+
+## Live startup follow-up
+
+Render deployment `dep-dbk3nmivcj2c73fjlif0` for `5c5ffd8` became live at 07:30:22Z; public health recovered by 07:30:33Z (15:30 Asia/Manila). The first MCP note read after recovery succeeded in **0.787 s**, with unchanged revision. Initial sync had completed before edge recovery, so this particular production read does not prove startup overlap; local held-sync regressions cover that case.
+
+Status returned in **0.446 s** during active sync with honest syncing state. A fresh browser note opened in **0.271 s**, finishing **0.486 s before** the next sync completed; its overlap uses the scheduler's 30-second interval and observed last-sync timestamps. The first read after a quiet completed sync took **0.694 s**, with no intervening Brain reads. Full browser reload took **1.597 s** and preserved the owner session. No 59-second failure recurred in these bounded probes. These checks do not establish load capacity or eliminate backend replacement downtime.
 
 ## Render build filter
 
