@@ -17,7 +17,7 @@ OWN-WORLD: Matte black, graphite panes, silver text and fine neutral rules. Atki
 
 STORY: A centered promise and sample action lead into the scripted Claude-to-ChatGPT conversation, then a concrete Jev conflict example. Keep Open your Brain available in the header, including mobile.
 
-FIRST VIEWPORT: A 54px maximum desktop heading (36px mobile), 16px support copy (14px mobile), 22px marks (19px mobile), and a 44px sample action above the wide framed chat/note stage. The page is at most 1100px wide. Mobile stacks the note after the chat and keeps playback controls reachable.
+FIRST VIEWPORT: A 54px maximum desktop heading (36px mobile), 16px support copy (14px mobile), 22px logos without visible labels (19px mobile), with descriptive alt text and hover names, and a 44px sample action above the wide framed chat/note stage. The page is at most 1100px wide. Mobile stacks the note after the chat and keeps playback controls reachable.
 
 FORM: Product-stage option 1, seed b8219372, in the user's pinned cinematic monochrome world. Retain the one-shot 18-second sequence, start-once threshold, pause/resume/replay, scene selection, source-note update and reduced-motion scenes. The current agent's avatar follows the scene; the composer remains illustrative.
 
@@ -25,7 +25,7 @@ FINISH: unreviewed and undocumented is unfinished; this build ends with the fini
 
 ## Implementation and truth boundaries
 
-The production surface is `public/landing.html`, styled by `src/landing.css` and driven by the existing `src/landing.ts` / `src/landing-timeline.ts` entry. Keep same-origin assets, CSP, Vercel-only root/app output split and existing API/OAuth routing. The five source SVGs and their hashes/attribution are in `public/agents/`; Atkinson 700 is the self-hosted TrueType `.ttf` in `public/fonts/`, with OFL and source record. No WOFF2, generated brand mark, raster artwork or new runtime dependency ships.
+The production surface is `public/landing.html`, styled by `src/landing.css` and driven by the existing `src/landing.ts` / `src/landing-timeline.ts` entry. Keep same-origin assets, CSP, Vercel-only root/app output split and existing API/OAuth routing. The eight source SVGs and their hashes/attribution are in `public/agents/`; Atkinson 700 is the self-hosted TrueType `.ttf` in `public/fonts/`, with OFL and source record. No WOFF2, generated brand mark, raster artwork or new runtime dependency ships.
 
 Every conversation, note, score and MCP call in the preview is synthetic. Eligible remember writes and Jev recall semantics remain as recorded in the existing product contract. Semantic-search copy is Wilson's authorized intended state, not evidence that this frontend implements hosted semantic retrieval or that every named client integration is verified end to end.
 

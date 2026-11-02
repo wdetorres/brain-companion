@@ -28,6 +28,24 @@
       "source": "https://cursor.com/brand",
       "asset": "General Logos/Cube/SVG/CUBE_2D_DARK.svg",
       "sha256": "cd0e3e5d8991a4cdd4577f8896cd063105207665165c73e25a1ff918dd367eb7"
+    },
+    {
+      "name": "codex",
+      "sha256": "d08b4e824cd6727e89617f59e4737273ff53e44c1da849d016dd64dfd08b33e1",
+      "bytes": 1368,
+      "mcpDocumentation": "https://developers.openai.com/codex/mcp"
+    },
+    {
+      "name": "githubcopilot",
+      "sha256": "bbc7fddc13448236e5edea8c399d2072dc40aa5da5bca07f7a2f412405c500a3",
+      "bytes": 2019,
+      "mcpDocumentation": "https://code.visualstudio.com/docs/agents/reference/mcp-configuration"
+    },
+    {
+      "name": "opencode",
+      "sha256": "7cfa6e9d6726f7c9fa26c7d9aef0dfec52d20a137380454340f30f12ccbfd302",
+      "bytes": 235,
+      "mcpDocumentation": "https://opencode.ai/docs/mcp-servers/"
     }
   ],
   "licenseSource": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/LICENSE"

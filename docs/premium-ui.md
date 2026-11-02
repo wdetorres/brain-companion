@@ -23,3 +23,9 @@ The performance chat confirmed no outstanding gate or deployment conflict. Produ
 Live CSS, JavaScript, all five agent SVGs and the font matched the tested build byte for byte. The landing, app, demo, sign-in and settings routes returned 200; anonymous private API access returned 401. The same-origin font CSP remains intact. Browser checks verified the full chat playback, sample-Brain CTA, Jev conflict example, authenticated fresh note open and revisit, and Account & connections with a successful sync status. These smoke checks did not measure request latency or establish a network cache hit. No browser warnings or errors were observed.
 
 The live 390px landing uses a 36px heading without horizontal overflow. Screenshots are under `.impeccable/review/premium/live/`. No new backend load test, OAuth grant/revoke or hosted semantic-search implementation was part of this release.
+
+## Logos-only refinement
+
+The agent row now shows eight monochrome marks without visible names, preserving alt text and native hover titles. Codex, GitHub Copilot and OpenCode join the original five, using unchanged SVGs from the same pinned Lobe Icons archive. Their official MCP documentation is recorded alongside asset hashes in `public/agents/sources.json`; listing a compatible MCP client does not establish an end-to-end Brain integration test. The row retains its 22px desktop / 19px mobile scale and needs no JavaScript or dependency changes.
+
+TypeScript and all 141 existing tests passed. Desktop and 390px mobile browser checks confirmed all eight images load, accessible names remain, visible labels are absent, and every logo fits on a single row without horizontal overflow. Captures are under `.impeccable/review/logos-only/`.
