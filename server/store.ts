@@ -359,9 +359,10 @@ export class BrainStore {
       await createNoteFile(target,input.markdown);
       if(revision(await readFile(sourcePath,'utf8'))!==input.expectedRevision)throw Error('Source changed');
       await unlink(sourcePath);await syncDirectory(dirname(sourcePath));
-      op.status='applied';op.reason='Promoted in server vault; device sync is separate';op.revision=revision(input.markdown);finish();this.recordCategory(op);
-      this.db.prepare('DELETE FROM observed WHERE path=?').run(input.sourcePath);this.markObserved(destination);this.work.resolve(job,'done','Promoted to '+input.path);return op;
-    }catch{op.status='needs_attention';op.reason='Promotion interrupted; inspect both paths before retrying';return finish();}
+    }catch{op.reason='Promotion interrupted; inspect both paths to reconcile the journal';return finish();}
+    // Completion failures leave the durable pending journal for the next inspection.
+    op.status='applied';op.reason='Promoted in server vault; device sync is separate';op.revision=revision(input.markdown);finish();this.recordCategory(op);
+    this.db.prepare('DELETE FROM observed WHERE path=?').run(input.sourcePath);this.markObserved(destination);this.work.resolve(job,'done','Promoted to '+input.path);return op;
   });}
   private async rememberUnlocked(raw:RememberInput,actor:string,beforeWrite?:()=>void):Promise<Operation>{
     const input=rememberSchema.parse(raw);const target=await safePath(this.vault,input.path,true);const fingerprint=revision(JSON.stringify({...input,assessment:input.assessment?{...input.assessment,claimToken:undefined}:undefined}));
@@ -387,8 +388,9 @@ export class BrainStore {
       await mkdir(dirname(target),{recursive:true});await safePath(this.vault,op.path,true);temp=target+'.'+randomUUID()+'.tmp';
       const fd=await open(temp,'wx',0o600);try{await fd.writeFile(op.proposed,'utf8');await fd.sync();}finally{await fd.close();}
       await rename(temp,target);temp='';const parent=await open(dirname(target),'r');try{await parent.sync();}finally{await parent.close();}
-      op.status='applied';op.reason='Applied to server vault; device sync is separate';op.revision=revision(op.proposed);finish();this.recordCategory(op);this.completeNoteWork(op);
-      this.db.prepare('INSERT INTO observed VALUES(?,?,?) ON CONFLICT(path) DO UPDATE SET revision=excluded.revision,markdown=excluded.markdown').run(op.path,op.revision,op.proposed);return op;
-    }catch(e){if(temp)await unlink(temp).catch(()=>{});op.status='needs_attention';op.reason='Write interrupted; inspect server state before retry';return finish();}
+    }catch(e){if(temp)await unlink(temp).catch(()=>{});op.reason='Write interrupted; inspect server state to reconcile the journal';return finish();}
+    // Do not demote a published write when recording completion fails.
+    op.status='applied';op.reason='Applied to server vault; device sync is separate';op.revision=revision(op.proposed);finish();this.recordCategory(op);this.completeNoteWork(op);
+    this.db.prepare('INSERT INTO observed VALUES(?,?,?) ON CONFLICT(path) DO UPDATE SET revision=excluded.revision,markdown=excluded.markdown').run(op.path,op.revision,op.proposed);return op;
   }
 }

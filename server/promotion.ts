@@ -31,9 +31,10 @@ export function undoLinkChanges(notes:Note[],files:FileChange[],move?:{from:stri
   const unaffected=notes.filter(n=>!files.some(f=>f.path===n.path));
   const before=[...unaffected,...files.filter(f=>f.before!==null).map(f=>parseNote(f.path,f.before!,''))];
   const after=[...unaffected,...files.filter(f=>f.after!==null).map(f=>parseNote(f.path,f.after!,''))];
+  if(move)return promotionLinkChanges(before,before.find(n=>n.path===move.from)!,after.find(n=>n.path===move.to)!);
   const oldResolve=createNoteResolver(before),newResolve=createNoteResolver(after),affected=new Set<string>();
   for(const n of unaffected)for(const raw of rawLinks(n.body)){
-    const old=oldResolve(n.path,raw);if(old&&newResolve(n.path,raw)!==(old===move?.from?move.to:old))affected.add(n.path);
+    const old=oldResolve(n.path,raw);if(old&&newResolve(n.path,raw)!==old)affected.add(n.path);
   }
   return [...affected];
 }

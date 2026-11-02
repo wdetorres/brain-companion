@@ -6,7 +6,7 @@ The implementation adds `assess_memory` → agent decision → `remember`/`promo
 
 ## Verified implementation
 
-- 128 automated tests passed before final review, including two-client MCP handoff, expired-claim fencing, exact retries, changed candidate/context labels, unavailable advice, safe undo/crash recovery, privacy exclusions, HTTP authentication/CSRF and bridge/build-filter coverage. TypeScript check, production build and deterministic workflow smoke passed.
+- 131 automated tests passed after final review, including two-client MCP handoff, expired-claim fencing, exact retries, changed candidate/context labels, unavailable advice, safe undo/crash recovery, privacy exclusions, HTTP authentication/CSRF and bridge/build-filter coverage. TypeScript check, production build and deterministic workflow smoke passed.
 - A bounded synthetic sweep resumed one abandoned assessment, deferred unavailable original evidence, skipped a live claim and future deferral, then handled changed evidence and due work. It made no repeated assessment request. This verifies the consumer protocol, not an unattended scheduler.
 - Desktop (1280 × 720) and mobile (390 × 844) inspection covered the prominent assessment, unsaved candidate, revised-draft/context, unavailable feedback and removed-file undo states. Separate component render assertions cover outcome/rationale/source labels; these are synthetic fixtures, not production captures.
 - Existing cached Inbox notes acquire their stored `review_reason` through a derived parser-index rebuild. Deferred source blockers and note/history data are preserved.
@@ -44,3 +44,11 @@ For an authorized rollout:
 ## Rollback
 
 Stop new work and reconcile pending commits and undo journals on the new runtime before reverting. Older recovery code does not understand inverse journals or assessment work. Restore coordinated state if rollback is required; reverting code alone does not revert notes. Preserve assessment/history records. Undo is one recorded primary change at a time and refuses later edits, reused paths and dependent links; it is not cascading deletion or general reorganization.
+
+## Fresh review and final verification
+
+A fresh whole-branch reviewer found two Important defects: a completion-record persistence failure could demote an already-written note and permit another primary write; reverse promotion could silently retarget outgoing links in the restored note. Both were reproduced in failing isolated regressions, fixed in one pass, and verified with 131/131 tests, TypeScript, production build and the deterministic MCP workflow smoke. No Critical or deferred Minor findings remained. No additional paid requests were used after the 14-request run.
+
+Implementation decisions: retry fingerprints exclude only ephemeral lease tokens while binding content/assessment/reason; the component extraction supports real rendering tests; parser migration rebuilds derived note indexes only; undo sends the original result revision while the server checks current content. Incorrect retry/revision handling would risk duplicate writes or overwrites, so these paths have focused tests.
+
+Review boundaries retained: production/installed-skill/scheduler activation is pending; four synthetic live checks do not establish general model accuracy; independent filesystem writers and multiple replicas remain unsupported; arbitrary deletion, cascading undo and undo-of-undo remain excluded; unchanged authentication and device-sync internals were not freshly audited. Respecting these boundaries is required before calling the deployed Brain automatically maintained.

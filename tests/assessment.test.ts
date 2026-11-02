@@ -95,3 +95,17 @@ test('existing cached Inbox captures acquire their real review reason without er
  const store=f.reopen();assert.equal((await store.listWork({kind:'inbox'}))[0].reason,'Original source is missing');const claim=await store.claimWork(job.id,'B');
  await store.finishWork({id:job.id,claimToken:claim.claimToken,outcome:'deferred',reason:'Source account is inaccessible'},'B');assert.equal((await store.listWork({kind:'inbox'}))[0].reason,'Source account is inaccessible');
 });
+
+for(const mode of ['remember','promote'])test(mode+': completion persistence failure recovers one primary write',async t=>{
+  const f=await fixture(t);await mkdir(join(f.vault,'01 Projects'));let candidate={...input,path:'01 Projects/Plan.md'},promotion:any;
+  if(mode==='promote'){await mkdir(join(f.vault,'00 Inbox'));await writeFile(join(f.vault,'00 Inbox/Plan.md'),input.markdown);const source=await f.store.inspect('00 Inbox/Plan.md'),job=(await f.store.listWork({kind:'inbox'}))[0],claim=await f.store.claimWork(job.id,'A');candidate={...candidate,expectedRevision:source.revision};promotion={sourcePath:source.path,claimToken:claim.claimToken};}
+  const staged=await f.store.assessMemory({...candidate,intent:mode==='promote'?'promote':'capture',...(promotion?{sourcePath:promotion.sourcePath}:{})},'A');
+  const internal=f.store as any,save=internal.save.bind(f.store);let fail=true;internal.save=(op:any,...args:any[])=>{if(op.status==='applied'&&fail){fail=false;throw Error('Transient completion persistence failure');}return save(op,...args);};
+  const {intent,...write}=candidate;const commitInput={...write,idempotencyKey:'completion-failure-'+mode,assessment:{id:staged.assessment.id,claimToken:staged.claimToken!,reason:'Verified original source'}};
+  await assert.rejects(mode==='promote'?f.store.promote({...commitInput,...promotion},'A'):f.store.remember(commitInput,'A'),/Transient completion/);
+  assert.equal(await readFile(join(f.vault,candidate.path),'utf8'),input.markdown);
+  const progress=(await f.store.assessment(staged.assessment.id))!.progress!;assert.ok(progress.operationId);const recorded=JSON.parse(String(f.store.db.prepare('SELECT payload FROM operations WHERE id=?').get(progress.operationId)!.payload));assert.equal(recorded.status,'pending');
+  await assert.rejects(f.store.remember({...commitInput,path:'01 Projects/Second.md',expectedRevision:null,idempotencyKey:'second-after-failure-'+mode},'A'),/complete|resolved/i);
+  const retry=mode==='promote'?await f.store.promote({...commitInput,...promotion},'A'):await f.store.remember(commitInput,'A');assert.equal(retry.id,recorded.id);assert.equal(retry.status,'applied');assert.equal((await f.store.listWork({kind:'assessment'})).length,0);await assert.rejects(readFile(join(f.vault,'01 Projects/Second.md')),{code:'ENOENT'});
+  if(mode==='promote')await assert.rejects(readFile(join(f.vault,promotion.sourcePath)),{code:'ENOENT'});
+});

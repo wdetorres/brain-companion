@@ -41,3 +41,10 @@ test('restart reconciles each partial inverse state and never overwrites a confl
    assert.equal(await readFile(join(f.vault,original.path),'utf8'),original.proposed);if(stage==='conflict')assert.equal(await readFile(join(f.vault,promoted.path),'utf8'),'# Later edit');else await assert.rejects(readFile(join(f.vault,promoted.path)),{code:'ENOENT'});
  }
 });
+
+test('promotion undo refuses outgoing links that would retarget at the restored source location',async t=>{
+ const f=await fixture(t);await mkdir(join(f.vault,'01 Projects'));await create(f.store,'Reference.md','# Original evidence');const original=await create(f.store,'00 Inbox/Foo.md','# Foo\n[[Reference]]'),job=(await f.store.listWork({kind:'inbox'}))[0],claim=await f.store.claimWork(job.id,'A');
+ const promoted=await f.store.promote({sourcePath:original.path,path:'01 Projects/Foo.md',markdown:original.proposed,sources,expectedRevision:original.revision!,idempotencyKey:'promote-outgoing-undo',claimToken:claim.claimToken},'A');assert.equal(promoted.status,'applied');
+ await create(f.store,'00 Inbox/Reference.md','# Different evidence');const before=await f.store.inspect(promoted.path);assert.deepEqual(before.links,['Reference.md']);
+ const undo=await f.store.undoMemory(request(promoted),'A');assert.equal(undo.status,'needs_attention');assert.match(undo.reason,/link/);assert.deepEqual((await f.store.inspect(promoted.path)).links,['Reference.md']);await assert.rejects(readFile(join(f.vault,original.path)),{code:'ENOENT'});
+});
