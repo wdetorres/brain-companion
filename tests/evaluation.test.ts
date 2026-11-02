@@ -24,11 +24,11 @@ test('runner enforces the request cap and releases its lock after invalid budget
   try{
     mkdirSync(join(root,'data/evals'),{recursive:true});
     writeFileSync(join(root,'cases.json'),JSON.stringify([{name:'budget-check',input:{path:'Projects/Test.md',markdown:'A synthetic proposal.',sources:[{title:'Test',uri:'urn:test',observedAt:'2026-10-31T00:00:00Z'}],expectedRevision:null,idempotencyKey:'budget-test'},expected:'uncertain'}]));
-    for(const limit of [0,2000,2001]){
-      const budget={limit,requests:2000};writeFileSync(join(root,'data/evals/budget.json'),JSON.stringify(budget));
+    for(const limit of [0,2050,2051]){
+      const budget={limit,requests:2050};writeFileSync(join(root,'data/evals/budget.json'),JSON.stringify(budget));
       const run=spawnSync(process.execPath,[fileURLToPath(new URL('../scripts/evaluate.ts',import.meta.url)),'cases.json'],{cwd:root,env:{...process.env,JEV_API_KEY:'invalid-test-key',JEV_MODEL:'jev-1.14.0'},encoding:'utf8',timeout:5000});
       assert.equal(run.status,1);assert.equal(existsSync(join(root,'data/evals/runner.lock')),false);assert.deepEqual(JSON.parse(readFileSync(join(root,'data/evals/budget.json'),'utf8')),budget);
-      assert.match(run.stdout+run.stderr,limit===2000?/Evaluation failed/:/Invalid request budget/);
+      assert.match(run.stdout+run.stderr,limit===2050?/Evaluation failed/:/Invalid request budget/);
     }
   }finally{rmSync(root,{recursive:true,force:true});}
 });

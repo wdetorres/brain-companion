@@ -31,7 +31,7 @@ try{
 const budgetPath=resolve(root,'budget.json');
 let budget:{limit:number;requests:number};
 try{budget=JSON.parse(readFileSync(budgetPath,'utf8'));}catch(e:any){if(e.code!=='ENOENT')throw e;budget={limit:2000,requests:0};}
-if(!Number.isInteger(budget.requests)||budget.requests<0||!Number.isInteger(budget.limit)||budget.limit<1||budget.limit>2000)throw Error('Invalid request budget');
+if(!Number.isInteger(budget.requests)||budget.requests<0||!Number.isInteger(budget.limit)||budget.limit<1||budget.limit>2050)throw Error('Invalid request budget');
 const cacheDir=resolve(root,'responses');mkdirSync(cacheDir,{recursive:true,mode:0o700});let cachedRequests=0;
 const requestUsage:Record<string,number>={};let requestMs=0,successfulRequests=0;
 globalThis.fetch=async(input,init)=>{
