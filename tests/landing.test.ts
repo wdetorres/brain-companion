@@ -26,8 +26,8 @@ test('public landing and application routes preserve the MCP and auth entry poin
   const { readFile } = await import('node:fs/promises');
   const config = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
   const destination = (path: string) => config.rewrites.find((route: { source: string }) => route.source === path)?.destination;
-  assert.equal(destination('/'), '/landing.html');
-  for (const path of ['/app', '/demo', '/sign-in', '/consent', '/settings']) assert.equal(destination(path), '/index.html');
+  assert.equal(destination('/'), undefined, 'Vercel uses its index.html before rewrites');
+  for (const path of ['/app', '/demo', '/sign-in', '/consent', '/settings']) assert.equal(destination(path), '/app.html');
   assert.equal(destination('/mcp'), '/api/bridge?route=mcp');
   assert.equal(destination('/api/auth/:path*'), '/api/bridge?route=api/auth/:path*');
   const landing = await readFile(new URL('../public/landing.html', import.meta.url), 'utf8');
@@ -35,4 +35,20 @@ test('public landing and application routes preserve the MCP and auth entry poin
   assert.match(landing, /href="\/demo"/);
   assert.match(landing, /src="\/assets\/landing.js"/);
   assert.doesNotMatch(landing, /<script[^>]*>[^<]+<\/script>/);
+});
+
+
+test('Vercel gets the public index while standalone builds retain the private app shell', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const { readFile } = await import('node:fs/promises');
+  const env = { ...process.env };
+  delete env.VERCEL; delete env.VERCEL_ENV;
+  execFileSync(process.execPath, ['scripts/build.mjs'], { env, stdio: 'pipe' });
+  assert.match(await readFile('dist/index.html', 'utf8'), /id="root"/);
+  execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...env, VERCEL: '1', VERCEL_ENV: 'production' }, stdio: 'pipe' });
+  const landing = await readFile('dist/index.html', 'utf8');
+  assert.match(landing, /One brain\. Any agent\./);
+  assert.doesNotMatch(landing, /id="root"/);
+  assert.match(await readFile('dist/app.html', 'utf8'), /id="root"/);
+  assert.match(await readFile('dist/assets/landing.js', 'utf8'), /Semantic search/);
 });

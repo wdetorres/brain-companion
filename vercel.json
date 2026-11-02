@@ -11,12 +11,8 @@
   },
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/landing.html"
-    },
-    {
       "source": "/app",
-      "destination": "/index.html"
+      "destination": "/app.html"
     },
     {
       "source": "/mcp",
@@ -68,7 +64,7 @@
     },
     {
       "source": "/demo",
-      "destination": "/index.html"
+      "destination": "/app.html"
     },
     {
       "source": "/api/apps",
@@ -84,15 +80,15 @@
     },
     {
       "source": "/sign-in",
-      "destination": "/index.html"
+      "destination": "/app.html"
     },
     {
       "source": "/consent",
-      "destination": "/index.html"
+      "destination": "/app.html"
     },
     {
       "source": "/settings",
-      "destination": "/index.html"
+      "destination": "/app.html"
     }
   ],
   "headers": [
