@@ -4,14 +4,15 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { createMemoryMcp } from '../server/mcp.ts';
 import { BrainStore } from '../server/store.ts';
-import type { Judge } from '../src/shared.ts';
+import type { Judge, WriteAssessor } from '../src/shared.ts';
 
 const cases = JSON.parse(await readFile(new URL('../tests/fixtures/jev-smoke.json', import.meta.url), 'utf8'));
 const example = cases.find((item: { name: string }) => item.name === 'supported-update');
 assert.ok(example?.current, 'Missing supported-update fixture');
 const dir = await mkdtemp(join(tmpdir(), 'brain-jev-workflow-'));
 const vault = join(dir, 'vault'), data = join(dir, 'state');
-let judgeCalls = 0;
+let judgeCalls = 0, assessmentCalls = 0;
+const writeAssessor:WriteAssessor=async()=>{assessmentCalls++;return{decision:{outcome:'uncertain',confidence:.9,model:'synthetic',usage:{}},recommendations:[]};};
 const judge: Judge = async () => { judgeCalls++; throw Error('Direct writes must not call Jev'); };
 let store: BrainStore | undefined;
 try {
@@ -19,7 +20,7 @@ try {
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, example.current.markdown);
   // Writes target only this temporary vault, regardless of the service's .env.
-  store = new BrainStore({ vault, data, judge, accept: ['update'] });
+  store = new BrainStore({ vault, data, judge, writeAssessor, accept: ['update'] });
   let handler = createMemoryMcp(store, 'Synthetic direct-write workflow test'), requestId = 0;
   async function call(name: string, args: unknown) {
     const response = await handler.fetch(new Request('https://brain.example.com/mcp', {
@@ -42,14 +43,17 @@ try {
   assert.equal(await readFile(target, 'utf8'), input.markdown, 'The update was not saved');
   assert.deepEqual(await call('remember', input), operation, 'Retry created a different operation');
   store.close();
-  store = new BrainStore({ vault, data, judge, accept: ['update'] });
+  store = new BrainStore({ vault, data, judge, writeAssessor, accept: ['update'] });
   handler = createMemoryMcp(store, 'Synthetic direct-write workflow test');
   assert.deepEqual(await call('inspect', { operationId: operation.id }), operation, 'Proposal or decision did not persist');
   assert.deepEqual(await call('remember', input), operation, 'Retry after reopening changed the operation');
   assert.equal((await store.snapshot()).operations.length, 1, 'Unexpected extra change records');
   assert.equal(await readFile(target, 'utf8'), input.markdown, 'The update changed after reopening');
   assert.equal(judgeCalls, 0, 'Direct writes unexpectedly called Jev');
-  console.log(JSON.stringify({ status: 'passed', operationStatus: operation.status, exactUpdateSaved: true, operationPersistedAfterReopen: true, idempotentRetries: true, judgeCalls }));
+  const stagedInput={...input,sources:[{...input.sources[0],excerpt:'Move the fictional demo to Tuesday, keeping 09:00 and room Cedar; retain the original source context.'}],markdown:input.markdown+'\nVerified follow-up: retain original source context.\n',expectedRevision:operation.revision,idempotencyKey:'smoke-assessment',intent:'capture'};
+  const staged=await call('assess_memory',stagedInput);assert.equal(staged.assessment.status,'assessed');assert.equal((await call('assess_memory',stagedInput)).assessment.id,staged.assessment.id);
+  const {intent,...final}=stagedInput;const assessed=await call('remember',{...final,idempotencyKey:'smoke-assessed-commit',assessment:{id:staged.assessment.id,claimToken:staged.claimToken,reason:'Synthetic source verification'}});assert.equal(assessed.status,'applied');assert.equal(assessmentCalls,1);assert.equal(judgeCalls,0);
+  console.log(JSON.stringify({ assessmentCalls, assessedCommit:assessed.status, status: 'passed', operationStatus: operation.status, exactUpdateSaved: true, operationPersistedAfterReopen: true, idempotentRetries: true, judgeCalls }));
 } finally {
   store?.close();
   await rm(dir, { recursive: true, force: true });

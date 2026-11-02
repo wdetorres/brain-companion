@@ -6,11 +6,11 @@ An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents verif
 
 - Graph, Pages, Changes, and Jev Recall views, with search, backlinks, sources, change diffs, graph pan/zoom, folder filters, and a focused neighborhood.
 - Explicit synthetic demo at `/demo`. The normal route requires the owner’s Google sign-in and never falls back to fake live data.
-- Twelve MCP tools for status, local search, assessed recall, inspection, capture, shared work claims, proposal review, Inbox promotion and connection review. Four portable skills—`brain-recall`, `brain-capture`, `brain-review`, `brain-maintain`—share the same tools and policy. See [installation and migration](docs/skill-migration.md) and [the harness guide](docs/harness.md).
+- Fourteen MCP tools for status, local search, assessed recall, inspection, advisory write assessment, capture, bounded undo, shared work claims, proposal review, Inbox promotion and connection review. Four portable skills—`brain-recall`, `brain-capture`, `brain-review`, `brain-maintain`—share the same tools and policy. See [installation and migration](docs/skill-migration.md) and [the harness guide](docs/harness.md).
 - Persistent SQLite FTS5 indexing with reused parsing, revision-bound work, five-minute claims, explicit owner memory review and journaled Inbox promotion.
 - One shared brain. Single-owner browser sessions and OAuth authorization with S256 PKCE, resource binding, dynamic client registration, hashed opaque tokens, rotating refresh tokens, and revocation.
 - Persistent Markdown files and SQLite operation history. Revision checks, serialized writes, idempotency, a write journal, atomic replacement, and retained conflict/uncertain proposals.
-- Jev System One adapter for promotion evidence/value checks, recall evidence/conflict review, reviewed connection suggestions, strict result validation, recorded usage/model/question version, and a budgeted evaluation runner. No backend text generation.
+- Jev System One adapter for advisory write quality/lifecycle recommendations, recall evidence/conflict review, reviewed connection suggestions, strict result validation, recorded usage/model/question version, and a budgeted evaluation runner. No backend text generation.
 - Optional Obsidian Headless one-shot sync in the same queue as writes. Sync status is separate from server write status.
 - Vercel frontend and forwarding function; Docker/Compose service with persistent volumes.
 
@@ -48,11 +48,11 @@ Create a Google OAuth **Web application** client with the callback `http://local
 
 Keep `PUBLIC_ORIGIN=http://localhost:3000` and leave `BRAIN_BRIDGE_KEY` empty for local development. Put synthetic notes in `VAULT_PATH`, then run `npm start`. Production requires complete SSO configuration and fails startup if it is missing. With all four SSO settings absent, development serves only the explicit demo.
 
-Set `JEV_API_KEY` only on the persistent service. Jev is used for assessed recall, connection suggestions and promotion. New/update writes do not call Jev or depend on its availability. The API key is not part of the browser bundle or Vercel environment.
+Set `JEV_API_KEY` only on the persistent service. Agents use `assess_memory` for Jev write advice, then decide and commit through `remember` or `promote`. Jev also assesses recall and connection suggestions. Commit calls never rerun Jev or depend on its scores/availability. The API key is not part of the browser bundle or Vercel environment.
 
-`AUTO_ACCEPT` is empty by default. Set `AUTO_ACCEPT=new,update` to enable direct agent creates and updates after verifying the service. Agents own source and duplicate checks; the server retains privacy checks, protected paths, revision checks, exact retries and journaled writes. Add `promote` separately only when authorizing Jev-checked Inbox moves. Retained proposals can be saved directly or dismissed by the owner or a claimed agent reviewer. Acceptance preserves the original expected revision without rerunning Jev. Existing proposals are not automatically replayed when configuration changes.
+`AUTO_ACCEPT` is empty by default. Set `AUTO_ACCEPT=new,update` to enable direct agent creates and updates after verifying the service. Agents own source and duplicate checks; the server retains privacy checks, protected paths, revision checks, exact retries and journaled writes. Add `promote` separately only when authorizing verified Inbox moves. Retained proposals can be saved directly or dismissed by the owner or a claimed agent reviewer. Acceptance preserves the original expected revision without rerunning Jev. Existing proposals are not automatically replayed when configuration changes.
 
-For promotion assessment, Jev receives the proposed text, source metadata and optional evidence excerpts, current page, and up to five eligible related pages. Two requests separate evidence comparison from memory value/category classification. Existing internal, client-marked, restricted and policy notes are excluded from external assessment. It does **not** fetch the original evidence URLs. Scores are model judgments, not verified probabilities of truth. Its output never overrides revision checks or protected paths.
+For write assessment, Jev receives the proposed text, source metadata and optional evidence excerpts, current page, and up to five eligible related pages. Quality and lifecycle advice are separate recorded results; two to four HTTP requests compare evidence/history, classify memory value and recommend actions. Existing internal, client-marked, restricted and policy notes are excluded from external assessment. It does **not** fetch the original evidence URLs. Scores are model judgments, not verified probabilities of truth. Its output never overrides revision checks or protected paths.
 
 ## Deploy
 
@@ -70,7 +70,7 @@ docker compose -f compose.yaml -f compose.local.yaml up -d --build
 
 Open `http://localhost:3010` and sign in with Google. The override permits HTTP on localhost and removes the Vercel bridge requirement; the host port remains bound only to `127.0.0.1`. The base production settings remain unchanged.
 
-The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; promotion remains held if evaluation is unavailable; direct new/update writes remain available.
+The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; unavailable assessment is recorded honestly and does not veto authorized writes.
 
 This is a temporary Mac-dependent deployment. Docker must be running and the Mac awake. The hosted Vercel Explorer stays on its existing demo until an HTTPS tunnel or hosted backend is connected. Remote agents cannot reach `localhost`; use the managed service’s HTTPS origin, or the canonical Vercel origin when retaining the optional bridge. Do not expose the localhost override through a public tunnel.
 
@@ -147,6 +147,10 @@ Open **Account & connections** (`/settings`) to see authorized apps and revoke a
 
 See [Google setup and auth cutover](docs/google-sso.md) before deploying or changing domains.
 
+## Assess, decide and commit
+
+Verified source-backed captures file directly after advisory assessment. Genuine evidence/routing uncertainty may use Inbox with a reason; interrupted staged candidates stay in shared work without another note. The existing authorized sweep can resume exceptions using leases and stored feedback; no new scheduler is included. The Review panel shows real scores, recommendations, agent rationale, earlier-draft/context labels and actual outcomes. See [the contract](docs/agent-guide.md) and [release validation and rollout status](docs/assess-commit-validation.md). Legacy `remember` remains compatible and displays “Not assessed.”
+
 ## Evaluate Jev
 
 Use a pinned model and keep automatic writes disabled:
@@ -182,6 +186,6 @@ Never run two active services against the same vault/state volumes. After interr
 
 ## Boundaries
 
-The web app supports reviewed link additions and checked memory-proposal review, plus a bounded shared-work list. It has no general text editor, rollback, ingestion, or chat. MCP promotion is limited to verified Inbox filing into existing folders and refuses moves that change resolved link targets. There is no hidden LLM rewriting step. Policy files (`AGENTS.md`, `BRAIN.md`, `CONTEXT.md`, `SKILL.md`, `CLAUDE.md`, `GEMINI.md`, `README.md`), hidden paths, symlinks, and underscore-prefixed folders are blocked for MCP writes. Attachments are rendered as labels, not fetched or executed. Raw Markdown HTML is shown as text.
+The web app supports reviewed link additions and checked memory-proposal review, plus a bounded shared-work list. It has no general text editor, ingestion, or chat. Bounded Undo reverses a recorded create/update/promotion only when later edits, path reuse and dependent links are absent. MCP promotion is limited to verified Inbox filing into existing folders and refuses moves that change resolved link targets. There is no hidden LLM rewriting step. Policy files (`AGENTS.md`, `BRAIN.md`, `CONTEXT.md`, `SKILL.md`, `CLAUDE.md`, `GEMINI.md`, `README.md`), hidden paths, symlinks, and underscore-prefixed folders are blocked for MCP writes. Attachments are rendered as labels, not fetched or executed. Raw Markdown HTML is shown as text.
 
 Do not expose this initial single-owner service as a public multi-user product without further security review, operational limits, and load testing.
