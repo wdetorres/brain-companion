@@ -188,6 +188,6 @@ Do not expose this initial single-owner service as a public multi-user product w
 
 ## Public landing page
 
-The approved “One brain. Any agent.” landing is being promoted to the hosted Vercel root `/`; the private app entry moves to `/app`. Vercel builds put the landing in `dist/index.html` and preserve the app shell in `dist/app.html`, which serves the private app, demo, sign-in, consent, and settings rewrites. Backend forwarding is unchanged. This hosted route map supersedes the older root-entry instructions above; builds without `VERCEL` preserve the original local/Render app index.
+The approved “One brain. Any agent.” landing is live at the hosted Vercel root `/`; the private app entry is `/app`. Vercel builds put the landing in `dist/index.html` and preserve the app shell in `dist/app.html`, which serves the private app, demo, sign-in, consent, and settings rewrites. Backend forwarding is unchanged. This hosted route map supersedes the older root-entry instructions above; builds without `VERCEL` preserve the original local/Render app index.
 
 The landing uses an independent frontend build and a clearly labeled scripted conversation. Its semantic-search language is an authorized intended-state assumption; current retrieval remains a keyword shortlist plus Jev. See [landing architecture, tests, and release checks](docs/landing.md) for source paths, deployment status, and the requirement to preserve the running Render deployment.

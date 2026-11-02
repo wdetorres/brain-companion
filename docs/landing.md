@@ -1,6 +1,6 @@
 # Public landing page
 
-The approved “One brain. Any agent.” animated mockup is being promoted to the public Vercel root. The page shows a scripted Claude save followed by ChatGPT recall of the same note, with a Jev evidence example below. This release changes frontend entry points and navigation; it adds no backend capability.
+The approved “One brain. Any agent.” animated landing is live at the public Vercel root. The page shows a scripted Claude save followed by ChatGPT recall of the same note, with a Jev evidence example below. This release changes frontend entry points and navigation; it adds no backend capability.
 
 ## Routes and build
 
@@ -81,12 +81,17 @@ Release through the existing Vercel production project and canonical domain. Pre
 
 After Vercel advances, record its deployment ID, source commit, ready state, and canonical-origin checks. Verify the existing live Render deployment remains **`dep-dbk4iup5efls73el0a50` at `f811f2d`** with no replacement deployment. Render's standalone fallback UI may lag the Vercel frontend by design.
 
-## Verification and pending release checks
+## Verified application release — November 2, 2026
 
-- Routing correction passed TypeScript, **110/110 tests**, and diff whitespace checks. The regression compiled both standalone and Vercel production builds and verified their root/app artifacts; an additional manual artifact assertion passed.
-- Local production-build browser/CSP and desktop/mobile checks are complete. “Open your Brain” remains visible on mobile while “View code” hides. Completed captures are `.impeccable/review/landing-production/desktop.png` and `mobile.png`.
-- The first Vercel deployment reached READY but failed the live root-route check; it is not a completed release. Corrected production deployment ID, ready state, and root/app/demo/auth route re-verification: pending.
-- Deployed browser/CSP, responsive, and playback confirmation: pending.
-- Render remains on `dep-dbk4iup5efls73el0a50` / `f811f2d`. Recheck that baseline after the corrected Vercel deployment.
+Application commit **`e55d36b02da0b6a2b57b8c3e6218c6c90f60dd1e`**, Vercel production **`dpl_2cE6WRte1d5sHcrS2n4DrHcuNE9r`**, reached **READY** and served the canonical domain. A later documentation-only commit may produce an equivalent deployment; the application evidence below identifies the tested source.
 
-The approved mockup evidence is under `.impeccable/review/landing-motion/`. Production results must replace the pending entries above; mockup approval does not establish deployment success. Physical-device motion smoothness, screen readers, every browser engine, and every named client's integration are not established by the existing mockup checks.
+- TypeScript, **110/110 tests**, and diff checks passed. The regression compiled standalone and Vercel production output and inspected the real root/app artifacts. Independent finish review approved the implementation and the routing correction.
+- Live `/` returned the landing. `/app`, `/demo`, `/demo?view=recall`, `/sign-in`, `/consent`, and `/settings` returned the app shell. Landing JS/CSS and app JS matched the locally tested build byte for byte. Existing CSP stayed intact.
+- Browser checks at desktop 1280px and mobile 390px verified the finished cross-agent playback, the retained Monday note, visible mobile app link, and no horizontal overflow. Replay and pause worked; no console warnings/errors were reported. The primary action opened the sample Graph/Browse/Review workspace; the Jev action opened its Recall view.
+- The existing signed-in owner session opened `/app`; Account & connections returned to `/app`. No notes, grants, or settings were changed. A fresh live Google login was not repeated; ordinary return and signed-MCP consent were covered by the auth regression tests.
+- Anonymous `/api/brain` and `/mcp` returned **401**. Session inspection reported signed out, and both canonical OAuth discovery documents returned **200** with the expected resource and issuer.
+- Render remained live on **`dep-dbk4iup5efls73el0a50` / `f811f2d`** after both frontend releases; no replacement worker deployment was triggered.
+
+Read-only HTTP/hash checks and desktop/mobile captures are recorded locally under `.impeccable/review/landing-production/`; shareable proof is under this session's `landing-live` artifact directory. The earlier root-rewrite rollout did not replace Vercel's existing index; the tested build split above fixes that behavior.
+
+The animation remains a labeled scripted demonstration, and semantic retrieval remains outside this landing release. Physical-device motion smoothness, screen readers, other browser engines, and every named client's integration were not tested in this release.
