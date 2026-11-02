@@ -271,6 +271,10 @@ Review puts pending work before recent activity; routine Obsidian edits stay in 
 
 Account sections use white on the pale canvas, with a compact identity row. Sync copy separates server status from other devices. The MCP address has copy feedback and a manual-copy fallback. Connection loading errors have a retry; revoke and sign-out retain their existing authorization behavior.
 
+### Connection consent
+
+Consent is a compact 480px white surface with a 25px heading and the full client-supplied app name in wrapping 14px text. It keeps owner identity, requested permissions and the unverified-name notice visible. The callback address sits under Connection details. Equal-height Cancel and Connect buttons stay short even for long plugin names. Mobile uses 24px inner padding and 44px controls; permissions and authorization behavior are unchanged.
+
 ### Change diff
 
 The diff is a softly rounded, bordered container with a near-white background. Added and removed rows use adjacent gray tones and explicit plus/minus signs. Monospace text wraps inside each line. The reason, actor, outcome, source evidence, and operation identity remain outside the diff in the same reading column.

@@ -12,8 +12,8 @@ async function read<T>(path: string, body?: object): Promise<T> {
   if (!response.ok) throw new Error(response.status === 401 ? 'Your session ended. Sign in again.' : 'This request could not be completed. Please try again.');
   return response.json();
 }
-function Frame({ children }: { children: React.ReactNode }) {
-  return <main className="entry"><div className="entry-card auth-card"><a className="brand-mark" href="/" aria-label="Brain Companion home"><Network size={23} /></a>{children}<small className="auth-footer"><LockKeyhole size={13} /> Your private Brain Companion</small></div></main>;
+function Frame({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return <main className={'entry ' + className}><div className="entry-card auth-card"><a className="brand-mark" href="/" aria-label="Brain Companion home"><Network size={23} /></a>{children}<small className="auth-footer"><LockKeyhole size={13} /> Your private Brain Companion</small></div></main>;
 }
 export function LoginPage({ error = '' }: { error?: string }) {
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState('');
@@ -33,19 +33,19 @@ export function ConsentPage() {
     if (!session.authenticated) { if(active)setState({kind:'signed-out'}); return; }
     const consent = await read<Consent>('/api/consent', { csrf: session.csrf, query: location.search.slice(1) });
     if(active)setState({kind:'ready',session,consent});
-  } catch { if(active)setState({kind:'error',message:'This connection request is invalid or has expired. Start the connection again from ChatGPT.'}); } })(); return () => {active=false;}; }, []);
+  } catch { if(active)setState({kind:'error',message:'This request is invalid or has expired. Start the connection again from your app.'}); } })(); return () => {active=false;}; }, []);
   if (state.kind === 'signed-out') return <LoginPage />;
   async function decide(accept: boolean) {
     if(pending)return;setPending(accept?'connect':'cancel');setFailure('');
     try { const result = await authClient.oauth2.consent({ accept }); if(result.error || !result.data?.url)throw Error(); location.assign(result.data.url); }
-    catch { setFailure('The connection could not be completed. Restart it from ChatGPT if this request has expired.');setPending(null); }
+    catch { setFailure('The connection could not be completed. Try again, or restart it from your app.');setPending(null); }
   }
-  return <Frame>{state.kind === 'loading' ? <p role="status">Checking connection request…</p> : state.kind === 'error' ? <><h1>Start a fresh connection</h1><p role="alert">{state.message}</p><a className="demo-link" href="/">Back to your Brain</a></> : <>
-    <span className="eyebrow">APP CONNECTION</span><h1>Connect {state.consent.name}?</h1><p>Review this request before giving the app access to your Brain.</p>
+  return <Frame className="consent-entry">{state.kind === 'loading' ? <p role="status">Checking connection request…</p> : state.kind === 'error' ? <><h1>Start a fresh connection</h1><p role="alert">{state.message}</p><a className="demo-link" href="/">Back to your Brain</a></> : <>
+    <h1>Connect to your Brain</h1><p className="consent-client">{state.consent.name}</p>
     <div className="auth-identity"><Check size={16} /><div><strong>{state.session.user?.name}</strong><span>{state.session.user?.email}</span></div></div>
-    <div className="consent-permissions"><strong>This app is requesting:</strong><ul>{state.consent.scopes.includes('brain') && <><li>Search and read your synced notes.</li><li>Submit sourced memories and review shared work.</li><li>File notes and accept links under your existing Brain policies.</li></>}{state.consent.scopes.includes('offline_access') && <li>Keep access when you close this browser, until you revoke it.</li>}</ul></div>
-    <p className="small muted">Only connect if you started this request. The app name is supplied by the requesting client.</p><p className="auth-callback">Return to <strong>{state.consent.redirectUri}</strong></p>
-    {failure && <p role="alert" className="error-text">{failure}</p>}<div className="consent-actions"><button className="quiet-button" disabled={!!pending} onClick={()=>void decide(false)}>{pending==='cancel'?'Cancelling…':'Cancel'}</button><button className="primary" disabled={!!pending} onClick={()=>void decide(true)}>{pending==='connect'?'Connecting…':`Connect ${state.consent.name}`}<ArrowUpRight size={16}/></button></div>
+    <div className="consent-permissions"><strong>Allow this app to:</strong><ul>{state.consent.scopes.includes('brain') && <><li>Search and read your synced notes.</li><li>Submit sourced memories and review shared work.</li><li>File notes and accept links under your existing Brain policies.</li></>}{state.consent.scopes.includes('offline_access') && <li>Keep access until you revoke it, even after you close this browser.</li>}</ul></div>
+    <p className="consent-notice">Only connect if you started this request. The app name is supplied by the requesting client.</p><details className="consent-details"><summary>Connection details</summary><p className="auth-callback">Return to <strong>{state.consent.redirectUri}</strong></p></details>
+    {failure && <p role="alert" className="error-text">{failure}</p>}<div className="consent-actions"><button className="quiet-button" disabled={!!pending} onClick={()=>void decide(false)}>{pending==='cancel'?'Cancelling…':'Cancel'}</button><button className="primary" disabled={!!pending} onClick={()=>void decide(true)}>{pending==='connect'?'Connecting…':'Connect'}<ArrowUpRight size={16}/></button></div>
   </>}</Frame>;
 }
 export function AccountSettings({ csrf, status, user }: { csrf: string; status: BrainSnapshot['status']; user: Owner | null }) {

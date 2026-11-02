@@ -1,6 +1,6 @@
 # Graph, Review and account refinement
 
-November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc9`. Local implementation only; no push or deployment.
+November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc9`. Wilson authorized release after the performance checks on November 2. Integration now includes current production Jev changes; live verification follows the performance-session handoff.
 
 ## Result
 
@@ -8,6 +8,7 @@ November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc
 - Review opens unresolved proposals first on desktop. The reason, proposed diff and sources precede actions and collapsed evaluator details. Pending items are separated from recent activity; routine Obsidian edits are collapsed. Selected queue items are highlighted. Low-value submissions show “Not saved” and do not count as pending review.
 - Mobile Review opens the queue, then the selected change with Back to review and focus transfer. The category filter is limited to Graph/Browse, where it actually applies.
 - Account sections use white surfaces on the existing pale canvas. Identity and sync copy are shorter. MCP address copying has success/failure feedback. Connection and queue fetch failures offer retry instead of showing false empty states.
+- Consent now uses a short heading and Connect button, wraps the full client-supplied name below the heading, and puts the callback under Connection details. Identity, scope disclosures and the unverified-name warning remain visible. The same long Claude Code plugin name fits on desktop and mobile; synthetic failure recovery and expired requests were checked.
 - No new dependencies, backend behavior, API contracts, authorization rules, or note-cache changes.
 
 ## Verification
@@ -15,7 +16,7 @@ November 2, 2026. Branch: `codex/graph-review-polish`, based on released `8581cc
 | Check | Result |
 |---|---|
 | TypeScript, production build, whitespace | Pass |
-| Automated suite | 91 passed, 0 failed |
+| Automated suite | 92 passed, 0 failed |
 | Layout detector on changed UI files | No findings |
 | Spring response, isolated notes, finite 200-node motion, settling | Automated tests pass |
 | Review priority, resolved/low-value exclusion, empty fallback | Automated test passes |
@@ -41,6 +42,6 @@ Screenshots are outside the repository in `/Users/wilson/.codex/visualizations/2
 
 ## Coordination and limits
 
-The performance chat deployed only accepted iteration one plus its loading fixes. It reported median authenticated note opening improving from 898 to 268 ms over five samples, including browser automation overhead. This branch retains that released base and Jev fix; it is not part of that deployment.
+The performance chat deployed only accepted iteration one plus its loading fixes. It reported median authenticated note opening improving from 898 to 268 ms over five samples, including browser automation overhead. This branch retains that released base and subsequent Jev fixes. It was excluded from the first release and is now authorized for a coordinated follow-on release.
 
 Physical touch hardware, OS-level reduced-motion behavior, screen-reader output, and sustained frame-rate profiling were not tested. The reduced-motion and hidden/unmount cancellation paths were reviewed in source. No production mutations or full cross-browser accessibility audit were performed. Existing graph scope remains bounded to 200 notes; motion is a temporary exploration aid, not a persisted graph editor.
