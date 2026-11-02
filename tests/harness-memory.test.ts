@@ -22,6 +22,17 @@ test('owner acceptance applies a held proposal once, but never overwrites a newe
  store.accept.delete('new');const held=await store.remember({path:'Other.md',markdown:'# Other\nUse SQLite.',sources,expectedRevision:null,idempotencyKey:'other-candidate'},'A');await writeFile(join(vault,'Other.md'),'# Human revision');store.accept.add('new');
  const stale=await store.reviewMemory({...input,id:held.id,idempotencyKey:'owner-stale-key'},'Owner',true);assert.equal(stale.status,'needs_attention');assert.equal(await readFile(join(vault,'Other.md'),'utf8'),'# Human revision');
 });
+test('a claimed legacy uncertain proposal saves without rerunning the blocking evaluation',async t=>{
+ const {store,vault,calls}=await fixture(t);
+ const original=await store.remember({path:'Trip.md',markdown:'# Trip\nA combined summary of the existing source notes.',sources,expectedRevision:null,idempotencyKey:'legacy-uncertain-trip'},'A');
+ store.db.prepare('UPDATE operations SET payload=? WHERE id=?').run(JSON.stringify({...original,decision:{outcome:'uncertain',confidence:.85,model:'legacy',usage:{},probabilities:{duplicate:.86}}}),original.id);
+ const job=(await store.listWork({kind:'proposal'}))[0],claim=await store.claimWork(job.id,'B');store.accept.add('new');
+ const input={id:original.id,action:'accept' as const,reason:'Verified the original notes and consolidation',claimToken:claim.claimToken,idempotencyKey:'direct-legacy-accept'};
+ const saved=await store.reviewMemory(input,'B');assert.equal(saved.status,'applied');assert.equal(saved.decision,undefined);
+ assert.equal(await readFile(join(vault,original.path),'utf8'),original.proposed);assert.equal(calls(),0);
+ assert.equal((await store.reviewMemory(input,'B')).id,saved.id);assert.deepEqual(await store.listWork({kind:'proposal'}),[]);
+ assert.equal((await store.operation(original.id))?.resolution?.operationId,saved.id);
+});
 test('review preserves explicit create-only revision even when a page already existed at proposal time',async t=>{
  const {store,vault}=await fixture(t);await writeFile(join(vault,'Exists.md'),'# Existing owner text');
  const held=await store.remember({path:'Exists.md',markdown:'# Replacement',sources,expectedRevision:null,idempotencyKey:'create-collision'},'A');

@@ -52,10 +52,10 @@ test('serializes competing creates so one wins and one retains a proposal', asyn
   const ops=await Promise.all([store.remember({...base,markdown:'# A',idempotencyKey:'competing-write-a'},'agent'),store.remember({...base,markdown:'# B',idempotencyKey:'competing-write-b'},'agent')]);
   assert.deepEqual(ops.map(o=>o.status),['applied','needs_attention']);
 });
-test('retains proposal if Jev fails or the outcome has not been enabled', async t => {
-  const {store,vault}=await fixture(t,async()=>{throw Error('Unavailable')});
+test('disabled writes retain a proposal without consulting Jev', async t => {
+  let calls=0;const {store,vault}=await fixture(t,async()=>{calls++;throw Error('Unavailable')});store.accept.clear();
   const op=await store.remember({path:'Plan.md',markdown:'# Proposal',sources:[source],expectedRevision:null,idempotencyKey:'failed-model-001'},'agent');
-  assert.equal(op.status,'needs_attention'); assert.equal(op.proposed,'# Proposal'); assert.equal((await readVault(vault)).length,0);
+  assert.equal(op.status,'needs_attention'); assert.match(op.reason,/not enabled/);assert.equal(op.proposed,'# Proposal'); assert.equal((await readVault(vault)).length,0);assert.equal(calls,0);
 });
 test('records an externally edited page without sending it through Jev', async t=>{
   const {store,vault}=await fixture(t,async()=>{throw Error('Must not evaluate sync')});
@@ -82,11 +82,18 @@ test('recovers a journaled commit on direct idempotent retry and operation inspe
   const inspected=await restarted.operation(applied.id);
   assert.equal(inspected?.status,'applied');assert.equal(inspected?.revision,applied.revision);
 });
-test('selects directly relevant existing evidence for a new memory instead of alphabetical neighbors',async t=>{
-  let seen:string[]=[];
-  const {store,vault}=await fixture(t,async(_input:any,_current:any,related:any[])=>{seen=related.map(n=>n.path);return{outcome:'uncertain',confidence:.5,model:'test',usage:{}}});
-  for(let i=0;i<7;i++)await writeFile(join(vault,`A${i}.md`),'# Unrelated\nCoffee brewing guide.');
-  await writeFile(join(vault,'Z-existing.md'),'# Launch plan\nThe Apollo launch date is Monday.');
-  await store.remember({path:'New launch.md',markdown:'# Launch plan\nThe Apollo launch date is Friday.',sources:[source],expectedRevision:null,idempotencyKey:'relevant-context-001'},'agent');
-  assert.ok(seen.includes('Z-existing.md'));assert.ok(seen.length<=5);
+test('agents can consolidate overlapping notes and update them without an evaluator or review hold',async t=>{
+  let calls=0;const {store,vault}=await fixture(t,async()=>{calls++;throw Error('Evaluator unavailable');});
+  await writeFile(join(vault,'Flight.md'),'# Trip flight\nThe flight is Monday.');
+  await writeFile(join(vault,'Hotel.md'),'# Trip hotel\nThe hotel is booked for Sunday.');
+  const input={path:'Trip.md',markdown:'---\nmemory_category: project_fact\n---\n# Trip\nThe flight is Monday. The hotel is booked for Sunday.\n\nSources: [[Flight]] [[Hotel]]\n',sources:[source],expectedRevision:null,idempotencyKey:'direct-consolidation'};
+  const created=await store.remember(input,'agent');assert.equal(created.status,'applied');assert.equal(created.decision,undefined);
+  assert.equal(await readFile(join(vault,input.path),'utf8'),input.markdown);
+  const update={...input,markdown:input.markdown+'\nKeep the original booking notes.\n',expectedRevision:created.revision!,idempotencyKey:'direct-update'};
+  const updated=await store.remember(update,'agent');assert.equal(updated.status,'applied');assert.equal(updated.before,input.markdown);
+  assert.equal(await readFile(join(vault,input.path),'utf8'),update.markdown);
+  assert.equal((await store.inspect(input.path)).category,'project_fact');
+  assert.equal((await store.remember(update,'agent')).id,updated.id);
+  const unchanged=await store.remember({...update,expectedRevision:updated.revision!,idempotencyKey:'direct-exact-copy'},'agent');assert.equal(unchanged.status,'duplicate');
+  assert.deepEqual(await store.listWork({kind:'proposal'}),[]);assert.equal(calls,0);
 });

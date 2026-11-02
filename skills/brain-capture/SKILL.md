@@ -5,7 +5,7 @@ description: Save a durable decision, preference, lesson, milestone or supported
 
 # Capture useful knowledge
 
-Preserve the smallest useful, sourced addition. The agent writes the final Markdown; the Brain service evaluates and records the proposed change.
+Preserve the smallest useful, sourced addition. The agent verifies sources and duplicates, then writes the final Markdown. Enabled new/update writes save directly without Jev approval; the service validates and records the change.
 
 ## Select the authorized route
 
@@ -22,7 +22,7 @@ The default route is MCP. An owner may explicitly retain a local capture workflo
 
 ## Submit and verify through MCP
 
-Use `remember` with exact `path`, `markdown`, verified `sources`, a fresh `expectedRevision` from `inspect`, and a unique `idempotencyKey`. Use null revision only for a new note after checking for duplicates. Sources need a meaningful title, genuine URL or stable URN, observation time and admissible supporting excerpts. The evaluator does not fetch the original URL.
+Use `remember` with exact `path`, `markdown`, verified `sources`, a fresh `expectedRevision` from `inspect`, and a unique `idempotencyKey`. Use null revision only for a new note after checking for duplicates. Sources need a meaningful title, genuine URL or stable URN, observation time and admissible supporting excerpts. The service does not fetch the original URL or assess the truth of the note. Source verification belongs to the agent.
 
 Read [write outcomes and recovery](references/write-outcomes.md) before submitting or advancing a collector checkpoint. Only `applied` confirms a server write. Read back that path and verify metadata, sources and link targets. Device sync is a separate observation.
 

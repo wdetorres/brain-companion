@@ -251,17 +251,15 @@ export class BrainStore {
     const finish=()=>{this.save(op,input.idempotencyKey,fingerprint);if(op.status==='needs_attention'&&op.decision?.outcome!=='not_worth_remembering')this.work.enqueue('operation:'+op.id,fingerprint,op.path,'proposal',op.reason,op.id);return op;};
     if((current?.revision??null)!==input.expectedRevision){op.reason='Revision conflict: inspect the current page and resubmit';return finish();}
     if(current?.markdown===input.markdown){op.status='duplicate';op.reason='Exact content already present';return finish();}
-    if(current?.assessmentAllowed===false){op.reason='Current note is excluded from external assessment; proposal retained';return finish();}
-    const proposed=parseNote(input.path,input.markdown,op.at);if(proposed.assessmentAllowed===false){op.reason='Proposed note is excluded from external assessment; proposal retained locally';return finish();}
-    try{op.decision=await this.judge(input,current,relatedNotes(input,this.index.search(proposed.title+' '+proposed.body,64,undefined,true)));}catch{op.reason='Jev unavailable or invalid response; proposal retained';return finish();}
-    if(op.decision.outcome==='duplicate'){op.status='duplicate';op.reason='Jev assessed this as already remembered; no content changed';return finish();}
-    if(op.decision.outcome==='not_worth_remembering'){op.reason='Temporary chatter; not saved as a memory. Proposal retained for inspection';return finish();}
-    const expected=current?'update':'new';if(op.decision.outcome!==expected||!this.accept.has(expected)||op.decision.confidence<.95){op.reason=op.decision.outcome==='conflict'?'Conflicting evidence; current page preserved':'Automatic acceptance is not enabled or evidence is uncertain';return finish();}
+    if(current?.assessmentAllowed===false){op.reason='Current note is outside the hosted capture privacy scope; use the owner-configured route';return finish();}
+    const proposed=parseNote(input.path,input.markdown,op.at);if(proposed.assessmentAllowed===false){op.reason='Proposed note is outside the hosted capture privacy scope; use the owner-configured route';return finish();}
+    const expected=current?'update':'new';if(!this.accept.has(expected)){op.reason='Automatic '+expected+' writes are not enabled';return finish();}
+    op.category=proposed.category||current?.category;
     beforeWrite?.();return this.apply(op,target,input.expectedRevision,finish);
   }
   private async apply(op:Operation,target:string,expectedRevision:string|null,finish:()=>Operation):Promise<Operation>{
     let latest:string|null=null;try{latest=await readFile(target,'utf8')}catch(e:any){if(e.code!=='ENOENT')throw e;}
-    if((latest===null?null:revision(latest))!==expectedRevision){op.reason='Page changed during evaluation; proposal retained';return finish();}
+    if((latest===null?null:revision(latest))!==expectedRevision){op.reason='Page changed before writing; inspect the current page and resubmit';return finish();}
     op.status='pending';op.reason='Write journaled';finish();let temp='';
     try{
       await mkdir(dirname(target),{recursive:true});await safePath(this.vault,op.path,true);temp=target+'.'+randomUUID()+'.tmp';

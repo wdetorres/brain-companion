@@ -30,7 +30,7 @@ OpenAI documents Claude-compatible manifests as supported; this package uses tha
 
 The skill defaults to MCP. An owner can explicitly retain an existing local capture/review route before submitting anything. That procedure must already define source scope, privacy, revisions, navigation, logging and checkpoints. It is not an automatic fallback after a rejected, held or uncertain MCP action.
 
-The current deployment has verified `new,update` acceptance enabled for eligible personal same-session captures; promotion remains disabled. Internal or otherwise assessment-excluded notes cannot apply through the existing Jev-gated path, and protected operational files cannot be written through MCP. Preserve those existing local workflows until equivalent hosted behavior is designed and verified. Never weaken privacy metadata to make a proposal pass.
+The current deployment has verified `new,update` acceptance enabled for eligible personal same-session captures; promotion remains disabled. Internal or otherwise assessment-excluded notes cannot apply through the hosted capture privacy policy, and protected operational files cannot be written through MCP. Preserve those existing local workflows until equivalent hosted behavior is designed and verified. Never weaken privacy metadata to make a proposal pass.
 
 Read-only health checks do not claim/finish work, write logs or request persisted suggestions. Explicit link acceptance is separate from `autoAccept`; an empty list is not a universal mutation lock. Existing local Smart Connections work keeps its local method and budget.
 
@@ -54,3 +54,9 @@ Wilson requested resolving the held proposals and finishing activation. v23 is d
 The owner profile now selects MCP for eligible personal same-session capture. New-note parent navigation and local log/index work retain the existing authorized native route, selected before submission. This does not establish parent-index mutation through MCP. Existing collectors, assessment-excluded captures and disconnected clients keep their preselected local routes; no held MCP proposal may be retried locally. Collector checkpoint/acknowledgement acceptance remains a separate cutover.
 
 Pending service work includes an explicit strategy for assessment-excluded captures; changing a skill cannot supply that capability. Remote Claude/Grok/Dots scheduler adoption requires their actual supported configuration interfaces. Preserve schedules, source access, limits and notification intent; never infer a successful migration from synced Markdown alone.
+
+## Direct memory writes — November 2, 2026
+
+Enabled `new`/`update` actions now write agent-authored notes directly, without Jev novelty, duplicate, confidence or availability gates. Agents own source verification and duplicate checks. Revision checks, protected paths, privacy routing, exact retries, operation history and atomic writes remain enforced. `review_memory` acceptance uses the same direct path for retained proposals; it does not rerun Jev. Existing proposals are not automatically replayed. Promotion, recall and connection assessment keep their existing behavior.
+
+The source capture/review skills and served guide reflect this change. Rollout must align the marketplace package, installed client copies and owner profile after the service is live. Existing collectors and scheduler scopes remain unchanged; running or remote clients may need to reload their instructions.

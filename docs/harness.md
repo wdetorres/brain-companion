@@ -1,6 +1,6 @@
 # Brain harness
 
-Any owner-authorized MCP client can consume, capture, review and promote verified knowledge. Agents supply reasoning and source verification; Jev evaluates bounded supplied text; the server applies write rules and records outcomes.
+Any owner-authorized MCP client can consume, capture, review and promote verified knowledge. Agents supply reasoning, duplicate checks and source verification. Enabled new/update writes save directly; the server applies write rules and records outcomes. Jev assesses recall, connection suggestions and promotion.
 
 ```mermaid
 flowchart LR
@@ -27,7 +27,7 @@ Inbox items, changed observed notes and actionable proposals produce deduplicate
 
 Promotion is an explicit Inbox-to-existing-folder operation, not bulk reorganization. A journal retains the original note and writes the destination before removing the source. Existing destination files and changed source revisions are never intentionally overwritten. Moves that break or retarget resolved links are held with affected paths. Correct outgoing links in the proposal; broader link repair needs its own authorized work. The server copy has exactly one writer and serialized sync; concurrent independent direct filesystem writers are unsupported.
 
-The browser's Changes view lists shared work and lets the owner inspect evidence/diffs, recheck a held memory or dismiss it. Owner review can close an active agent claim. It cannot force an unsupported proposal through Jev. A successful server write is separate from successful device sync.
+The browser's Changes view lists shared work and lets the owner inspect evidence/diffs, save a retained memory or dismiss it. Owner review can close an active agent claim. Memory acceptance writes directly without rerunning Jev and preserves revision and privacy checks. A successful server write is separate from successful device sync.
 
 ## Hosting
 

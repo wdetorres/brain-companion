@@ -1,6 +1,6 @@
 # Brain Companion
 
-An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents write final Markdown; Jev evaluates proposals; the browser shows notes, connections, sources, and changes.
+An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents verify sources and write final Markdown directly; the browser shows notes, connections, sources, and changes.
 
 ## What is implemented
 
@@ -10,7 +10,7 @@ An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents write
 - Persistent SQLite FTS5 indexing with reused parsing, revision-bound work, five-minute claims, explicit owner memory review and journaled Inbox promotion.
 - One shared brain. Single-owner browser sessions and OAuth authorization with S256 PKCE, resource binding, dynamic client registration, hashed opaque tokens, rotating refresh tokens, and revocation.
 - Persistent Markdown files and SQLite operation history. Revision checks, serialized writes, idempotency, a write journal, atomic replacement, and retained conflict/uncertain proposals.
-- Jev System One adapter with a worth-remembering gate, memory categories, recall evidence/conflict review, reviewed connection suggestions, strict result validation, recorded usage/model/question version, and a budgeted evaluation runner. No backend text generation.
+- Jev System One adapter for promotion evidence/value checks, recall evidence/conflict review, reviewed connection suggestions, strict result validation, recorded usage/model/question version, and a budgeted evaluation runner. No backend text generation.
 - Optional Obsidian Headless one-shot sync in the same queue as writes. Sync status is separate from server write status.
 - Vercel frontend and forwarding function; Docker/Compose service with persistent volumes.
 
@@ -48,11 +48,11 @@ Create a Google OAuth **Web application** client with the callback `http://local
 
 Keep `PUBLIC_ORIGIN=http://localhost:3000` and leave `BRAIN_BRIDGE_KEY` empty for local development. Put synthetic notes in `VAULT_PATH`, then run `npm start`. Production requires complete SSO configuration and fails startup if it is missing. With all four SSO settings absent, development serves only the explicit demo.
 
-Set `JEV_API_KEY` only on the persistent service. Missing or failed Jev evaluation retains a proposal and never silently accepts it. The API key is not part of the browser bundle or Vercel environment.
+Set `JEV_API_KEY` only on the persistent service. Jev is used for assessed recall, connection suggestions and promotion. New/update writes do not call Jev or depend on its availability. The API key is not part of the browser bundle or Vercel environment.
 
-`AUTO_ACCEPT` is empty by default. Set `AUTO_ACCEPT=new,update,promote` after verifying the service to enable approved, Jev-checked actions. Held proposals appear in shared work and can be rechecked or dismissed by the owner or a claimed agent reviewer. Review preserves the original expected revision and cannot force unsupported writes. Existing proposals are not automatically replayed when configuration changes.
+`AUTO_ACCEPT` is empty by default. Set `AUTO_ACCEPT=new,update` to enable direct agent creates and updates after verifying the service. Agents own source and duplicate checks; the server retains privacy checks, protected paths, revision checks, exact retries and journaled writes. Add `promote` separately only when authorizing Jev-checked Inbox moves. Retained proposals can be saved directly or dismissed by the owner or a claimed agent reviewer. Acceptance preserves the original expected revision without rerunning Jev. Existing proposals are not automatically replayed when configuration changes.
 
-Jev receives the proposed text, source metadata and optional evidence excerpts, current page, and up to five eligible related pages. Two requests separate evidence comparison from memory value/category classification. Existing internal, client-marked, restricted and policy notes are excluded from external assessment. It does **not** fetch the original evidence URLs. Scores are model judgments, not verified probabilities of truth. Its output never overrides revision checks or protected paths.
+For promotion assessment, Jev receives the proposed text, source metadata and optional evidence excerpts, current page, and up to five eligible related pages. Two requests separate evidence comparison from memory value/category classification. Existing internal, client-marked, restricted and policy notes are excluded from external assessment. It does **not** fetch the original evidence URLs. Scores are model judgments, not verified probabilities of truth. Its output never overrides revision checks or protected paths.
 
 ## Deploy
 
@@ -70,7 +70,7 @@ docker compose -f compose.yaml -f compose.local.yaml up -d --build
 
 Open `http://localhost:3010` and sign in with Google. The override permits HTTP on localhost and removes the Vercel bridge requirement; the host port remains bound only to `127.0.0.1`. The base production settings remain unchanged.
 
-The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; proposals remain retained if evaluation is unavailable.
+The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; promotion remains held if evaluation is unavailable; direct new/update writes remain available.
 
 This is a temporary Mac-dependent deployment. Docker must be running and the Mac awake. The hosted Vercel Explorer stays on its existing demo until an HTTPS tunnel or hosted backend is connected. Remote agents cannot reach `localhost`; use the managed service’s HTTPS origin, or the canonical Vercel origin when retaining the optional bridge. Do not expose the localhost override through a public tunnel.
 

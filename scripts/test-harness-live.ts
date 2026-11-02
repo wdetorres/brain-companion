@@ -22,7 +22,7 @@ try{
   const judge=createJevJudge(process.env.JEV_API_KEY,process.env.JEV_MODEL);
   store=new BrainStore({vault,data:join(root,'state'),judge,recallJudge:createRecallJudge(process.env.JEV_API_KEY,process.env.JEV_MODEL)});
   const input={path:'00 Inbox/Storage decision.md',markdown:'# Storage decision\n\nWe chose SQLite for the local storage layer.\n',sources:[{title:'Synthetic planning decision',uri:'urn:test:harness-storage',observedAt:'2026-10-31T00:00:00Z',excerpt:'We chose SQLite for the local storage layer.'}],expectedRevision:null,idempotencyKey:'live-harness-capture'};
-  const held=await store.remember(input,'Synthetic client A');assert.equal(held.status,'needs_attention');assert.equal(held.decision?.outcome,'new');
+  const held=await store.remember(input,'Synthetic client A');assert.equal(held.status,'needs_attention');assert.equal(held.decision,undefined);
   const job=(await store.listWork({kind:'proposal'}))[0],claim=await store.claimWork(job.id,'Synthetic client B');store.accept.add('new');store.accept.add('promote');
   const saved=await store.reviewMemory({id:held.id,action:'accept',reason:'Checked synthetic source',claimToken:claim.claimToken,idempotencyKey:'live-harness-reviewed'},'Synthetic client B');assert.equal(saved.status,'applied');
   const inbox=(await store.listWork({kind:'inbox'}))[0],filing=await store.claimWork(inbox.id,'Synthetic client A');

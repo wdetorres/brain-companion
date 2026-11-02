@@ -2,7 +2,7 @@
 
 ## Held proposal
 
-Inspect the operation before acting. `review_memory` takes the operation ID, current claim token, reason and `accept` or `dismiss`. Acceptance also needs a new idempotency key and reruns evaluation against the original expected revision. It cannot force acceptance or overwrite later changes. Dismissal records a reason and retains history.
+Inspect the operation before acting. `review_memory` takes the operation ID, current claim token, reason and `accept` or `dismiss`. Acceptance also needs a new idempotency key and writes directly against the original expected revision without rerunning Jev. Write permissions and privacy checks still apply; it cannot overwrite later changes. Dismissal records a reason and retains history.
 
 If prose, evidence or revision needs correction, submit a corrected `remember` proposal with a new key and fresh revision. Do not mark the old item resolved until the replacement is actually applied; finish the old work with its matching applied operation ID where required. If held, keep the gap visible rather than treating acceptance as success.
 
