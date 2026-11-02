@@ -1,6 +1,12 @@
 # Working with the Brain harness
 
-This contract works with any authorized MCP client. Tool names may have a client-specific prefix. Discover the actual tools, read `brain://policy`, and call `brain_status` before acting. The same guide is available as `brain://guide` and the `memory-workflow` prompt. The optional portable skill is `skills/brain-harness/SKILL.md`.
+This contract works with any authorized MCP client. Tool names may have a client-specific prefix. Discover the actual tools, read `brain://policy`, and call `brain_status` before acting. Tool-only clients inspect `BRAIN.md`, `AGENTS.md`, `CONTEXT.md` and `PARA.md`, then only the relevant owner stage contract; missing policy is not expanded authority. Reuse current policy already read in this session. The same guide is available as `brain://guide` and the `memory-workflow` prompt.
+
+Four independently discoverable skills supply the workflows: `brain-recall` for sourced answers, `brain-capture` for useful memories, `brain-review` for authorized pending work, and `brain-maintain` for health checks or specifically authorized maintenance. Each works without resource/prompt support. See [installation and migration](skill-migration.md). The legacy `brain-harness` folder remains for existing callers and is excluded from the new plugin's declared skill paths.
+
+The default capture route is MCP. An owner may explicitly retain a local capture/review procedure during staged migration; select that route before submitting and preserve its authority and checkpoints. Never switch to direct writes after a held, rejected or uncertain MCP action. Protected operational bookkeeping requires its independently authorized local route. A held proposal is not a saved note or an Inbox Markdown file.
+
+Read-only retrieval and health checks never claim/finish work or persist connection suggestions. `autoAccept` controls new/update/promote acceptance, not all mutations: explicit `review_connection` acceptance can write a reviewed link independently. The task's authority determines whether that action is allowed.
 
 ## Start with the question or source
 

@@ -1,6 +1,6 @@
 # Brain skills and workflow migration
 
-Status: proposed design. Wilson selected four separate skills bundled as one Brain plugin on November 2, 2026. This document has not yet been approved for implementation.
+Status: approved for implementation by Wilson on November 2, 2026 ("let's implement this"). Four separate skills bundled as one Brain plugin; staged adoption preserves existing writer jobs and production settings.
 
 Independent builder check completed on November 2, 2026: no important unanswered planning questions. This is design review, not runtime validation or owner approval.
 

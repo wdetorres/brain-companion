@@ -1,0 +1,7 @@
+{
+  "name": "brain-workflows",
+  "version": "0.1.0",
+  "author": { "name": "Brain Companion contributors" },
+  "description": "Recall, capture, review and maintain an owner-authorized Brain through its existing MCP connection.",
+  "skills": ["./brain-recall", "./brain-capture", "./brain-review", "./brain-maintain"]
+}

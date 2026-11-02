@@ -6,7 +6,7 @@ An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents write
 
 - Graph, Pages, Changes, and Jev Recall views, with search, backlinks, sources, change diffs, graph pan/zoom, folder filters, and a focused neighborhood.
 - Explicit synthetic demo at `/demo`. The normal route requires the owner’s Google sign-in and never falls back to fake live data.
-- Twelve MCP tools for status, local search, assessed recall, inspection, capture, shared work claims, proposal review, Inbox promotion and connection review. Portable `skills/brain-harness/SKILL.md`, `brain://guide`, `brain://policy`, and the `memory-workflow` prompt. See [the harness guide](docs/harness.md).
+- Twelve MCP tools for status, local search, assessed recall, inspection, capture, shared work claims, proposal review, Inbox promotion and connection review. Four portable skills—`brain-recall`, `brain-capture`, `brain-review`, `brain-maintain`—share the same tools and policy. See [installation and migration](docs/skill-migration.md) and [the harness guide](docs/harness.md).
 - Persistent SQLite FTS5 indexing with reused parsing, revision-bound work, five-minute claims, explicit owner memory review and journaled Inbox promotion.
 - One shared brain. Single-owner browser sessions and OAuth authorization with S256 PKCE, resource binding, dynamic client registration, hashed opaque tokens, rotating refresh tokens, and revocation.
 - Persistent Markdown files and SQLite operation history. Revision checks, serialized writes, idempotency, a write journal, atomic replacement, and retained conflict/uncertain proposals.

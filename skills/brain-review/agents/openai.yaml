@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brain Review"
+  short_description: "Review and resolve pending Brain work"
+  default_prompt: "Use $brain-review for this Brain task."

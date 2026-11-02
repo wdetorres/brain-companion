@@ -16,7 +16,7 @@ The server exposes `brain_status`, `search`, `recall`, `inspect`, `remember`, `l
 
 1. Deploy the Docker service with persistent storage and an HTTPS origin; see [hosting](#hosting).
 2. Add `https://YOUR-HOST/mcp` to the client's remote MCP connectors. Complete the owner OAuth flow. Clients must support this service's streamable HTTP transport and OAuth, or a compatible user-configured adapter; having arbitrary MCP support alone is not sufficient.
-3. Install the repository's `skills/brain-harness` folder using the client's skill-installation mechanism. It has no vendor-specific paths, keys or tool prefixes. Clients without skills can follow the same MCP resource/prompt.
+3. Install the four focused skills from `skills/`, individually or as the `brain-workflows` plugin. Follow [installation and migration](skill-migration.md). Skills contain no owner-specific paths, keys or tool prefixes. Tool-only clients can inspect canonical policy files without resources or prompts.
 4. Ask the agent to discover status, search and inspect a note, then submit a sourced test proposal. Use synthetic data in an isolated test vault before granting live write access.
 
 ## How work scales
@@ -31,7 +31,7 @@ The browser's Changes view lists shared work and lets the owner inspect evidence
 
 ## Hosting
 
-Wilson will provision the managed platform. The same Docker image runs on Render, Railway or another platform supporting Node/Docker, an HTTPS proxy and a persistent writable volume.
+Choose a managed platform appropriate to the owner. The existing deployment is recorded in the [hosting runbook](hosting-runbook.md). The same Docker image runs on Render, Railway or another platform supporting Node/Docker, an HTTPS proxy and a persistent writable volume.
 
 For a standalone service, mount one volume at `/data`, run one replica, and set:
 
@@ -43,7 +43,7 @@ GOOGLE_CLIENT_SECRET=<server-only secret>
 BETTER_AUTH_SECRET=<random 32-byte secret>
 JEV_API_KEY=<server-only secret>
 JEV_MODEL=jev-1.14.0
-AUTO_ACCEPT=new,update,promote
+AUTO_ACCEPT=
 VAULT_PATH=/data/vault
 STATE_PATH=/data/state
 XDG_CONFIG_HOME=/data/config
@@ -58,20 +58,12 @@ Direct hosting does not require `BRAIN_BRIDGE_KEY`. If retaining Vercel as the c
 
 ## Migration and limits
 
-**Current rollout: deferred by the owner until managed deployment.** Existing agent jobs, prompts, installed instructions and writing behavior are preserved. Local `AUTO_ACCEPT` remains empty. The repository skill is ready to install after the endpoint is connected; no current agent migration is active.
+The four-skill migration is approved. The deployment already supports authorized remote reads; writer cutover remains staged. See [the migration record](skill-migration.md) for installed surfaces, exact pending targets and verification limits.
 
-Keep `AUTO_ACCEPT` empty during validation, then enable the approved actions when adopting the deployed harness. Old retained proposals enter the review queue but are not replayed automatically. Back up vault, SQLite and sync credentials before upgrading. The existing private evaluator request ledger remains cumulative; rerunning an observed holdout is regression checking, not new validation.
+Keep `AUTO_ACCEPT` empty during validation. Enable only owner-approved actions after isolated write tests, backup and source/navigation/checkpoint checks. Empty acceptance does not disable explicit connection acceptance or queue mutations. Old retained proposals are not replayed automatically.
 
-The repository ships the portable contract. When the owner resumes adoption, migrate accessible Brain policies and existing automation prompts after deployment verification; source boundaries, collector ownership and schedule times remain intact. A local filesystem fallback remains explicit until a deployed MCP endpoint is configured. Remote Grok/Claude/Dots prompts or installed copies must be reported as pending when unavailable; editing synced Markdown does not prove a running remote agent reloaded it.
+External-assessment exclusions and protected policy/operational paths remain enforced. Preserve explicitly retained local collectors, checkpoint routes and Obsidian integrations until replacements cover their existing behavior. Never turn a held MCP proposal into a direct filesystem retry.
 
+When adopting a workflow, align canonical policy, stage routing, installed skills and the actual existing scheduler prompt. Preserve source boundaries, collector ownership, schedule times, budgets and read-only checks. Record inaccessible remote targets precisely; editing synced Markdown does not reconfigure a running agent.
 
-## Adopt after deployment
-
-Keep the existing jobs and agent writing behavior until this checklist is complete:
-
-1. Provision one persistent Docker service and back up the existing vault/state before moving hosts. Connect Obsidian Headless and verify sync independently; keep automatic acceptance empty during initial checks.
-2. Complete OAuth from each chosen agent client to the final HTTPS origin. Read the guide/policy, confirm `brain_status`, and run synthetic capture/promotion in a separate test vault.
-3. Install `skills/brain-harness` in each client. When ready to switch, enable `new,update,promote` and migrate canonical Brain instructions, installed copies and existing scheduler prompts together under the Brain's instruction-sync contract. Keep collector ownership, schedules, limits and read-only jobs intact.
-4. Verify an authorized real write, source preservation, sync and another client's recall. Report each inaccessible runtime separately; a synced instruction file is not proof that a running agent adopted it.
-
-No new scheduled agent is needed. Existing jobs become bounded consumers of shared work after adoption.
+Back up vault, SQLite and sync credentials before a runtime upgrade. The evaluator request ledger remains cumulative; this skill migration does not authorize a new paid evaluation sweep. Verify each selected client's OAuth and read calls independently, then synthetic capture/promotion in isolated state. Production writes and another device's sync require separate observed evidence.

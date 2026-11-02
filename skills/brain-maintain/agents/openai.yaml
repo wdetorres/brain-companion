@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brain Maintenance"
+  short_description: "Check health and perform scoped maintenance"
+  default_prompt: "Use $brain-maintain for this Brain task."

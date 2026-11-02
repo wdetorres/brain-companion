@@ -1,0 +1,4 @@
+interface:
+  display_name: "Brain Recall"
+  short_description: "Retrieve personal context with sources"
+  default_prompt: "Use $brain-recall for this Brain task."
