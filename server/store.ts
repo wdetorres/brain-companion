@@ -86,11 +86,15 @@ export class BrainStore {
     return changed;
   }
   snapshot():Promise<BrainSnapshot>{return this.exclusive(async()=>({notes:await this.scan(),operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),connections:this.connections().filter(c=>c.status==='proposed').slice(0,200),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}}));}
-  inspect(path:string):Promise<Note>{return this.exclusive(async()=>{
-    // shortcut: other-page link changes follow refresh/sync; add filesystem invalidation if independent writers are introduced.
-    const n=await this.index.current(path)||(await this.scan()).find(n=>n.path===path);
-    if(!n)throw Error('Page not found');return n;
-  });}
+  async inspect(path:string):Promise<Note>{
+    // Validated unchanged notes need not wait for sync or evaluation.
+    const current=await this.index.current(path);if(current)return current;
+    return this.exclusive(async()=>{
+      // shortcut: other-page link changes follow refresh/sync; add filesystem invalidation if independent writers are introduced.
+      const n=await this.index.current(path)||(await this.scan()).find(n=>n.path===path);
+      if(!n)throw Error('Page not found');return n;
+    });
+  }
   private operationRecord(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
   operation(id:string):Promise<Operation|undefined>{return this.exclusive(async()=>{const op=this.operationRecord(id);if(op?.status==='pending')await this.scan();return this.operationRecord(id);});}
   status(){return this.exclusive(async()=>{const notes=await this.scan();return {version:2,notes:notes.length,autoAccept:[...this.accept],folders:[...new Set(notes.map(n=>dirname(n.path)).filter(p=>p!=='.'))].sort().slice(0,200),work:this.db.prepare('SELECT status,COUNT(*) AS count FROM work GROUP BY status').all(),sync:this.syncStatus,lastSync:this.lastSync,search:'SQLite FTS5 + Jev evidence review',index:{parsedThisRefresh:this.index.lastReadCount},claimSeconds:300,guide:'brain://guide',policy:'brain://policy'};});}
