@@ -7,12 +7,12 @@ export function createHandler(store:BrainStore,config:{origin:string;passwordHas
   try{
    const url=new URL(req.url);if(url.pathname==='/healthz')return json({ok:true});
    if(config.bridgeKey){const key=req.headers.get('x-brain-bridge')||'';if(key.length!==config.bridgeKey.length||!timingSafeEqual(Buffer.from(key),Buffer.from(config.bridgeKey)))return json({error:'Forbidden'},403);}
-   const origin=req.headers.get('origin');if(origin&&origin!==auth.origin)return json({error:'Origin not allowed'},403);
+   const origin=req.headers.get('origin');if(url.pathname==='/mcp'){const body=req.method==='POST'?await req.clone().json().catch(()=>null):null;const operation=['initialize','notifications/initialized','tools/list','tools/call'].includes(body?.method)?body.method:'other';console.info('MCP diagnostic',JSON.stringify({method:req.method,operation,origin:origin?(origin===auth.origin?'same':origin==='https://chatgpt.com'?'chatgpt':'other'):'none',authorization:!!req.headers.get('authorization')}));}if(origin&&origin!==auth.origin)return json({error:'Origin not allowed'},403);
    const authResponse=await auth.handle(req);if(authResponse)return authResponse;
    if(url.pathname==='/mcp'){
     const grant=auth.bearer(req.headers.get('authorization'));if(!grant)return json({error:'Authentication required'},401,{'WWW-Authenticate':`Bearer resource_metadata="${auth.origin}/.well-known/oauth-protected-resource/mcp", scope="brain"`});
     if(grant.scope!=='brain')return json({error:'Insufficient scope'},403);
-    return await createMemoryMcp(store,grant.name+' ('+grant.clientId+')').fetch(req);
+    const response=await createMemoryMcp(store,grant.name+' ('+grant.clientId+')').fetch(req);console.info('MCP diagnostic result',response.status);return response;
    }
    if(!auth.session(req))return json({error:'Sign in to your Brain'},401);
    if(req.method==='POST'&&['/api/recall','/api/connections/suggest','/api/connections/review','/api/memories/review'].includes(url.pathname)){
