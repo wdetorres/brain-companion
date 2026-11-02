@@ -18,4 +18,8 @@ The original image composition's geometric comparison is not a fidelity pass: Wi
 
 ## Release
 
-The performance chat confirmed no outstanding gate or deployment conflict. This is a frontend-only `[skip render]` release. Before release, Render's live deployment was `dep-dbk6iqnavr4c73cphqlg`, commit `fa6754b172bc5377b891d7c13ed391aba87d4f20`. Compare it after Vercel advances; no worker restart is intended. Live route, asset, authenticated note-open/cache and browser checks are recorded after release.
+The performance chat confirmed no outstanding gate or deployment conflict. Product commit `e280d449e7cea2fd97f6118900d44b92c03bd87e` shipped through Vercel deployment `dpl_HUURidhEkvqo1puN9piSG9CfUgmD` to https://brain.wilsondetorres.com/. Render remained on `dep-dbk6iqnavr4c73cphqlg`, commit `fa6754b172bc5377b891d7c13ed391aba87d4f20`, before and after this frontend-only `[skip render]` release. The worker did not restart.
+
+Live CSS, JavaScript, all five agent SVGs and the font matched the tested build byte for byte. The landing, app, demo, sign-in and settings routes returned 200; anonymous private API access returned 401. The same-origin font CSP remains intact. Browser checks verified the full chat playback, sample-Brain CTA, Jev conflict example, authenticated fresh note open and revisit, and Account & connections with a successful sync status. These smoke checks did not measure request latency or establish a network cache hit. No browser warnings or errors were observed.
+
+The live 390px landing uses a 36px heading without horizontal overflow. Screenshots are under `.impeccable/review/premium/live/`. No new backend load test, OAuth grant/revoke or hosted semantic-search implementation was part of this release.
