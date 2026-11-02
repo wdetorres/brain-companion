@@ -23,6 +23,8 @@ export class BrainStore {
   private recallJudge?:RecallJudge; private connectionJudge?:ConnectionJudge;
   private recallCache = new Map<string, { at:number; result:RecallResult }>();
   private queue:Promise<unknown>=Promise.resolve(); private closed=false;
+  private syncReady?:Promise<void>;
+  private syncView?:{snapshot:BrainSnapshot;status:ReturnType<BrainStore['statusFrom']>};
   syncStatus='Not configured'; lastSync:string|null=null;
   constructor(options:{vault:string;data:string;judge:Judge;accept?:string[];recallJudge?:RecallJudge;connectionJudge?:ConnectionJudge}) {
     this.vault=resolve(options.vault); mkdirSync(this.vault,{recursive:true});mkdirSync(options.data,{recursive:true});
@@ -47,6 +49,33 @@ export class BrainStore {
   }
   close(){if(!this.closed){this.db.close();this.closed=true;}}
   exclusive<T>(fn:()=>Promise<T>):Promise<T>{const next=this.queue.then(fn,fn);this.queue=next.catch(()=>{});return next;}
+  synchronize(run:()=>Promise<void>):Promise<void>{
+    let ready!:()=>void;
+    const warming=new Promise<void>(resolve=>{ready=resolve;});this.syncReady=warming;
+    return this.exclusive(async()=>{
+      const started=performance.now();let networkMs=0;
+      this.syncStatus='Syncing with Obsidian';
+      try{
+        // Validate derived data before network I/O; journal recovery must wait for remote changes.
+        const notes=await this.index.refresh();
+        this.syncView={snapshot:this.snapshotFrom(notes),status:this.statusFrom(notes)};ready();
+        let succeeded=false;const networkStarted=performance.now();
+        try{await run();succeeded=true;}catch{}finally{networkMs=performance.now()-networkStarted;}
+        // A failed sync can still have changed files before it stopped.
+        this.index.invalidate();await this.scan();
+        if(succeeded){
+          const lastSync=new Date().toISOString();
+          this.db.prepare('INSERT OR REPLACE INTO metadata VALUES(?,?)').run('lastSync',lastSync);
+          this.lastSync=lastSync;this.syncStatus='Last sync succeeded';
+        }else this.syncStatus='Sync failed; server vault may be behind';
+      }catch{this.index.invalidate();this.syncStatus='Sync failed; server vault may be behind';}
+      finally{
+        this.syncView=undefined;ready();if(this.syncReady===warming)this.syncReady=undefined;
+        const durationMs=Math.round(performance.now()-started);
+        if(durationMs>=1000||this.syncStatus!=='Last sync succeeded')console.info(JSON.stringify({event:'brain_sync',durationMs,networkMs:Math.round(networkMs),status:this.syncStatus}));
+      }
+    });
+  }
   private save(op:Operation,key?:string,fingerprint?:string){this.db.prepare('INSERT INTO operations(id,idem,fingerprint,payload) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload').run(op.id,key||null,fingerprint||null,JSON.stringify(op));if(op.status==='pending'||op.status==='applied')this.index.invalidate();}
   private observe(notes:Note[]){
     const pending=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='pending'").all() as {payload:string}[];
@@ -85,10 +114,12 @@ export class BrainStore {
     }
     return changed;
   }
-  snapshot():Promise<BrainSnapshot>{return this.exclusive(async()=>({notes:await this.scan(),operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),connections:this.connections().filter(c=>c.status==='proposed').slice(0,200),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}}));}
+  private snapshotFrom(notes:Note[]):BrainSnapshot{return {notes,operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),connections:this.connections().filter(c=>c.status==='proposed').slice(0,200),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}};}
+  async snapshot():Promise<BrainSnapshot>{await this.syncReady;if(this.syncView)return this.syncView.snapshot;return this.exclusive(async()=>this.snapshotFrom(await this.scan()));}
   async inspect(path:string):Promise<Note>{
     // Validated unchanged notes need not wait for sync or evaluation.
     const current=await this.index.current(path);if(current)return current;
+    if(this.syncReady){await this.syncReady;const warmed=await this.index.current(path);if(warmed)return warmed;}
     return this.exclusive(async()=>{
       // shortcut: other-page link changes follow refresh/sync; add filesystem invalidation if independent writers are introduced.
       const n=await this.index.current(path)||(await this.scan()).find(n=>n.path===path);
@@ -97,7 +128,8 @@ export class BrainStore {
   }
   private operationRecord(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
   operation(id:string):Promise<Operation|undefined>{return this.exclusive(async()=>{const op=this.operationRecord(id);if(op?.status==='pending')await this.scan();return this.operationRecord(id);});}
-  status(){return this.exclusive(async()=>{const notes=await this.scan();return {version:2,notes:notes.length,autoAccept:[...this.accept],folders:[...new Set(notes.map(n=>dirname(n.path)).filter(p=>p!=='.'))].sort().slice(0,200),work:this.db.prepare('SELECT status,COUNT(*) AS count FROM work GROUP BY status').all(),sync:this.syncStatus,lastSync:this.lastSync,search:'SQLite FTS5 + Jev evidence review',index:{parsedThisRefresh:this.index.lastReadCount},claimSeconds:300,guide:'brain://guide',policy:'brain://policy'};});}
+  private statusFrom(notes:Note[]){return {version:2,notes:notes.length,autoAccept:[...this.accept],folders:[...new Set(notes.map(n=>dirname(n.path)).filter(p=>p!=='.'))].sort().slice(0,200),work:this.db.prepare('SELECT status,COUNT(*) AS count FROM work GROUP BY status').all(),sync:this.syncStatus,lastSync:this.lastSync,search:'SQLite FTS5 + Jev evidence review',index:{parsedThisRefresh:this.index.lastReadCount},claimSeconds:300,guide:'brain://guide',policy:'brain://policy'};}
+  async status(){await this.syncReady;if(this.syncView)return this.syncView.status;return this.exclusive(async()=>this.statusFrom(await this.scan()));}
   policy(){return this.exclusive(async()=>{const parts:string[]=[];for(const path of ['BRAIN.md','AGENTS.md','CONTEXT.md','PARA.md']){const text=await readOptional(await safePath(this.vault,path));if(text!==null){if(Buffer.byteLength(text)>65536)throw Error('Policy is too large; inspect its file directly');parts.push('# '+path+'\n\n'+text);}}return parts.join('\n\n')||'No vault-specific policy files are present. Follow brain://guide and the owner-authorized scope.';});}
   search(query:string,limit=12,category?:MemoryCategory):Promise<Note[]>{return this.exclusive(async()=>{await this.scan();return this.index.search(query,Math.min(20,Math.max(1,limit)),category).map(n=>({...n,body:n.body.slice(0,1200),markdown:n.markdown.slice(0,1200)}));});}
   recall(query:string,category?:MemoryCategory):Promise<RecallResult>{return this.exclusive(async()=>{
