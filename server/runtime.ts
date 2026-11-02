@@ -14,6 +14,9 @@ export async function syncOnce(store: BrainStore, run?: () => Promise<void>) {
       store.db.prepare('INSERT OR REPLACE INTO metadata VALUES(?,?)').run('lastSync', store.lastSync);
     } catch {
       store.syncStatus = 'Sync failed; server vault may be behind';
+    } finally {
+      // A failed sync can still have changed files before it stopped.
+      store.index.invalidate();
     }
   });
 }

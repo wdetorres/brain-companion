@@ -1,4 +1,5 @@
 import { readdir, readFile, lstat, realpath } from 'node:fs/promises';
+import type { Stats } from 'node:fs';
 import { resolve, relative, dirname, posix, basename } from 'node:path';
 import { createHash } from 'node:crypto';
 import { parse } from 'yaml';
@@ -26,6 +27,7 @@ export function rawLinks(body:string):string[] {
   return [...clean.matchAll(/!?\[\[([^\]|]+)(?:\|[^\]]*)?\]\]|(?<!!)\[[^\]]*\]\(([^\s)]+)(?:\s+"[^"]*")?\)/g)].map(m=>(m[1]||m[2]).split('#')[0]).filter(v=>v&&!/^[a-z][a-z\d+.-]*:/i.test(v));
 }
 export type CachedNote = { signature:string; note:Note };
+export const noteSignature = (stat:Stats) => [stat.ino,stat.size,stat.mtimeMs,stat.ctimeMs].join(':');
 export function parseNote(path:string, markdown:string, modifiedAt:string):Note {
   const fm=markdown.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/); let meta:any={};
   if(/^---\r?\n/.test(markdown)&&!fm)meta.sensitivity='restricted';
@@ -42,7 +44,7 @@ export async function readVault(root:string, cache?:Map<string,CachedNote>):Prom
   await walk(''); const notes:Note[]=[];
   for(const path of files.sort()) {
     const target=await safePath(root,path); const stat=await lstat(target); if(stat.size>2*1024*1024)continue;
-    const signature=[stat.ino,stat.size,stat.mtimeMs,stat.ctimeMs].join(':');const cached=cache?.get(path);
+    const signature=noteSignature(stat);const cached=cache?.get(path);
     const note=cached?.signature===signature?{...cached.note,links:[],unresolved:[]}:parseNote(path,await readFile(target,'utf8'),stat.mtime.toISOString());
     cache?.set(path,{signature,note});notes.push(note);
   }

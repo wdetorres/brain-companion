@@ -8,6 +8,7 @@ import { isInFolder, parentFolders } from './folders.ts';
 import { connectionMarkdown } from './links.ts';
 import { Recall } from './Recall.tsx';
 import { ConnectionPanel } from './ConnectionPanel.tsx';
+import { NoteCache } from './note-cache.ts';
 import { WorkList } from './WorkList.tsx';
 import { MemoryActions } from './MemoryActions.tsx';
 import { categories, categoryLabels } from './shared.ts';
@@ -55,6 +56,7 @@ function ChangeReader({ operation: op, onOpen, onReview }: { operation: Operatio
   </article>;
 }
 export function App() {
+  const [noteCache] = useState(() => new NoteCache((path, signal) => api<Note>('/api/note?path=' + encodeURIComponent(path), signal)));
   const [snapshot, setSnapshot] = useState<BrainSnapshot | null>(isDemo ? demoSnapshot : null);
   const [ready, setReady] = useState(isDemo);
   const [csrf, setCsrf] = useState('');
@@ -97,13 +99,17 @@ export function App() {
     finally { setRefreshing(false); setReady(true); }
   }
   useEffect(() => { if (!isDemo) void refresh(); }, []);
+  useEffect(() => { noteCache.reconcile(snapshot?.notes ?? []); }, [snapshot, noteCache]);
+  useEffect(() => () => noteCache.clear(), [noteCache]);
   useEffect(() => {
-    const controller = new AbortController(); setNote(null); setDetailError('');
-    if (!selected) return;
+    const controller = new AbortController();
+    const summary = snapshot?.notes.find(n => n.path === selected);
+    setNote(noteCache.get(summary) || null); setDetailError('');
+    if (!selected || !snapshot) return;
     if (isDemo) { setNote(snapshot?.notes.find(n => n.path === selected) || null); return; }
-    api<Note>('/api/note?path=' + encodeURIComponent(selected), controller.signal).then(setNote).catch(e => { if (!controller.signal.aborted) setDetailError(e.message); });
+    noteCache.load(selected, summary, controller.signal).then(n => { if (!controller.signal.aborted) setNote(n); }).catch(e => { if (!controller.signal.aborted) setDetailError(e.message); });
     return () => controller.abort();
-  }, [selected, snapshot]);
+  }, [selected, snapshot, noteCache]);
   useEffect(() => {
     const controller = new AbortController(); setOperation(null); setDetailError('');
     if (!operationId) return;
@@ -166,7 +172,7 @@ export function App() {
     const reviewed=await post<Operation>('/api/memories/review',{id:operation.id,action,reason,idempotencyKey:crypto.randomUUID()});
     setSnapshot(await api<BrainSnapshot>('/api/brain'));setOperationId(reviewed.id);
   }
-  const connectionPanel = note && <ConnectionPanel key={note.path} note={note} notes={notes} connections={connections} demo={isDemo} onSuggest={suggest} onReview={reviewConnection} onOpen={openNote} />;
+  const connectionPanel = note && <ConnectionPanel key={note.path} note={note} notes={notes} connections={connections} demo={isDemo} noteCache={noteCache} onSuggest={suggest} onReview={reviewConnection} onOpen={openNote} />;
   if (!ready) return <main className="entry"><p className="muted">Opening your Brain…</p></main>;
   if (!snapshot) return <LoginPage error={error} />;
   if(!isDemo && location.pathname === '/settings')return <AccountSettings csrf={csrf} status={snapshot.status} user={user}/>;
@@ -179,7 +185,7 @@ export function App() {
       <nav aria-label="Main navigation">
         {([['graph', Network, 'Graph'], ['pages', BookOpen, 'Browse'], ['changes', History, 'Review']] as const).map(([id, Icon, label]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label} onClick={() => changeView(id)}><Icon size={18} strokeWidth={1.6} /><span>{label}</span>{id === 'changes' && snapshot.operations.some(o => o.status === 'needs_attention' && !o.resolution) && <span className="nav-count attention-count">{snapshot.operations.filter(o => o.status === 'needs_attention' && !o.resolution).length}</span>}</button>)}
       </nav>
-      <div className="sidebar-bottom"><LockKeyhole size={14} /><span>{isDemo ? 'Sample workspace' : <a href="/settings">Account & connections</a>}</span>{!isDemo && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={async () => { const r = await authClient.signOut(); if (!r.error) { setSelected(null); setOperationId(null); setSnapshot(null); } else setError('Could not sign out. Refresh and try again.'); }}><LogOut size={15} /></button>}</div>
+      <div className="sidebar-bottom"><LockKeyhole size={14} /><span>{isDemo ? 'Sample workspace' : <a href="/settings">Account & connections</a>}</span>{!isDemo && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={async () => { const r = await authClient.signOut(); if (!r.error) { noteCache.clear(); setSelected(null); setOperationId(null); setSnapshot(null); } else setError('Could not sign out. Refresh and try again.'); }}><LogOut size={15} /></button>}</div>
     </aside>
     <main className="main-shell">
       <header className="topbar">
