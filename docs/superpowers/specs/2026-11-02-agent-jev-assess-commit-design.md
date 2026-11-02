@@ -7,7 +7,7 @@ Status: Proposed implementation design; no implementation started.
 
 Restore Jev's real write assessment as useful feedback in the writing agent's own session. The agent submits a sourced candidate, reads Jev's assessment, then writes the final note to the appropriate place. Every stage is inspectable and changes can be undone without overwriting later edits. Any authorized MCP client can perform the workflow.
 
-Wilson selected this flow after rejecting model-held writes and considering an unattended maintenance service. Jev supplies judgment; the agent verifies sources, authors prose, selects destinations, and acts. The service validates and records those actions. An assessment is never permission or a required human approval.
+Wilson selected direct filing as the default, with an Inbox for genuinely unresolved captures and an existing scheduled sweep for exceptions and broader consistency checks. Jev supplies judgment; the agent verifies sources, authors prose, selects destinations, and acts. The service validates and records those actions. An assessment is never permission or a required human approval. Persisting unfinished work makes it recoverable; a verified consumer is needed to actually revisit it.
 
 ## Current implementation
 
@@ -16,8 +16,9 @@ Baseline: `f811f2d` in the direct-write worktree. Ordinary `remember` writes cur
 ## Approaches
 
 - A model gate before saving caused the reported Singapore consolidation to remain unsaved. Rejected: uncertain or duplicate scores must not strand an authorized agent.
-- An Inbox followed by a scheduled maintainer separates capture from filing and introduces a second actor. Wilson chose to keep reasoning and filing in the active agent instead.
-- **Selected: synchronous assessment, agent decision, explicit commit.** Normal capture goes directly to its final destination. No new cron job, mandatory Inbox, dedicated maintainer, or backend text-generating agent.
+- Sending every capture to Inbox postpones useful filing and asks a second agent to reconstruct the source context. This is useful for bulk intake, but is not the default for verified same-session updates.
+- Direct filing without an exception consumer leaves interrupted sessions and unresolved work dependent on someone noticing them. A journal alone does not provide eventual execution.
+- **Selected: synchronous assessment and direct filing, with exception recovery.** The active agent completes verified, clearly routed updates immediately. Genuine unresolved captures can use Inbox; an existing scheduled sweep revisits exceptions and performs its already-authorized broader consistency checks. No new cron job, mandatory Inbox stage, named-agent dependency, or backend text-generating agent.
 
 ## Constraints
 
@@ -25,6 +26,7 @@ Baseline: `f811f2d` in the direct-write worktree. Ordinary `remember` writes cur
 - Jev scores are advisory. Only deterministic permission, privacy, path, claim, revision and recovery checks can prevent an otherwise requested commit.
 - Preserve source/privacy boundaries, protected paths, enabled write scopes and existing collectors. Never turn an MCP rejection into a filesystem bypass.
 - Any authorized agent can submit, inspect and resume work; no named-agent dependency or new schedule.
+- Preserve and verify an existing authorized scheduled sweep for exceptions; unchanged completed captures do not require a second promotion pass. Jev scores alone never route a capture to Inbox.
 - Keep legacy direct `remember` callers working, with an honest “Not assessed” display. Updated capture instructions use assessment first.
 - Use at most 20 additional paid Jev HTTP requests for this workflow's validation, counting failures and retries. The old exhausted allowance stays untouched.
 - Server writes and device sync are separate outcomes. Do not promise zero latency or zero future maintenance.
@@ -33,20 +35,43 @@ Baseline: `f811f2d` in the direct-write worktree. Ordinary `remember` writes cur
 
 ```mermaid
 flowchart LR
-  A[Agent verifies sources and prepares candidate] --> B[Service saves candidate and calls Jev]
+  A[Agent checks sources and routing] -->|Verified and clearly routed| B[Service saves candidate and calls Jev]
   B --> C[Agent receives scores and recommendations]
   C --> D[Agent chooses final content and location]
   D --> E[Service checks revisions and journals the write]
   E --> F[Panel shows assessment, agent decision and actual change]
+  A -->|Evidence or routing unresolved| I[Inbox capture with a specific reason]
+  B -->|Agent interrupted| Q[Durable assessment work after lease expires]
+  I --> S[Existing scheduled sweep processes ready exceptions]
+  Q --> S
+  S -->|Evidence and authority available| D
+  S -->|Still unresolved| R[Record blocker and defer until due or context changes]
 ```
 
-1. The agent searches and inspects relevant notes, original evidence and the parent hub. It proposes a destination and exact Markdown with sources. Inbox is optional for genuinely unresolved material under owner policy, not an intermediate step.
+1. The agent searches and inspects relevant notes, original evidence and the parent hub. It proposes a destination and exact Markdown with sources. Verified, clearly routed updates proceed immediately. Genuinely unresolved material follows the exception flow below; Inbox is not an intermediate step for every capture.
 2. `assess_memory` saves that candidate and the precise eligible context supplied to Jev, then returns the real result synchronously. It does not write Markdown. No score creates a human-review hold.
 3. The agent evaluates the response. It may keep the candidate, revise it, merge into an existing note, or record a reason for making no change. High overlap can support consolidation; it does not automatically mean “discard.”
 4. `remember` commits the agent's final content and records its assessment reference and short decision reason. It checks the current file revision, not an old model verdict. `promote` uses the same advisory contract for existing Inbox moves while retaining structural/source checks.
 5. The agent inspects the saved note. Any authorized immediate-parent hub update is a separate revision-checked operation linked to the same assessment. Report the note and hub outcomes separately; a partial sequence is resumable, not an all-or-nothing transaction.
 
 The user-approved behavior is the flow above. The API and storage details below are implementation proposals chosen to reuse the current code.
+
+## Exceptions and the existing sweep
+
+Keep two existing forms of unfinished work distinct:
+
+- **Unresolved capture:** when the agent identifies missing evidence, an unresolved factual conflict or an unclear destination, it may save a concise note in `00 Inbox/` with `status: inbox`, a concrete `review_reason`, real available provenance and truthful uncertainty, under the existing capture/privacy contract. If evidence is insufficient for `assess_memory`, use the already-supported direct capture route without manufacturing an excerpt; display it as not assessed. Do not turn a privacy, permission or revision rejection into an Inbox retry that bypasses the rejection.
+- **Interrupted assessment or commit:** keep the staged candidate/journal and its existing work item. Do not also create an Inbox copy. An unfinished assessment is not a saved note. Once the claim expires, another authorized agent can resume the same item.
+
+If an assessment is deliberately saved as an unresolved Inbox note, close the assessment's primary work using that saved operation and retain the single Inbox work item. This prevents two independent recovery jobs for the same capture. No model threshold automatically selects Inbox or deferral; the agent records the actual evidence/routing problem.
+
+Update an existing authorized scheduled review run to consume a bounded batch of ready exceptions through `list_work`, `claim_work`, `inspect`, and the ordinary assessed-write/promotion/finish tools. Preserve its existing cadence, source access and batch limits; if no batch limit exists, use at most five ready items per run. Do not add a second scheduler or convert a read-only health check into a writer. The workflow is agent-agnostic even when a particular installed agent currently runs the schedule.
+
+The sweep prioritizes abandoned assessment/commit recovery and unresolved Inbox captures, then performs broader link/duplicate/changed-note checks already within its remit. It reopens original evidence and current revisions before acting, reuses a stored assessment when appropriate, and never reruns Jev merely because another scheduled run occurred. It may file, merge, finish with no change, or defer with a precise blocker and the existing retry time. Future-deferred items and live claims are skipped; changed source/note context can make an item eligible again under existing queue rules. Unavailable evidence, access or authority is not permission to delete or promote.
+
+Do not enqueue every successfully filed capture for another promotion pass. Preserve existing review of external edits and bounded consistency checks, without promising that a sweep discovers every aging fact. Failed recorded parent updates remain recovery work; broader checks can find missing links, but there is no new generic multi-step workflow engine.
+
+During rollout, locate the actual existing scheduler, update its executable prompt/instructions as well as documentation, and observe a controlled exception being picked up in a real scheduled run. An inaccessible scheduler or a schedule lacking required write authority is an explicit activation gap. Do not claim automatic exception recovery is active from a Markdown edit or synthetic queue test alone.
 
 ## API and durable records
 
@@ -80,7 +105,7 @@ Folder selection remains the agent's job. Prefer an existing scope-specific dest
 - Exact retry keys/payloads return the same assessment without another model request. Concurrent duplicates see `assessing`; they do not launch another request. A changed payload with a reused key is an error.
 - A timeout, malformed result or missing model configuration produces durable `unavailable`, without fabricated scores. On restart, abandoned `assessing` records become `unavailable` with an interruption reason. The agent may commit with a recorded reason, or explicitly retry assessment with a new key.
 - If source/current revisions change during assessment, retain the genuine assessment of its captured context. At commit, existing write revision checks still apply. Changed comparison context is disclosed; a model result is never evidence that the latest context was read.
-- If the agent stops, another authorized agent finds, claims and inspects the assessment, rechecks sources/revisions and resumes. No automatic schedule or worker is required. Deferring a claim records why work remains; abandoned leases expire normally.
+- If the agent stops, the existing scheduled exception sweep (or another authorized active agent) finds, claims and inspects the assessment after its lease expires, rechecks sources/revisions and resumes. Deferring a claim records why work remains. Successful direct filing does not wait for a sweep; automatic exception recovery requires the separately verified existing schedule.
 - Link a pending write to its assessment before filesystem mutation. Recovery completes the same operation and closes the assessment work only after an applied or exact-no-op outcome. A crash must not leave an applied write eligible for another primary commit.
 
 ## Reversibility
@@ -95,16 +120,18 @@ The operation history shows note and hub changes independently. To reverse a com
 
 Restore the prominent `JevReview` panel in operation details. It shows the submitted candidate, actual assessment and recommendations, agent response, final changed content, and actual commit outcome. For changed drafts/context, label what the scores evaluated. Show “Not assessed” for legacy writes and “Assessment unavailable” for failed assessment attempts. Never generate replacement scores or label samples as live.
 
-The work list labels staged candidates “Awaiting agent,” with a visible assessment detail; it must not imply a note was saved or that a person must approve it. Applied status takes precedence over classifications such as `not_worth_remembering`. Provide an explicit owner Undo action for supported operations, with reason and current-revision checks; errors explain why the existing note was preserved.
+The work list labels staged candidates “Awaiting agent,” with a visible assessment detail; it must not imply a note was saved or that a person must approve it. An unresolved saved Inbox capture shows its `review_reason`; deferred work shows its blocker and retry time. Do not promise a scheduled pickup time without verified scheduler state. Applied status takes precedence over classifications such as `not_worth_remembering`. Provide an explicit owner Undo action for supported operations, with reason and current-revision checks; errors explain why the existing note was preserved.
 
 ## Acceptance
 
 - A synthetic Singapore-style consolidation receives high overlap advice, returns to the agent, and is written directly with sources and originals preserved.
 - A revised candidate is saved with an honest earlier-draft assessment label and the agent's rationale; no second judge is forced at commit.
 - Two different authorized MCP clients can hand off an interrupted assessment without duplicate writes or token leakage.
+- Verified direct captures need no second promotion pass. An unresolved capture has one Inbox work item; an interrupted assessment has no duplicate Inbox note. Model scores alone never select either route.
+- A bounded exception-consumer test skips active leases and future-deferred items, resumes ready work exactly once, preserves remaining blockers, and does not pay for repeated assessment of unchanged context.
 - Unavailable Jev, exact retries, stale files, private context, changed claim ownership and restart recovery each have deterministic tests.
 - Create/update/promotion undo survives retries/restarts and refuses later edits or broken links.
 - The real panel is visible in the browser and demo samples remain explicitly illustrative.
-- Updated shared skills, tool documentation and affected owner workflow routing describe the same agent-agnostic flow; existing unrelated schedules and local privacy routes remain intact.
+- Updated shared skills, tool documentation and affected owner workflow routing describe the same agent-agnostic direct-write/exception flow; existing cadence, read-only jobs and local privacy routes remain intact. Record actual scheduled-pickup evidence or explicitly mark automatic recovery as not activated.
 
-Quality feedback on each write reduces capture cleanup. It does not automatically inspect every external edit, revisit old facts, or eliminate all maintenance. No deployment, policy rewrite, vault mutation or live Jev request is part of producing this design and its plan.
+Quality feedback on each write reduces capture cleanup. The existing exception sweep provides follow-through and bounded broader maintenance; neither mechanism guarantees every external edit or aging fact is reviewed. No deployment, schedule edit, policy rewrite, vault mutation or live Jev request is part of producing this design and its plan.
