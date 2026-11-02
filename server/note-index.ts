@@ -1,10 +1,12 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { lstat } from 'node:fs/promises';
 import type { MemoryCategory, Note } from '../src/shared.ts';
-import { readVault, type CachedNote } from './vault.ts';
+import { readVault, safePath, noteSignature, type CachedNote } from './vault.ts';
 
 export class NoteIndex {
   private db:DatabaseSync; private vault:string;
   private cache=new Map<string,CachedNote>();
+  private ready=false;
   lastReadCount=0;
   constructor(db:DatabaseSync,vault:string) {
     this.db=db;this.vault=vault;
@@ -14,7 +16,20 @@ export class NoteIndex {
     for(const row of db.prepare('SELECT * FROM note_index').all() as {path:string;signature:string;payload:string}[])
       this.cache.set(row.path,{signature:row.signature,note:JSON.parse(row.payload)});
   }
+  invalidate(){this.ready=false;}
+  async current(path:string):Promise<Note|undefined> {
+    const target=await safePath(this.vault,path);
+    const cached=this.cache.get(path);
+    if(!this.ready||!cached)return;
+    try {
+      const stat=await lstat(target);
+      if(stat.isFile()&&stat.size<=2*1024*1024&&cached.signature===noteSignature(stat))return cached.note;
+    }catch(error){
+      if(!(error instanceof Error&&'code' in error&&['ENOENT','ENOTDIR'].includes(String(error.code))))throw error;
+    }
+  }
   async refresh():Promise<Note[]> {
+    this.ready=false;
     const before=new Map(this.cache);const notes=await readVault(this.vault,this.cache);this.lastReadCount=0;
     this.db.exec('BEGIN');
     try {
@@ -37,7 +52,7 @@ export class NoteIndex {
     }catch(e){this.db.exec('ROLLBACK');this.cache=before;throw e;}
     const categories=new Map((this.db.prepare('SELECT * FROM note_categories').all() as {path:string;revision:string;category:MemoryCategory}[]).map(r=>[r.path,r]));
     for(const n of notes){const category=categories.get(n.path);if(!n.category&&category?.revision===n.revision)n.category=category.category;}
-    return notes;
+    this.ready=true;return notes;
   }
   search(query:string,limit:number,category?:MemoryCategory,assessmentOnly=false):Note[] {
     const words=[...new Set(query.toLowerCase().match(/[\p{L}\p{N}]{2,}/gu)||[])].slice(0,40);

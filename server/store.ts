@@ -47,7 +47,7 @@ export class BrainStore {
   }
   close(){if(!this.closed){this.db.close();this.closed=true;}}
   exclusive<T>(fn:()=>Promise<T>):Promise<T>{const next=this.queue.then(fn,fn);this.queue=next.catch(()=>{});return next;}
-  private save(op:Operation,key?:string,fingerprint?:string){this.db.prepare('INSERT INTO operations(id,idem,fingerprint,payload) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload').run(op.id,key||null,fingerprint||null,JSON.stringify(op));}
+  private save(op:Operation,key?:string,fingerprint?:string){this.db.prepare('INSERT INTO operations(id,idem,fingerprint,payload) VALUES(?,?,?,?) ON CONFLICT(id) DO UPDATE SET payload=excluded.payload').run(op.id,key||null,fingerprint||null,JSON.stringify(op));if(op.status==='pending'||op.status==='applied')this.index.invalidate();}
   private observe(notes:Note[]){
     const pending=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='pending'").all() as {payload:string}[];
     for(const row of pending){const op:Operation=JSON.parse(row.payload);if(op.promotion)continue;const current=notes.find(n=>n.path===op.path);op.status=current?.revision===revision(op.proposed)?'applied':'needs_attention';op.reason=op.status==='applied'?'Recovered committed write after restart':'Interrupted write retained for inspection';if(op.status==='applied')op.revision=current!.revision;this.save(op);if(op.status==='applied'){this.markObserved(current!);this.recordCategory(op);this.completeNoteWork(op);}else if(!op.resolution&&op.decision?.outcome!=='not_worth_remembering')this.work.enqueue('operation:'+op.id,revision(op.proposed),op.path,'proposal',op.reason,op.id);}
@@ -86,7 +86,11 @@ export class BrainStore {
     return changed;
   }
   snapshot():Promise<BrainSnapshot>{return this.exclusive(async()=>({notes:await this.scan(),operations:this.db.prepare('SELECT payload FROM operations ORDER BY rowid DESC LIMIT 100').all().map(r=>JSON.parse(r.payload as string)),connections:this.connections().filter(c=>c.status==='proposed').slice(0,200),mode:'live',status:{indexedAt:new Date().toISOString(),sync:this.syncStatus,lastSync:this.lastSync,search:'Keyword search'}}));}
-  async inspect(path:string){const s=await this.snapshot();const n=s.notes.find(n=>n.path===path);if(!n)throw Error('Page not found');return n;}
+  inspect(path:string):Promise<Note>{return this.exclusive(async()=>{
+    // shortcut: other-page link changes follow refresh/sync; add filesystem invalidation if independent writers are introduced.
+    const n=await this.index.current(path)||(await this.scan()).find(n=>n.path===path);
+    if(!n)throw Error('Page not found');return n;
+  });}
   private operationRecord(id:string):Operation|undefined{const row=this.db.prepare('SELECT payload FROM operations WHERE id=?').get(id);return row?JSON.parse(row.payload as string):undefined;}
   operation(id:string):Promise<Operation|undefined>{return this.exclusive(async()=>{const op=this.operationRecord(id);if(op?.status==='pending')await this.scan();return this.operationRecord(id);});}
   status(){return this.exclusive(async()=>{const notes=await this.scan();return {version:2,notes:notes.length,autoAccept:[...this.accept],folders:[...new Set(notes.map(n=>dirname(n.path)).filter(p=>p!=='.'))].sort().slice(0,200),work:this.db.prepare('SELECT status,COUNT(*) AS count FROM work GROUP BY status').all(),sync:this.syncStatus,lastSync:this.lastSync,search:'SQLite FTS5 + Jev evidence review',index:{parsedThisRefresh:this.index.lastReadCount},claimSeconds:300,guide:'brain://guide',policy:'brain://policy'};});}
