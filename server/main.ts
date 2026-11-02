@@ -46,7 +46,7 @@ const server = createServer(async (req, res) => {
     }
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); res.end(); return; }
     const asset = url.pathname.startsWith('/assets/') || url.pathname === '/favicon.svg';
-    const path = asset ? resolve(dist, '.' + decodeURIComponent(url.pathname)) : resolve(dist, 'index.html');
+    const path = asset ? resolve(dist, '.' + decodeURIComponent(url.pathname)) : resolve(dist, /^\/docs\/?$/.test(url.pathname) ? 'docs.html' : 'index.html');
     if (!path.startsWith(dist + '/')) { res.writeHead(404); res.end(); return; }
     const bytes = await readFile(path);
     res.writeHead(200, { 'Content-Type': types[extname(path)] || 'application/octet-stream', 'Cache-Control': 'no-cache', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; font-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'" });

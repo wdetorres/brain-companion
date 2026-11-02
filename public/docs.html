@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080808">
+<meta name="description" content="How Brain Companion works: Markdown memory, fourteen MCP tools, four agent skills, and a practical guide to running your own instance.">
+<meta property="og:title" content="Docs · Brain Companion">
+<meta property="og:description" content="Understand the architecture, connect your agents, and self-host your own Brain.">
+<meta property="og:type" content="website">
+<title>Docs · Brain Companion</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="/assets/docs.css">
+</head>
+<body>
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="docs-header">
+  <div class="docs-header-inner">
+    <a class="brand" href="/" aria-label="Brain Companion home"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="13" y="3" width="7" height="7" rx="1"/><rect x="3" y="23" width="7" height="7" rx="1"/><rect x="23" y="23" width="7" height="7" rx="1"/><path d="M16.5 10v7M6.5 23v-6h20v6"/></svg>brain.</a>
+    <nav aria-label="Main navigation"><a href="/docs" aria-current="page">Docs</a><a href="/demo">Sample Brain</a><a href="https://github.com/wdetorres/brain-companion">GitHub <span aria-hidden="true">↗</span></a></nav>
+  </div>
+</header>
+<div class="docs-layout">
+  <aside class="docs-sidebar">
+    <details open>
+      <summary>In this guide</summary>
+      <nav aria-label="Documentation sections">
+        <a href="#overview">Overview</a>
+        <a href="#how-it-works">How it works</a>
+        <a href="#quickstart">Run it locally</a>
+        <a href="#your-brain">Set up your Brain</a>
+        <a href="#connect">Connect an agent</a>
+        <a href="#skills">Agent skills</a>
+        <a href="#tools">MCP tool reference</a>
+        <a href="#writes">Writes, review &amp; undo</a>
+        <a href="#deploy">Self-hosting &amp; sync</a>
+        <a href="#privacy">Privacy &amp; access</a>
+        <a href="#limits">Limits &amp; source code</a>
+      </nav>
+    </details>
+  </aside>
+  <main id="main" tabindex="-1">
+    <article>
+      <section id="overview" aria-labelledby="overview-title">
+        <h1 id="overview-title">Brain Companion docs</h1>
+        <p class="lead">A shared memory for your agents, backed by Markdown you own.</p>
+        <p>Brain Companion gives your authorized agents one place to find context, save useful decisions, and review changes. A browser Explorer lets you read notes, follow their links, and inspect what changed. The notes stay useful in Obsidian.</p>
+        <p>This is an open-source personal project for one owner and their clients. To use it yourself, run your own instance with your own accounts, credentials, and vault.</p>
+        <div class="docs-actions"><a class="primary-link" href="#quickstart">Run it locally <span aria-hidden="true">↓</span></a><a href="/demo">Explore the sample Brain <span aria-hidden="true">↗</span></a></div>
+        <p class="caption">The public sample uses synthetic notes. It needs no sign-in and makes no live vault or model requests.</p>
+      </section>
+
+      <section id="how-it-works" aria-labelledby="how-title">
+        <h2 id="how-title">How it works</h2>
+        <p>The agent does the reasoning: it verifies sources, checks for duplicates, and authors the final note. The service checks permissions and revisions, saves the exact Markdown, and records the operation.</p>
+        <figure class="architecture">
+          <div class="architecture-flow"><div><strong>Your agents</strong><span>Skills + owner OAuth</span></div><span class="flow-arrow" aria-hidden="true">↔</span><div><strong>Brain Companion</strong><span>MCP + write queue</span></div><span class="flow-arrow" aria-hidden="true">↔</span><div><strong>Your vault</strong><span>Markdown + links</span></div></div>
+          <figcaption>Authorized agents read and write through MCP. The same service powers the owner’s browser Explorer.</figcaption>
+        </figure>
+        <dl class="definition-list">
+          <div><dt>Markdown</dt><dd>The canonical notes, with frontmatter and links between whole notes. You can read them without this app.</dd></div>
+          <div><dt>SQLite</dt><dd>The local FTS5 search index, plus durable auth, assessments, work claims, and before/after history. Back up the state as well as the notes.</dd></div>
+          <div><dt>Optional Jev</dt><dd>An external evaluator for recall, candidate advice, and connection suggestions. Its scores are advice; the agent still decides what to commit.</dd></div>
+          <div><dt>Optional sync</dt><dd>Obsidian Headless can sync a separate server vault. Sync and note writes share one serialized queue.</dd></div>
+        </dl>
+        <h3>Search first. Assess when useful.</h3>
+        <p><code>search</code> uses local lexical full-text matching. <code>inspect</code> reads the current note. Neither calls Jev. <code>recall</code> asks Jev to assess relevance and contradictions in a bounded keyword shortlist: at most eight eligible notes, up to 12,000 characters each. There is no embedding search service in this implementation.</p>
+        <p>An empty shortlist does not prove a memory is absent. Try another phrase, inspect the source, and preserve conflicting or dated evidence.</p>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/docs/harness.md">Read the architecture contract <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="quickstart" aria-labelledby="quickstart-title">
+        <h2 id="quickstart-title">Run it locally</h2>
+        <p>You need <strong>Node 24 or newer</strong>, npm, and Git. Start with the credential-free sample.</p>
+        <pre tabindex="0" aria-label="Clone, build, and start the sample"><code>git clone https://github.com/wdetorres/brain-companion.git
+cd brain-companion
+npm ci
+npm run build
+npm start</code></pre>
+        <p>Open <a href="http://localhost:3000/demo">localhost:3000/demo</a>. Private APIs stay unavailable until authentication is configured. The build also creates <code>dist/brain-explorer-demo.html</code>, a portable sample you can open as a file.</p>
+        <p>The standalone server serves the Explorer at <code>/</code> and <code>/app</code>. The optional Vercel frontend puts the public landing page at <code>/</code> and the Explorer at <code>/app</code>. Docs are public at <code>/docs</code> in both setups.</p>
+      </section>
+
+      <section id="your-brain" aria-labelledby="your-brain-title">
+        <h2 id="your-brain-title">Set up your Brain</h2>
+        <ol class="setup-steps">
+          <li><h3>Create a separate test vault</h3><p>Keep your first instance synthetic. The default <code>data/</code> directory is ignored by Git.</p>
+            <pre tabindex="0" aria-label="Create local environment and a synthetic note"><code>cp .env.example .env
+mkdir -p data/vault/Projects
+printf '# Example\n\nA synthetic setup note.\n' &gt; data/vault/Projects/Example.md</code></pre>
+          </li>
+          <li><h3>Configure your Google sign-in</h3><p>Create a Google OAuth <strong>Web application</strong> in your own Google project. Register this exact local callback:</p><pre tabindex="0" aria-label="Local Google OAuth callback"><code>http://localhost:3000/api/auth/callback/google</code></pre><p>Set these backend values in <code>.env</code>. Generate the secret with <code>openssl rand -hex 32</code>; keep all real credentials out of source control.</p>
+            <pre tabindex="0" aria-label="Required private service environment variables"><code>PUBLIC_ORIGIN=http://localhost:3000
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_CLIENT_ID
+GOOGLE_CLIENT_SECRET=YOUR_GOOGLE_CLIENT_SECRET
+BRAIN_OWNER_EMAIL=you@example.com
+BETTER_AUTH_SECRET=YOUR_GENERATED_SECRET
+VAULT_PATH=./data/vault
+STATE_PATH=./data/state
+AUTO_ACCEPT=
+SYNC_ENABLED=false</code></pre>
+            <p>Restart the server and sign in at <a href="http://localhost:3000/app">localhost:3000/app</a>. The first successful login requires your verified owner email and pins its Google subject. Changing the email setting later does not transfer ownership.</p>
+          </li>
+          <li><h3>Define policy before enabling writes</h3><p>Write your vault’s <code>BRAIN.md</code>, <code>AGENTS.md</code>, <code>CONTEXT.md</code>, and <code>PARA.md</code> with your own source-access, privacy, filing, and maintenance rules. The tools expose that policy to authorized agents. Missing rules do not grant broader authority.</p><p>Keep <code>AUTO_ACCEPT</code> empty and sync off while testing. When ready, <code>AUTO_ACCEPT=new,update</code> enables direct captures and edits. <code>promote</code> is a separate opt-in for Inbox filing. Restart after changing the Node environment; recreate containers to apply Compose environment changes.</p></li>
+        </ol>
+        <div class="note"><strong>Jev is optional.</strong><p>Search, inspection, and enabled writes work without a key. Add <code>JEV_API_KEY</code> on your backend only if you want assessments, assessed recall, or connection suggestions. Those requests disclose selected text to an external service and may incur charges.</p></div>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/docs/google-sso.md">Google sign-in and identity details <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="connect" aria-labelledby="connect-title">
+        <h2 id="connect-title">Connect an agent</h2>
+        <p>For a remote MCP client, deploy your own HTTPS service first. In the client’s custom MCP connection settings, add <strong>your origin followed by <code>/mcp</code></strong>, then complete owner sign-in and consent.</p>
+        <pre tabindex="0" aria-label="Example MCP endpoint, replace with your own"><code>https://brain.example.com/mcp</code></pre>
+        <p class="caption">Example domain only. Replace it with the origin you control. A skill or this repository does not grant access to the maintainer’s personal service.</p>
+        <ol>
+          <li>Call <code>brain_status</code> to check enabled actions, folders, and sync status.</li>
+          <li>Read <code>brain://policy</code>. Tool-only clients can inspect the four policy files by path.</li>
+          <li>Search for your synthetic note, then inspect its full Markdown and revision.</li>
+          <li>Verify a synthetic capture, an exact retry, and client revocation before introducing private sources.</li>
+        </ol>
+        <p>The server also publishes <code>brain://guide</code> and the <code>memory-workflow</code> prompt. Tool prefixes vary by client. OAuth uses S256 PKCE, owner consent, the <code>brain</code> scope, and resource binding. Public client registration alone grants no vault access.</p>
+      </section>
+
+      <section id="skills" aria-labelledby="skills-title">
+        <h2 id="skills-title">Four skills, one shared protocol</h2>
+        <p>Tools perform operations. Skills teach an agent when and how to use them, including source checks, privacy boundaries, and what counts as a completed save.</p>
+        <dl class="skill-list">
+          <div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/skills/brain-recall"><code>brain-recall</code></a></dt><dd>Retrieve prior context, inspect evidence, and answer with note paths. Read-only by default.</dd></div>
+          <div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/skills/brain-capture"><code>brain-capture</code></a></dt><dd>Verify sources and duplicates, author a useful note, read advisory feedback, then commit and inspect the result.</dd></div>
+          <div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/skills/brain-review"><code>brain-review</code></a></dt><dd>Resume authorized interrupted assessments, Inbox work, and retained proposals using current claims and revisions.</dd></div>
+          <div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/skills/brain-maintain"><code>brain-maintain</code></a></dt><dd>Check health without mutation, or perform specifically authorized link and index maintenance.</dd></div>
+        </dl>
+        <h3>Install in your client</h3>
+        <p>Copy the four <code>skills/brain-*</code> folders listed above into your client’s supported skill directory, retaining each <code>SKILL.md</code>, metadata, and <code>references/</code>. Clients with Claude-style plugin support can use the <code>skills/</code> package and its <code>.claude-plugin/plugin.json</code>.</p>
+        <p>Reload the client and verify that all four skills are discoverable. Connect MCP separately to your own endpoint. Skills contain instructions, not credentials, connector registration, hooks, or a scheduler. The older <code>brain-harness</code> is retained for compatibility; it is not one of the four focused skills.</p>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/docs/skill-migration.md">Portable skill installation guide <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="tools" aria-labelledby="tools-title">
+        <h2 id="tools-title">MCP tool reference</h2>
+        <p>Fourteen tools cover retrieval, capture, shared review, and links. Expand a tool for its inputs and boundaries. Discover live schemas in your client for complete validation rules.</p>
+        <h3>Read and retrieve</h3>
+        <div class="tool-list">
+          <details id="tool-brain_status"><summary><code>brain_status</code><span>Configuration, folders, queue, sync</span><small>Local</small></summary><div><p>No inputs. Read enabled <code>autoAccept</code> actions and workflow version before acting. Status is a report; it does not verify another device received a change.</p></div></details>
+          <details id="tool-search"><summary><code>search</code><span>Local full-text matches</span><small>Local</small></summary><div><p>Inputs: <code>query</code>, optional <code>limit</code> (1–20, default 12), and <code>category</code>. Returns bounded excerpts, including authorized notes excluded from Jev. Inspect full notes before relying on them.</p></div></details>
+          <details id="tool-inspect"><summary><code>inspect</code><span>Full note, operation, or assessment</span><small>Local</small></summary><div><p>Supply exactly one of <code>path</code>, <code>operationId</code>, or <code>assessmentId</code>. Read current Markdown and revision or immutable operation/assessment details. Assessment inspection does not expose claim tokens.</p></div></details>
+          <details id="tool-recall"><summary><code>recall</code><span>Assessed evidence and conflicts</span><small>Jev</small></summary><div><p>Inputs: <code>query</code> and optional <code>category</code>. Sends a bounded eligible keyword shortlist to Jev. Evidence and conflicts are separate. <code>unavailable</code> means evaluation failed; continue with local retrieval and disclose that limit.</p></div></details>
+        </div>
+        <h3>Assess, commit, and reverse</h3>
+        <div class="tool-list">
+          <details id="tool-assess_memory"><summary><code>assess_memory</code><span>Store a candidate and obtain advice</span><small>Jev · State</small></summary><div><p>Supply <code>path</code>, <code>markdown</code>, verified <code>sources</code> with a supporting excerpt, <code>expectedRevision</code>, <code>idempotencyKey</code>, and <code>intent</code>. Optional <code>contextPaths</code> selects up to five notes; promotion also uses <code>sourcePath</code>.</p><p>Persists the candidate, advice, and a five-minute work claim. It does not write a note. Preserve the returned assessment ID and private claim token for the commit. Exact replay reuses stored advice.</p></div></details>
+          <details id="tool-remember"><summary><code>remember</code><span>Commit the agent’s final Markdown</span><small>Writes</small></summary><div><p>Supply final <code>path</code>, <code>markdown</code>, <code>sources</code>, <code>expectedRevision</code>, and a separate <code>idempotencyKey</code>. After assessment, include <code>assessment: {id, claimToken, reason}</code>. A new path uses <code>expectedRevision: null</code>; an update uses the inspected revision.</p><p>The final draft may differ from the assessed candidate; that difference is recorded. Direct writes without assessment remain supported. <code>relatedAssessmentId</code> can associate a subsequent parent update with the primary applied commit without inheriting its scores.</p></div></details>
+          <details id="tool-undo_memory"><summary><code>undo_memory</code><span>Reverse a recorded applied operation</span><small>Writes</small></summary><div><p>Requires an explicit owner undo request or authorized reversal task. Supply <code>operationId</code>, the operation’s resulting <code>expectedRevision</code>, <code>reason</code>, and <code>idempotencyKey</code>. Later edits, reused paths, or changed incoming links can block reversal. Undo journals an inverse; it is not general deletion.</p></div></details>
+        </div>
+        <h3>Coordinate review and filing</h3>
+        <div class="tool-list">
+          <details id="tool-list_work"><summary><code>list_work</code><span>Find bounded pending work</span><small>Local</small></summary><div><p>Optional inputs: <code>status</code>, <code>kind</code>, <code>limit</code> (1–20, default 10), and <code>offset</code>. Lists assessments, Inbox items, changed-note reviews, and legacy proposals. Use <code>nextOffset</code> for paging; skip live claims and future deferrals.</p></div></details>
+          <details id="tool-claim_work"><summary><code>claim_work</code><span>Lease one item for five minutes</span><small>State</small></summary><div><p>Input: work <code>id</code>. Returns a private <code>claimToken</code>. Same-client retries recover a live claim. Reclaim expired work and recheck its current state before mutating; a claim grants no additional source access or permission.</p></div></details>
+          <details id="tool-finish_work"><summary><code>finish_work</code><span>Record a review outcome</span><small>State</small></summary><div><p>Supply <code>id</code>, current <code>claimToken</code>, <code>outcome</code> (<code>done</code> or <code>deferred</code>), and <code>reason</code>. Include an applied <code>operationId</code> when a note changed. Optional <code>retryAt</code> is a future Unix-millisecond timestamp; default deferral is seven days. This tool cannot save a note.</p></div></details>
+          <details id="tool-review_memory"><summary><code>review_memory</code><span>Accept or dismiss a retained proposal</span><small>State / Writes</small></summary><div><p>Supply operation <code>id</code>, <code>action</code> (<code>accept</code> or <code>dismiss</code>), <code>reason</code>, and its work <code>claimToken</code>. Acceptance needs a fresh <code>idempotencyKey</code>, preserves the original revision, and does not rerun Jev. Correct stale or changed proposals through <code>remember</code>.</p></div></details>
+          <details id="tool-promote"><summary><code>promote</code><span>File a verified Inbox note</span><small>Writes</small></summary><div><p>Supply <code>sourcePath</code>, destination <code>path</code>, final <code>markdown</code>, <code>sources</code>, source <code>expectedRevision</code>, work <code>claimToken</code>, and <code>idempotencyKey</code>. An advisory assessment can be attached separately.</p><p>Promotion must be enabled. The destination parent must exist under Projects, Areas, or Resources, and the target must be absent. Link checks prevent breaking or retargeting resolved links. This is not a generic move, rename, or merge API.</p></div></details>
+        </div>
+        <h3>Review connections</h3>
+        <div class="tool-list">
+          <details id="tool-suggest_connections"><summary><code>suggest_connections</code><span>Propose useful navigation links</span><small>Jev · State</small></summary><div><p>Input: note <code>path</code>. Asks Jev to assess a bounded set of related notes and stores suggestions without editing notes. Because suggestions persist, this is not a read-only health-check action.</p></div></details>
+          <details id="tool-review_connection"><summary><code>review_connection</code><span>Accept or dismiss a proposed link</span><small>State / Writes</small></summary><div><p>Inputs: suggestion <code>id</code> and <code>action</code> (<code>accept</code> or <code>dismiss</code>). Read both notes first. Acceptance rechecks both revisions and appends exactly the reviewed link. Explicit acceptance can write independently of <code>AUTO_ACCEPT</code>.</p></div></details>
+        </div>
+        <p class="caption">Local = no Jev request. State = persists workflow data. Writes = can change Markdown. Privacy exclusions govern external assessment, not access by authorized clients.</p>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/server/mcp.ts">Read the registered tools and schemas <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="writes" aria-labelledby="writes-title">
+        <h2 id="writes-title">Writes, review &amp; undo</h2>
+        <ol class="write-flow">
+          <li><strong>Verify.</strong> Read policy and original evidence, search duplicates, inspect the current note, and read the intended parent hub.</li>
+          <li><strong>Assess.</strong> Author concise final Markdown and submit eligible source excerpts through <code>assess_memory</code>. Read the advice. An unavailable assessment does not veto an otherwise authorized write.</li>
+          <li><strong>Decide and commit.</strong> Use <code>remember</code> with the assessment reference, your reason, the current revision, and a separate commit key. The service commits the agent’s text without a model approval gate.</li>
+          <li><strong>Verify the result.</strong> Inspect the saved note, provenance, and required links. Check device sync separately.</li>
+        </ol>
+        <div class="table-scroll" role="region" aria-label="Write result meanings" tabindex="0"><table><caption>Read the outcome before claiming a save</caption><thead><tr><th scope="col">Result</th><th scope="col">Meaning</th></tr></thead><tbody><tr><th scope="row"><code>applied</code></th><td>The server wrote the note.</td></tr><tr><th scope="row"><code>duplicate</code></th><td>No new write; the exact Markdown is already present.</td></tr><tr><th scope="row"><code>pending</code></th><td>The operation needs recovery. Keep the original payload and key.</td></tr><tr><th scope="row"><code>needs_attention</code></th><td>A revision, permission, privacy, or recovery problem needs resolution.</td></tr></tbody></table></div>
+        <h3>Retries preserve intent</h3>
+        <p>Retry uncertain mutations with exactly the same payload and key. Corrections use a fresh revision and key. After a claim expires, reclaim and inspect again; only the renewed claim token may change on an otherwise exact commit retry. Do not bypass an MCP rejection by writing locally.</p>
+        <h3>Review is shared work, not an automatic scheduler</h3>
+        <p>Use <code>list_work</code>, claim a small authorized batch, inspect the evidence, then commit a change or finish with a reason. Successful primary assessment commits close their assessment work. Defer missing evidence rather than claiming it was reviewed. A stored job does not mean an agent will run later; execution needs an independently configured, authorized schedule.</p>
+        <p>Use <code>undo_memory</code> only for an explicit reversal request. It checks the recorded resulting revision and link safety, so a later edit cannot be silently overwritten.</p>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/docs/agent-guide.md">Complete capture and recovery protocol <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="deploy" aria-labelledby="deploy-title">
+        <h2 id="deploy-title">Self-hosting &amp; sync</h2>
+        <p>Use one persistent Docker service behind HTTPS. Run <strong>one replica</strong> with a writable disk at <code>/data</code>; retain <code>/data/vault</code>, <code>/data/state</code>, and <code>/data/config</code>. Set <code>PUBLIC_ORIGIN</code> to your canonical origin and register its Google callback. The image runs as the <code>node</code> user. Health checks use <code>/healthz</code>; allow 150 seconds for shutdown.</p>
+        <h3>Local Docker</h3>
+        <p>Configure your <code>.env</code> and use Google callback <code>http://localhost:3010/api/auth/callback/google</code>, then run:</p>
+        <pre tabindex="0" aria-label="Start the local Docker service"><code>docker compose -f compose.yaml -f compose.local.yaml up -d --build</code></pre>
+        <p>The port is bound to <code>127.0.0.1</code>. Keep this HTTP development override local. Named volumes survive container replacement; <code>docker compose down -v</code> deletes them.</p>
+        <h3>Optional Vercel frontend</h3>
+        <p>Direct hosting needs no bridge. For a split deployment, set <code>BRAIN_SERVICE_URL</code> to your backend HTTPS origin and a random <code>BRAIN_BRIDGE_KEY</code> on Vercel. Set the same bridge key on the backend and use the frontend origin as backend <code>PUBLIC_ORIGIN</code>. Keep Google and Jev secrets on the backend. Previews need no private backend, or their own isolated synthetic instance.</p>
+        <h3>Optional Obsidian Sync</h3>
+        <p>Use a separate, backed-up server vault. Never point the service at the folder already synced by a desktop Obsidian process. With <code>SYNC_ENABLED=false</code>, authenticate and configure the server copy interactively:</p>
+        <pre tabindex="0" aria-label="Configure optional Obsidian Sync"><code>docker compose exec brain ob login
+docker compose exec brain ob sync-list-remote
+docker compose exec brain ob sync-setup --vault 'YOUR REMOTE VAULT' --path /data/vault --device-name brain-companion
+docker compose exec brain ob sync-config --path /data/vault --conflict-strategy conflict
+docker compose exec brain ob sync --path /data/vault</code></pre>
+        <p>After manual sync succeeds, set <code>SYNC_ENABLED=true</code> and recreate the service with the same Compose files. Let the server serialize one-shot sync and writes; do not run a second sync process against that copy.</p>
+        <div class="note"><strong>A server write and device sync are separate checks.</strong><p><code>applied</code> confirms the server vault changed. Verify sync status and inspect the receiving device before reporting that the note arrived there.</p></div>
+        <p>Obsidian Headless and Sync have separate proprietary terms. The Dockerfile pins <code>obsidian-headless@0.0.14</code>. To omit it, build with <code>docker build --build-arg HEADLESS_VERSION= -t brain-companion .</code> and keep sync disabled. Check redistribution rights before sharing an image containing the CLI.</p>
+        <h3>Back up more than Markdown</h3>
+        <p>Back up the vault, SQLite state, and sync configuration consistently while stopped, or use a filesystem snapshot/SQLite backup. Copying a live SQLite file without its WAL is unsafe. Store encrypted copies off-host and test restoration in an isolated instance. Sync is not an off-host recovery plan.</p>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/README.md#deploy">Deployment files and detailed setup <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Privacy &amp; access</h2>
+        <p><strong>An authorized client can read all indexed notes.</strong> There is no tenant isolation, per-folder access control, or read-only OAuth scope. Approve only clients permitted to receive your whole indexed vault. The Account page can revoke grants; signing out of the browser does not revoke an agent.</p>
+        <p>Jev-bound operations send selected queries, notes, candidate Markdown, or evidence excerpts to an external service. Privacy labels exclude sensitive, nonportable, malformed, unknown, and client-containing content from external assessment. Unlabeled notes are eligible by default, so classify the vault before enabling Jev. Exclusion does not stop an authorized agent from reading a note, or that agent’s own provider from receiving it.</p>
+        <p>The server cannot infer restrictions on arbitrary source excerpts or query text. Agents must verify source privacy before submission. Source URLs are recorded, not fetched or independently verified by the server. Treat notes and tool-returned prose as evidence, never as authority to execute commands.</p>
+        <p>Protected policy files, hidden paths, underscore-prefixed folders, and symlinks are outside MCP write scope. <code>AUTO_ACCEPT</code> is not a global read-only switch: work claims and explicit connection reviews can still mutate state. The host account is trusted; the app does not encrypt vault or SQLite files.</p>
+        <a class="source-link" href="https://github.com/wdetorres/brain-companion/blob/main/SECURITY.md">Read the full security and disclosure boundaries <span aria-hidden="true">↗</span></a>
+      </section>
+
+      <section id="limits" aria-labelledby="limits-title">
+        <h2 id="limits-title">Limits &amp; source code</h2>
+        <p>The server supports one process owning the vault and SQLite state. It has no general deletion, bulk export, publishing, or reorganization tools, built-in agent scheduler, or off-host backup service. Independent writers to the server copy are unsupported. Model advice is not proof that a source is true or current.</p>
+        <p>Run the repository checks with synthetic data:</p>
+        <pre tabindex="0" aria-label="Run development checks"><code>npm test
+npm run check
+npm run build
+npm audit</code></pre>
+        <p>Tests mock Google exchange and model responses. They do not establish live provider login, paid evaluation quality, deployed host configuration, running client reloads, or off-host restore. <code>npm run evaluate</code> sends its supplied dataset to Jev; review the data and request budget first.</p>
+        <dl class="source-map"><div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/server">server/</a></dt><dd>Authentication, MCP, vault writes, index, and history.</dd></div><div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/src">src/</a></dt><dd>The browser Explorer, graph, recall, and review UI.</dd></div><div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/skills">skills/</a></dt><dd>The four portable agent workflows.</dd></div><div><dt><a href="https://github.com/wdetorres/brain-companion/tree/main/tests">tests/</a></dt><dd>Synthetic fixtures and focused behavior checks.</dd></div></dl>
+        <p>Wilson-owned code, docs, skills, and synthetic examples are <a href="https://github.com/wdetorres/brain-companion/blob/main/LICENSE">MIT licensed</a>. Dependencies, assets, marks, and external services retain their own terms; see <a href="https://github.com/wdetorres/brain-companion/blob/main/THIRD_PARTY_NOTICES.md">third-party notices</a>.</p>
+      </section>
+    </article>
+    <footer class="docs-footer"><span>Brain Companion · personal, self-hosted, open source.</span><a href="#overview">Back to top <span aria-hidden="true">↑</span></a></footer>
+  </main>
+</div>
+</body>
+</html>

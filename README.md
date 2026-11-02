@@ -4,6 +4,8 @@ A personal second brain shared across your agents, with Markdown notes and a bro
 
 Agents read sources, check duplicates, and write final Markdown. Optional Jev assessments provide advice about quality, recall, and connections. Enabled writes commit the agent's text without a model approval gate. Notes remain usable in Obsidian.
 
+The public **Docs** page at `/docs` covers architecture, all fourteen MCP tools, the four agent skills, and self-hosting. It works without authentication on the standalone server and Vercel frontend.
+
 ## Try the sample Brain
 
 Requires **Node 24 or newer** and npm. From a clean checkout:

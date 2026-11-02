@@ -6,6 +6,7 @@ await cp('public', 'dist', { recursive: true });
 await cp('LICENSE', 'dist/LICENSE');
 await build({ entryPoints: ['src/main.tsx'], bundle: true, minify: true, format: 'esm', target: ['es2022'], outfile: 'dist/assets/app.js', sourcemap: false, define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'info' });
 await build({ entryPoints: ['src/landing.ts'], external: ['/fonts/*'], bundle: true, minify: true, format: 'esm', target: ['es2022'], outfile: 'dist/assets/landing.js', sourcemap: false, logLevel: 'info' });
+await build({ entryPoints: ['src/docs.css'], bundle: true, minify: true, outfile: 'dist/assets/docs.css', logLevel: 'info' });
 // A portable, explicit demo of the same compiled application.
 const { readFile, writeFile } = await import('node:fs/promises');
 const css = await readFile('dist/assets/app.css', 'utf8');

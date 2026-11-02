@@ -28,6 +28,7 @@ test('public landing and application routes preserve the MCP and auth entry poin
   const destination = (path: string) => config.rewrites.find((route: { source: string }) => route.source === path)?.destination;
   assert.equal(destination('/'), undefined, 'Vercel uses its index.html before rewrites');
   for (const path of ['/app', '/demo', '/sign-in', '/consent', '/settings']) assert.equal(destination(path), '/app.html');
+  for (const path of ['/docs', '/docs/']) assert.equal(destination(path), '/docs.html');
   assert.equal(destination('/mcp'), '/api/bridge?route=mcp');
   assert.equal(destination('/api/auth/:path*'), '/api/bridge?route=api/auth/:path*');
   const landing = await readFile(new URL('../public/landing.html', import.meta.url), 'utf8');
@@ -38,13 +39,16 @@ test('public landing and application routes preserve the MCP and auth entry poin
 });
 
 
-test('Vercel gets the public index while standalone builds retain the private app shell', async () => {
+test('Vercel gets the public index while standalone builds retain the private app shell and public docs', async t => {
   const { execFileSync } = await import('node:child_process');
   const { readFile } = await import('node:fs/promises');
   const env = { ...process.env };
   delete env.VERCEL; delete env.VERCEL_ENV;
   execFileSync(process.execPath, ['scripts/build.mjs'], { env, stdio: 'pipe' });
   assert.match(await readFile('dist/index.html', 'utf8'), /id="root"/);
+  const docs = await readFile('dist/docs.html', 'utf8');
+  assert.match(docs, /<title>Docs · Brain Companion<\/title>/);
+  assert.match(await readFile('dist/assets/docs.css', 'utf8'), /docs-layout/);
   const portable=await readFile('dist/brain-explorer-demo.html','utf8');
   assert.ok(portable.includes(await readFile('public/THIRD_PARTY_NOTICES.txt','utf8')));
   assert.ok(portable.includes(await readFile('LICENSE','utf8')));
@@ -55,4 +59,29 @@ test('Vercel gets the public index while standalone builds retain the private ap
   assert.doesNotMatch(landing, /id="root"/);
   assert.match(await readFile('dist/app.html', 'utf8'), /id="root"/);
   assert.match(await readFile('dist/assets/landing.js', 'utf8'), /Semantic search/);
+  assert.equal(await readFile('dist/docs.html', 'utf8'), docs, 'Docs must ship in both build modes');
+
+  const { createServer } = await import('node:net');
+  const { once } = await import('node:events');
+  const { spawn } = await import('node:child_process');
+  const socket = createServer().listen(0, '127.0.0.1');
+  await once(socket, 'listening');
+  const address = socket.address();
+  assert.ok(address && typeof address !== 'string');
+  const origin = `http://127.0.0.1:${address.port}`;
+  await new Promise<void>((resolve, reject) => socket.close(error => error ? reject(error) : resolve()));
+  const server = spawn(process.execPath, ['server/main.ts'], { env: { PATH: process.env.PATH, PORT: String(address.port), PUBLIC_ORIGIN: origin }, stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(() => { server.kill(); });
+  await once(server.stdout, 'data', { signal: AbortSignal.timeout(10000) });
+  for (const path of ['/docs', '/docs/']) {
+    const response = await fetch(origin + path);
+    assert.equal(response.status, 200);
+    assert.match(response.headers.get('content-type') || '', /text\/html/);
+    assert.equal(await response.text(), docs, 'Docs are public even with no auth configuration');
+  }
+  const head = await fetch(origin + '/docs', { method: 'HEAD' });
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), '');
+  assert.match(await (await fetch(origin + '/assets/docs.css')).text(), /docs-layout/);
+  assert.equal((await fetch(origin + '/api/brain')).status, 503, 'Public docs do not enable private APIs');
 });
