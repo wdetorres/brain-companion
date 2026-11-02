@@ -7,6 +7,7 @@ export function createHandler(store:BrainStore,config:{auth:AuthService;bridgeKe
   try{
    const url=new URL(req.url);if(url.pathname==='/healthz')return json({ok:true});
    if(config.bridgeKey){const key=req.headers.get('x-brain-bridge')||'';if(key.length!==config.bridgeKey.length||!timingSafeEqual(Buffer.from(key),Buffer.from(config.bridgeKey)))return json({error:'Forbidden'},403);}
+   if(config.bridgeKey&&req.headers.has('x-brain-fetch-mode')){const mode=req.headers.get('x-brain-fetch-mode')!;if(mode)req.headers.set('sec-fetch-mode',mode);else req.headers.delete('sec-fetch-mode');req.headers.delete('x-brain-fetch-mode');}
    const origin=req.headers.get('origin');if(origin&&origin!==auth.origin)return json({error:'Origin not allowed'},403);
    const authResponse=await auth.handle(req);if(authResponse)return authResponse;
    if(url.pathname==='/mcp'){

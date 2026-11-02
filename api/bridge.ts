@@ -8,6 +8,8 @@ export default async function bridge(req:IncomingMessage & {query?:Record<string
  const base=new URL(backend);if(base.protocol!=='https:'){res.statusCode=503;res.end('HTTPS service URL required');return;}
  const target=new URL('/'+route,base);for(const [k,v]of parsed.searchParams)if(k!=='route')target.searchParams.append(k,v);
  const headers=new Headers({'X-Brain-Bridge':key});for(const name of ['authorization','cookie','content-type','accept','origin','user-agent','sec-fetch-site','sec-fetch-mode','mcp-protocol-version','mcp-session-id','mcp-method','mcp-name',...Object.keys(req.headers).filter(name=>name.startsWith('mcp-param-'))]){const value=req.headers[name];if(typeof value==='string')headers.set(name,value);}
+ // Node fetch overwrites Sec-Fetch-Mode; preserve the browser's value on the authenticated hop.
+ headers.set('X-Brain-Fetch-Mode',typeof req.headers['sec-fetch-mode']==='string'?req.headers['sec-fetch-mode']:'');
  try{
   let body:string|Buffer|undefined;
   if(!['GET','HEAD'].includes(req.method||'GET')){if(req.body!==undefined){body=typeof req.body==='string'?req.body:req.body instanceof Uint8Array?Buffer.from(req.body):headers.get('content-type')?.includes('application/x-www-form-urlencoded')?new URLSearchParams(req.body as Record<string,string>).toString():JSON.stringify(req.body);}else{const chunks:Buffer[]=[];let length=0;for await(const chunk of req){const b=Buffer.from(chunk);length+=b.length;if(length>300000)throw Error('Request too large');chunks.push(b);}body=Buffer.concat(chunks);}}
