@@ -5,6 +5,26 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+test('folder browser exposes selected ancestors, safe disclosure IDs and root notes', async t => {
+  const dir = await mkdtemp(resolve('.render-test-'));
+  t.after(() => rm(dir, { recursive: true, force: true }));
+  const compiled = await build({ stdin: { contents: `import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {FolderBrowser} from './src/FolderBrowser.tsx'; export const render=(notes,selected)=>renderToStaticMarkup(React.createElement(FolderBrowser,{notes,selected,onOpen:()=>{}}));`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'esm', packages: 'external', write: false });
+  const path = resolve(dir, 'folders.mjs');
+  await writeFile(path, compiled.outputFiles[0].contents);
+  const { render } = await import(pathToFileURL(path).href);
+  const selected = '01 Projects/Research & design/Plan.md';
+  const html = render([{ path: selected, title: 'Plan' }, { path: 'BRAIN.md', title: 'Brain' }, { path: 'Archives/Plan.md', title: 'Plan' }], selected);
+  assert.equal((html.match(/aria-expanded="true"/g) || []).length, 2);
+  assert.equal((html.match(/aria-current="page"/g) || []).length, 1);
+  assert.match(html, /Research &amp; design/);
+  assert.match(html, /title="BRAIN.md"/);
+  for (const [, id] of html.matchAll(/aria-controls="([^"]+)"/g)) {
+    assert.doesNotMatch(id, /\s/);
+    assert.ok(html.includes(`id="${id}"`));
+  }
+  assert.match(render([], null), /No notes match these filters/);
+});
+
 test('actual Markdown component renders hostile HTML inert and links safely', async t => {
   const dir = await mkdtemp(resolve('.render-test-'));
   t.after(() => rm(dir, { recursive: true, force: true }));

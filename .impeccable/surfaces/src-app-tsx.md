@@ -2,14 +2,14 @@
 version: 1
 slug: "src-app-tsx"
 primary_target: "src/App.tsx"
-related_targets: ["src/Graph.tsx","src/Markdown.tsx","src/styles.css","public/favicon.svg"]
+related_targets: ["src/Graph.tsx","src/FolderBrowser.tsx","src/folders.ts","src/Markdown.tsx","src/styles.css","public/favicon.svg"]
 ---
 
 # Explorer surface
 
 Mode: Operate, with Read behavior in the note pane.
 Scope: src/App.tsx, src/Graph.tsx, src/Markdown.tsx, src/styles.css, public/favicon.svg.
-Task: find a note through its graph or search, read its contents and evidence, and inspect agent changes. Whole-note nodes and read-only behavior remain.
+Task: find a note through its real folder hierarchy, graph or search, read its contents and evidence, and inspect agent changes. Primary navigation is Graph / Browse / Review; Recall remains beside search. Whole-note nodes and read-only behavior remain.
 
 ## Direction contract
 
@@ -26,3 +26,7 @@ FORM: Minimal monochrome field index, adapted by the user’s explicit palette r
 FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
 
 Review evidence: current source before edits; deployed desktop/mobile after implementation where Vercel/browser access allows. No shipping raster artwork is required for a graph built from actual note data.
+
+## November 2, 2026 — folder browsing iteration
+
+Preserve the existing monochrome shell. Browse replaces the flat alphabetical page list with nested physical folders and root notes; selected ancestors open for search/link navigation. Graph has one exact folder-path filter. Mobile Browse switches between the folder list and reader with explicit back navigation and focus transfer. Empty Start here, the sidebar slogan, duplicate collection legend and Jev review shortcut are removed. Review states, evidence and permissions are unchanged. Legacy `view=pages` and `view=changes` links still work, with `browse` and `review` aliases. This iteration is local and awaits Wilson’s acceptance; graph physics, review reordering and settings surface refinement remain subsequent work.

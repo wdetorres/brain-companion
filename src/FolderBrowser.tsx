@@ -30,7 +30,7 @@ export function FolderBrowser({ notes, selected, onOpen }: { notes: Note[]; sele
         return <li key={child.path}>
           <button className="folder-row" aria-expanded={open} aria-controls={childrenId} title={child.path} onClick={() => toggle(child.path)}>
             <ChevronRight size={13} className={open ? 'folder-chevron expanded' : 'folder-chevron'} /><Icon size={16} />
-            <span>{child.name}</span><small aria-label={`${child.count} notes`}>{child.count}</small>
+            <span>{child.name}</span><small aria-label={`${child.count} ${child.count === 1 ? 'note' : 'notes'}`}>{child.count}</small>
           </button>
           <ul id={childrenId} hidden={!open}>{contents(child)}</ul>
         </li>;

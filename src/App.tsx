@@ -134,8 +134,10 @@ export function App() {
   const shown = useMemo(() => visibleGraph(graphNotes, 'all', true, focus), [graphNotes, focus]);
   const connectionCount = new Set(shown.flatMap(n => n.links.filter(p => shown.some(s => s.path === p)).map(p => [n.path, p].sort().join('|')))).size;
   function openNote(path: string) {
-    setSelected(path); setQuery(''); setDetailError(''); setCategory('');
-    if (notes.some(n => n.path === path && ['inbox', 'system'].includes(n.folder))) setSystem(true);
+    const target = notes.find(n => n.path === path);
+    setSelected(path); setQuery(''); setDetailError('');
+    if (category && target?.category !== category) setCategory('');
+    if (target && ['inbox', 'system'].includes(target.folder)) setSystem(true);
     if (!isInFolder(path, graphFolder)) { setFolder(''); setFocus(undefined); }
     if (view === 'changes' || view === 'recall') setView('pages');
   }
