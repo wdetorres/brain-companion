@@ -19,7 +19,7 @@ A smaller corrected proposal explicitly dated the new state and superseded the e
 
 This demonstrates conservative rejection and idempotent handling of a held operation. It does **not** verify an applied write, successful-write retry, a new note, parent-hub mutation or hosted-to-desktop convergence after a write.
 
-## Investigation and next acceptance gate
+## Initial investigation and next acceptance gate
 
 An isolated development experiment assessed only an appended addition while retaining the current note as context, and treated exact prefix preservation as zero removed text. Synthetic cases covered dated updates, contradiction, unsupported completion, evaluator injection, unrelated fact loss, duplication and a new note. The final experiment matched seven of eight expected outcomes, with no unsafe acceptances in this small set; the real long-history update still failed. Narrowing that update further also failed. The experiment therefore was **not shipped**; the deployed evaluator and thresholds remain `memory-recall-links-v21`.
 
@@ -28,3 +28,9 @@ Four requests were reserved for the two live proposals and 30 new requests were 
 Before reactivation, resolve the long-note update failure on a representative evaluation set without weakening privacy, conflict, preservation or support checks. Verify both legitimate additions and adversarial/unsupported changes, then repeat one meaningful hosted capture. Check the applied operation, exact retry, required parent navigation and desktop sync. Only then change owner routing for the verified lane. Scheduled collectors additionally need their own checkpoint/acknowledgement acceptance; protected bookkeeping and assessment-excluded notes still need an explicit strategy.
 
 To disable a future trial, restore only `AUTO_ACCEPT` to empty, deploy, and verify the live MCP result. Disabling acceptance does not delete held proposals or undo applied notes. Do not restore the vault backup over newer notes to undo a configuration change. Off-disk recovery, interrupted-sync recovery, other clients' writer readiness and collector cutover remain unverified.
+
+## Follow-up fix — November 2, 2026
+
+Wilson explicitly requested resolving the holds and completing hosted writer activation. v22 now assesses the supported addition independently from whether it adds compatible context, supersedes dated history, or conflicts with the same fact/time. It proves unchanged prefix preservation in code and still requires high source support, novelty and historical compatibility. Numerical acceptance thresholds were not lowered. Full replacements retain v21 behavior. See [the evaluator record](jev-features.md#append-assessment-fix--november-2-2026) for the exact results, conservative misses and request accounting.
+
+The final 13 synthetic append regression cases all matched their labels. The corrected real held proposal passes with production shortlisting; the broader original remains held for insufficient support. All 77 tests, TypeScript and build passed. At this code checkpoint, production acceptance remains disabled pending deployment and live verification.

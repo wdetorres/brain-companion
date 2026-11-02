@@ -69,3 +69,15 @@ Design references: [TypeSafe memory gating](https://docs.typesafe.ai/cookbooks/b
 ## Harness integration follow-up
 
 The unchanged v21 adapter passed an isolated synthetic capture/review/promotion/recall workflow using seven additional Jev requests. Total cumulative usage is now **1,841 / 2,000**. This is integration evidence, not a new accuracy holdout. Promotion additionally verifies supplied source evidence independently of the unresolved Inbox note.
+
+## Append assessment fix — November 2, 2026
+
+`memory-recall-links-v22` separates source support for an appended addition from its relationship to stored history. Only an exact preserved prefix ending at a newline qualifies. That preservation makes removed-context probability zero; replacements retain all v21 checks. The addition still needs source support ≥0.95, novelty ≥0.95, compatible-history probability ≥0.95, conflict ≤0.05 and the existing worth/category thresholds. Related notes participate in novelty and conflict checks. A later verified state can supersede a dated checkpoint without erasing it. Source URIs and observation times accompany appended evidence.
+
+Appends use three Jev requests: historical relationship/novelty, source support, and classification. Every response is validated, model versions must agree, and usage includes all three requests. No API, permission, privacy, revision or journal behavior changed.
+
+The final 13 authored append regression cases in `tests/fixtures/jev-append-regression.json` matched every expected outcome: five legitimate updates, four conflicts, two unsupported holds and two duplicates (including one found only in a related note). The first 12-case run had one conservative duplicate/uncertain mismatch; the final run followed explicit related-note wording and is development evidence, not an untouched holdout. The existing 50-case frozen holdout replay retained its passing metrics with zero new requests; cached replay is not independent model evidence.
+
+With the production related-note shortlist, the corrected held project update now meets the unchanged 0.95 source-support threshold. The broader original remains uncertain at 0.74 support; that two-case strict evaluation remains a failure (1/2), not a claimed all-pass gate. An earlier eight-case diagnostic set also retained one conservative false hold. No unsafe acceptance was observed in these bounded checks.
+
+All 77 tests, TypeScript and the production build passed. Cumulative evaluation usage before live activation: **1,983 / 2,000**. Live acceptance and remaining limitations are recorded in [writer-activation.md](writer-activation.md).

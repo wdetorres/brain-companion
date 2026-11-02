@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createJevJudge, parseDecision, parsePassage, parseConnection } from '../server/jev.ts';
+import { appendedText, createJevJudge, parseDecision, parsePassage, parseConnection } from '../server/jev.ts';
 import type { Note, RememberInput } from '../src/shared.ts';
 const reply = (scores: Record<string, number>) => ({ model: 'jev-test', answers: Object.fromEntries(Object.entries(scores).map(([key, noul]) => [key, { type: 'noul', noul }])), usage: { input_tokens: 100, output_tokens: 10 } });
 const memoryReply = (p: Record<string,number>) => {
@@ -69,4 +69,23 @@ test('connection classification validates probabilities and preserves the useful
   assert.throws(()=>parseConnection(result(.9,.9)));
   assert.throws(()=>parseConnection(result(.1,.9,0,'connected')));
   assert.throws(()=>parseConnection(result(1.1,-.1)));
+});
+
+test('append extraction requires complete unchanged history and a line boundary',()=>{
+  const before='---\nsensitivity: normal\n---\n# Project\nAn earlier decision.\n';
+  assert.equal(appendedText(before+'\nA sourced milestone.\n',before),'A sourced milestone.');
+  for(const changed of [before,before+'  \n',before.replace('normal','internal')+'A milestone.\n',before.replace('An earlier decision.\n','')+'A milestone.\n'])assert.equal(appendedText(changed,before),undefined);
+  assert.equal(appendedText('A claim is false.','A claim is'),undefined);
+  assert.equal(appendedText('New note'),undefined);
+});
+
+test('append acceptance requires independent evidence, novelty and compatible history',()=>{
+  const supported=memoryReply(memory),history={novel:.95,compatible:.95,conflict:.05};
+  assert.equal(parseDecision(supported,true,history).outcome,'update');
+  assert.equal(parseDecision(supported,true,{...history,novel:.949}).outcome,'uncertain');
+  assert.equal(parseDecision(supported,true,{...history,compatible:.949}).outcome,'uncertain');
+  assert.equal(parseDecision(supported,true,{...history,compatible:.01,conflict:.99}).outcome,'conflict');
+  assert.equal(parseDecision(supported,true,{...history,compatible:.1,conflict:.01}).outcome,'uncertain');
+  assert.equal(parseDecision(memoryReply({...memory,supported:.94}),true,history).outcome,'uncertain');
+  assert.equal(parseDecision(supported,true,{novel:.01,compatible:.99,conflict:0}).outcome,'duplicate');
 });
