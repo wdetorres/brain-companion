@@ -7,7 +7,7 @@ function req(path:string,body?:any,cookie?:string){return new Request(origin+pat
 async function authorize(auth:AuthService){
   const reg=await auth.handle(req('/oauth/register',{client_name:'Test client',redirect_uris:['https://client.example/callback'],token_endpoint_auth_method:'none'}));
   const client:any=await reg!.json(); const url='/oauth/authorize?'+new URLSearchParams({client_id:client.client_id,redirect_uri:client.redirect_uris[0],response_type:'code',scope:'brain',resource:origin+'/mcp',code_challenge:challenge,code_challenge_method:'S256',state:'state123'});
-  const page=(await auth.handle(req(url)))!; const html=await page.text();const ticket=html.match(/name="ticket" value="([^"]+)"/)![1]; const csrf=html.match(/name="csrf" value="([^"]+)"/)![1];
+  const page=(await auth.handle(req(url)))!; assert.equal(page.headers.get('referrer-policy'),'strict-origin'); const html=await page.text();const ticket=html.match(/name="ticket" value="([^"]+)"/)![1]; const csrf=html.match(/name="csrf" value="([^"]+)"/)![1];
   const cookie=page.headers.get('set-cookie')!.split(';')[0];
   const consent=(await auth.handle(req('/oauth/consent',{ticket,csrf,password},cookie)))!; assert.equal(consent.status,303);
   const redirected=new URL(consent.headers.get('location')!);assert.equal(redirected.searchParams.get('state'),'state123');assert.equal(redirected.searchParams.get('iss'),origin);
