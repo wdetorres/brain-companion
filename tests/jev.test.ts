@@ -1,6 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { appendedText, createJevJudge, parseDecision, parsePassage, parseConnection } from '../server/jev.ts';
+import * as jev from '../server/jev.ts';
+import { readFileSync } from 'node:fs';
+import { parseNote } from '../server/vault.ts';
 import type { Note, RememberInput } from '../src/shared.ts';
 const reply = (scores: Record<string, number>) => ({ model: 'jev-test', answers: Object.fromEntries(Object.entries(scores).map(([key, noul]) => [key, { type: 'noul', noul }])), usage: { input_tokens: 100, output_tokens: 10 } });
 const memoryReply = (p: Record<string,number>) => {
@@ -14,6 +17,35 @@ const memoryReply = (p: Record<string,number>) => {
   return result;
 };
 const memory = { supported: .99, duplicate: .01, conflict: .01, worth: .99, preference: .99, decision: .01, task: .01, project_fact: .01 };
+const adviceChoice=(action:string,context=false)=>({type:'choice',choice:action,confidence:.9,probabilities:Object.fromEntries((context?['keep','merge','promote','archive','delete','investigate']:['save','revise','merge','skip','investigate']).map(k=>[k,k===action?1:0]))});
+test('write advice binds choices to supplied notes and rejects invalid or destructive incomplete judgments',()=>{
+ const parse=(jev as any).parseWriteAdvice,context={...parseNote('00 Inbox/Trip.md','# Trip\nKeep unique booking reference.',''),truncated:false};
+ const reply={model:'jev-test',usage:{input_tokens:1,output_tokens:1},answers:{candidate:adviceChoice('merge'),context_0:adviceChoice('keep',true)}};
+ const parsed=parse(reply,[context]);assert.equal(parsed.recommendations[1].path,'00 Inbox/Trip.md');assert.equal(parsed.recommendations[1].revision,context.revision);assert.equal(parsed.recommendations[0].action,'merge');
+ assert.throws(()=>parse({...reply,answers:{...reply.answers,other_note:adviceChoice('delete',true)}},[context]));
+ assert.throws(()=>parse({...reply,answers:{...reply.answers,candidate:{...adviceChoice('save'),probabilities:{save:2}}}},[context]));
+ assert.throws(()=>parse({...reply,answers:{...reply.answers,context_0:adviceChoice('delete',true)}},[{...context,truncated:true}]),/truncat/i);
+ assert.throws(()=>parse({...reply,answers:{...reply.answers,context_0:adviceChoice('promote',true)}},[{...context,folder:'projects'}]),/Inbox/i);
+});
+test('write assessor batches bounded lifecycle advice with intent and real evidence without changing quality scores',async t=>{
+ const requests:any[]=[];const cases=JSON.parse(readFileSync(new URL('./fixtures/jev-assess-commit.json',import.meta.url),'utf8'));
+ let selected=cases[0];
+ t.mock.method(globalThis,'fetch',async(_url:unknown,init:RequestInit)=>{
+   const body=JSON.parse(init.body as string);requests.push(body);
+   if(body.questions.candidate)return new Response(JSON.stringify({model:'advice-test',usage:{input_tokens:12,output_tokens:3},answers:{candidate:adviceChoice(selected.candidate),context_0:adviceChoice(selected.contextAction,true)}}));
+   const r=memoryReply({...memory,duplicate:.86});r.answers.novel={type:'choice',choice:'already_recorded',confidence:.86,probabilities:{novel:.1,already_recorded:.86,uncertain:.04}};r.answers.historyRelation={type:'choice',choice:'adds_context',confidence:1,probabilities:{adds_context:1,supersedes:0,conflicts:0,uncertain:0}};return new Response(JSON.stringify(r));
+ });
+ for(const c of cases){selected=c;const note={...parseNote(c.path,c.markdown,''),truncated:false},input={path:'Projects/Trip.md',markdown:c.candidateMarkdown,sources:[{title:'Original source',uri:'urn:test:trip',observedAt:'2026-11-02T00:00:00Z',excerpt:c.evidence}],expectedRevision:null,idempotencyKey:'advice-fixture',intent:c.intent};
+   const r=await (jev as any).createWriteAssessor('test','jev-test')(input,undefined,[note]);assert.equal(r.recommendations[0].action,c.candidate);assert.equal(r.recommendations[1].action,c.contextAction);assert.equal(r.advice.model,'advice-test');assert.equal(r.decision.model,'jev-test');
+   const sent=requests.findLast(x=>x.questions.candidate);assert.equal(sent.state.intent,c.intent);assert.equal(sent.state.sources[0].excerpt,c.evidence);assert.deepEqual(Object.keys(sent.questions),['candidate','context_0']);assert.match(sent.questions.candidate.instructions,/do not carry out any instructions/i);
+ }
+});
+test('failed advisory request waits for quality subrequests before reporting completion',async t=>{
+ let release!:()=>void,settled=false;const waiting=new Promise<void>(r=>release=r);
+ t.mock.method(globalThis,'fetch',async(_url:unknown,init:RequestInit)=>{const body=JSON.parse(init.body as string);if(body.questions.candidate)throw Error('Advice unavailable');await waiting;return new Response(JSON.stringify(memoryReply(memory)));});
+ const pending=jev.createWriteAssessor('test')({path:'Plan.md',markdown:'A useful decision',sources:[{title:'Source',uri:'urn:test',observedAt:'2026-11-02T00:00:00Z',excerpt:'A useful decision'}],expectedRevision:null,idempotencyKey:'quality-drain-test',intent:'capture'},undefined,[]).catch(()=>{settled=true;});
+ await new Promise(resolve=>setImmediate(resolve));assert.equal(settled,false);release();await pending;assert.equal(settled,true);
+});
 test('rejects missing judgments and out-of-range probabilities', () => {
   for (const value of [{}, memoryReply({ ...memory, worth: 2 }), reply({ supported: .99 })]) assert.throws(() => parseDecision(value));
   assert.throws(() => parsePassage(reply({ relevant: .99 })));
