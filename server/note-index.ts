@@ -23,7 +23,7 @@ export class NoteIndex {
     if(!this.ready||!cached)return;
     try {
       const stat=await lstat(target);
-      if(stat.isFile()&&stat.size<=2*1024*1024&&cached.signature===noteSignature(stat))return cached.note;
+      if(this.ready&&this.cache.get(path)===cached&&stat.isFile()&&stat.size<=2*1024*1024&&cached.signature===noteSignature(stat))return cached.note;
     }catch(error){
       if(!(error instanceof Error&&'code' in error&&['ENOENT','ENOTDIR'].includes(String(error.code))))throw error;
     }

@@ -1,0 +1,18 @@
+{
+  "buildFilter": {
+    "paths": [
+      "server/**",
+      "src/shared.ts",
+      "src/links.ts",
+      "docs/agent-guide.md",
+      "Dockerfile",
+      ".dockerignore",
+      "package.json",
+      "package-lock.json",
+      "tsconfig.json",
+      "scripts/build.mjs",
+      "scripts/build-graph-preview.mjs"
+    ],
+    "ignoredPaths": []
+  }
+}
