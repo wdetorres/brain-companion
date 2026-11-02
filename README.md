@@ -56,6 +56,8 @@ Jev receives the proposed text, source metadata and optional evidence excerpts, 
 
 ## Deploy
 
+For the existing hosted instance, start with the [hosting runbook](docs/hosting-runbook.md): completed setup, resource map, verification results and the pending custom-domain migration.
+
 Use one persistent Docker service, either as the complete app or with the optional Vercel frontend. [Standalone managed hosting](docs/harness.md#hosting) serves its own HTTPS MCP endpoint without a bridge secret. Do not put the writable vault or SQLite database on a Vercel function filesystem.
 
 ### Temporary local Docker

@@ -1,6 +1,6 @@
 # Google sign-in and OAuth operations
 
-Current public origin: `https://brain-companion-hazel.vercel.app`. The sole approved owner is `detorres.wilson21@gmail.com`. No domain migration is part of this change.
+Current public origin: `https://brain-companion-hazel.vercel.app`. The sole approved owner is `detorres.wilson21@gmail.com`. The SSO cutover is complete; the separately authorized migration to `wilsondetorres.com` is pending. Follow the [hosting runbook](hosting-runbook.md) for completed steps, resource identifiers and the migration checklist.
 
 ## Google setup
 
@@ -17,7 +17,7 @@ Better Auth owns Google verification, session cookies, signed authorization cont
 - Back up the persistent vault, state and Headless config before cutover, using a stopped worker or the platform's consistent disk snapshot. SQLite backups must include a consistent database state; do not copy a live database alone. Restore into an isolated instance and inspect notes/history before permitting sync. Keep the previous app deployment and environment securely for rollback.
 - The new `STATE_PATH/auth.sqlite` contains Better Auth users, accounts, sessions, consent, hashed opaque MCP tokens and the pinned owner. Migrations run at startup. Existing vault/history state and `/data/config` remain in place. No sync setup or scheduler settings change.
 - The old password endpoints and `/oauth/*` issuer are retired. Legacy sessions, clients and tokens are not read by the new service. Configure SSO **before** switching versions; otherwise production deliberately refuses to start. Remove `BRAIN_PASSWORD_HASH` after successful cutover. Keep any old auth-state backup private until rollback retention ends.
-- Deploy matching worker and Vercel versions. Reconnect ChatGPT using the same `/mcp` URL so it discovers the new issuer (`/api/auth`) and registers anew. Existing cached client registration may require recreating the old ChatGPT connection. The deployed replacement is named **Brain Companion SSO**; use it instead of the legacy Brain Companion entry. In ChatGPT advanced OAuth settings, use DCR, the discovered `brain` scope, and `offline_access` as a base scope so the provider can issue refresh tokens.
+- Deploy matching worker and Vercel versions. Reconnect ChatGPT using the same `/mcp` URL so it discovers the new issuer (`/api/auth`) and registers anew. Existing cached client registration may require recreating the old ChatGPT connection. The deployed replacement was renamed from **Brain Companion SSO** to **Brain Companion**; the legacy entry has been uninstalled. Use the current app ID in the hosting runbook to distinguish them. In ChatGPT advanced OAuth settings, use DCR, the discovered `brain` scope, and `offline_access` as a base scope so the provider can issue refresh tokens.
 - Verify owner login, non-owner rejection, explicit consent/cancel, real ChatGPT discovery and a synthetic read through Vercel. Verify refresh, revoke, and denial of old tokens after reconnect. The UI's “Authorized” status alone is insufficient.
 - For rollback, restore the previous app version and its retained environment. Do not restore an old vault snapshot over newer notes merely to roll back auth. The new auth database is separate; a legacy rollback re-enables legacy credentials, so keep rollback access tightly controlled.
 
