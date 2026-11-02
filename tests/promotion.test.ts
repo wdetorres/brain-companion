@@ -13,10 +13,10 @@ test('promotion refuses occupied targets, disabled actions and missing source ev
 test('promotion preserves incoming links or returns affected paths without moving',async t=>{const {vault,store,input}=await fixture(t);await writeFile(join(vault,'Home.md'),'[[00 Inbox/Plan]]');const held=await store.promote(input,'A');assert.equal(held.status,'needs_attention');assert.match(held.reason,/Home.md/);assert.equal(await readFile(join(vault,input.sourcePath),'utf8'),input.markdown);});
 test('promotion recovery completes only matching source/destination and preserves a changed source',async t=>{const {root,vault,store,input}=await fixture(t);const op=await store.promote(input,'A');await writeFile(join(vault,input.sourcePath),input.markdown);store.db.prepare('UPDATE operations SET payload=? WHERE id=?').run(JSON.stringify({...op,status:'pending'}),op.id);store.close();const restarted=new BrainStore({vault,data:join(root,'data'),judge});t.after(()=>restarted.close());assert.equal((await restarted.operation(op.id))?.status,'applied');await assert.rejects(readFile(join(vault,input.sourcePath)));
  await writeFile(join(vault,input.sourcePath),'# Later change');restarted.db.prepare('UPDATE operations SET payload=? WHERE id=?').run(JSON.stringify({...op,status:'pending'}),op.id);assert.equal((await restarted.operation(op.id))?.status,'needs_attention');assert.equal(await readFile(join(vault,input.sourcePath),'utf8'),'# Later change');});
-test('an unchanged Inbox note cannot substantiate itself when source evidence is missing',async t=>{
- const {store,input,vault}=await fixture(t);const original=store.judge;
- Object.defineProperty(store,'judge',{value:async(...args:Parameters<typeof original>)=>args[1]?original(...args):{outcome:'uncertain',confidence:.1,category:'decision',probabilities:{supported:.1,conflict:0,worth:.99},model:'test',usage:{}}});
- const op=await store.promote(input,'A');assert.equal(op.status,'needs_attention');assert.equal(await readFile(join(vault,input.sourcePath),'utf8'),input.markdown);
+test('source-verified promotion has no second model veto and preserves its recorded source',async t=>{
+ const {store,input,vault}=await fixture(t);let calls=0;
+ Object.defineProperty(store,'judge',{value:async()=>{calls++;throw Error('Must not judge at commit');}});
+ const op=await store.promote(input,'A');assert.equal(op.status,'applied');assert.equal(await readFile(join(vault,input.path),'utf8'),input.markdown);assert.equal(op.before,input.markdown);assert.equal(calls,0);
 });
 test('sync warming does not recover a pending promotion before remote edits arrive',async t=>{
  const {vault,store,input}=await fixture(t);
