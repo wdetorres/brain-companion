@@ -10,7 +10,7 @@ import { relatedNotes, shortlist } from './retrieval.ts';
 import { folderFor, parseNote, revision, safePath } from './vault.ts';
 import { NoteIndex } from './note-index.ts';
 import { WorkQueue } from './work.ts';
-import { createNoteFile, promotionLinkChanges, readOptional, syncDirectory } from './promotion.ts';
+import { createNoteFile, promotionLinkChanges, undoLinkChanges, readOptional, syncDirectory } from './promotion.ts';
 import { categories } from '../src/shared.ts';
 import type { BrainSnapshot, Judge, Note, Operation, RememberInput, RecallJudge, ConnectionJudge, Connection, MemoryCategory, RecallResult, RecallHit, AssessMemoryInput, Assessment, AssessmentNote, WriteAssessor } from '../src/shared.ts';
 
@@ -20,6 +20,7 @@ export const promoteSchema=rememberSchema.safeExtend({sourcePath:z.string().min(
 export const assessMemorySchema=candidateSchema.extend({intent:z.enum(['capture','consolidate','promote']),sourcePath:z.string().min(1).max(512).optional(),contextPaths:z.array(z.string().min(1).max(512)).max(5).refine(v=>new Set(v).size===v.length,'Context paths must be distinct').optional()})
   .refine(v=>v.intent==='promote'?!!v.sourcePath&&!!v.expectedRevision:!v.sourcePath,'Only promotion requires a source path and revision')
   .refine(v=>v.sources.some(s=>!!s.excerpt?.trim()),'Assessment requires a verified source excerpt');
+export const undoMemorySchema=z.object({operationId:z.string().min(1).max(128),expectedRevision:z.string().min(1).max(100),reason:z.string().trim().min(1).max(1000),idempotencyKey:z.string().min(8).max(128)}).strict();
 export class BrainStore {
   readonly db:DatabaseSync; readonly vault:string; readonly judge:Judge; readonly accept:Set<string>;
   readonly index:NoteIndex;
@@ -104,7 +105,7 @@ export class BrainStore {
   }
   private observe(notes:Note[]){
     const pending=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='pending'").all() as {payload:string}[];
-    for(const row of pending){const op:Operation=JSON.parse(row.payload);if(op.promotion)continue;const current=notes.find(n=>n.path===op.path);op.status=current?.revision===revision(op.proposed)?'applied':'needs_attention';op.reason=op.status==='applied'?'Recovered committed write after restart':'Interrupted write retained for inspection';if(op.status==='applied')op.revision=current!.revision;this.save(op);if(op.status==='applied'){this.markObserved(current!);this.recordCategory(op);this.completeNoteWork(op);}else if(!op.resolution&&op.assessment?.role!=='primary'&&op.decision?.outcome!=='not_worth_remembering')this.work.enqueue('operation:'+op.id,revision(op.proposed),op.path,'proposal',op.reason,op.id);}
+    for(const row of pending){const op:Operation=JSON.parse(row.payload);if(op.promotion||op.undo)continue;const current=notes.find(n=>n.path===op.path);op.status=current?.revision===revision(op.proposed)?'applied':'needs_attention';op.reason=op.status==='applied'?'Recovered committed write after restart':'Interrupted write retained for inspection';if(op.status==='applied')op.revision=current!.revision;this.save(op);if(op.status==='applied'){this.markObserved(current!);this.recordCategory(op);this.completeNoteWork(op);}else if(!op.resolution&&op.assessment?.role!=='primary'&&op.decision?.outcome!=='not_worth_remembering')this.work.enqueue('operation:'+op.id,revision(op.proposed),op.path,'proposal',op.reason,op.id);}
     for(const n of notes){const prev=this.db.prepare('SELECT revision,markdown FROM observed WHERE path=?').get(n.path) as {revision:string;markdown:string}|undefined;
       if(prev&&prev.revision!==n.revision){this.work.stale('note:'+n.path);this.save({id:randomUUID(),path:n.path,actor:'Obsidian / external',at:new Date().toISOString(),status:'external',reason:'Observed a change outside the memory API',before:prev.markdown,proposed:n.markdown,sources:n.sources,revision:n.revision});if(n.assessmentAllowed!==false&&n.folder!=='inbox')this.work.enqueue('note:'+n.path,n.revision,n.path,'review','Review changed context and links');}
       if(n.folder==='inbox')this.work.enqueue('note:'+n.path,n.revision,n.path,'inbox','Verify sources and filing destination');
@@ -116,7 +117,11 @@ export class BrainStore {
   private recordCategory(op:Operation){const category=op.category||op.decision?.category;if(op.revision&&category)this.db.prepare('INSERT OR REPLACE INTO note_categories VALUES(?,?,?)').run(op.path,op.revision,category);}
   private completeNoteWork(op:Operation){const job=this.work.active('note:'+op.path);if(!job)return;if(job.status==='claimed'&&job.owner===op.actor&&(job.leaseUntil||0)>Date.now())this.work.resolve(job,'done','Applied operation '+op.id);else this.work.stale(job.subject);}
   private async scan(){
-    let notes=await this.index.refresh();if(await this.recoverPromotions(notes))notes=await this.index.refresh();this.observe(notes);
+    let notes=await this.index.refresh();
+    for(const row of this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.status')='pending' AND json_extract(payload,'$.undo') IS NOT NULL").all()){
+      const op:Operation=JSON.parse(row.payload as string);await this.applyUndo(op,notes,()=>{this.save(op);return op;});this.index.invalidate();notes=await this.index.refresh();
+    }
+    if(await this.recoverPromotions(notes))notes=await this.index.refresh();this.observe(notes);
     for(const c of this.connections())if(c.status==='proposed'&&(!notes.some(n=>n.path===c.source&&n.revision===c.sourceRevision)||!notes.some(n=>n.path===c.target&&n.revision===c.targetRevision))){c.status='stale';this.saveConnection(c);}
     return notes;
   }
@@ -269,7 +274,7 @@ export class BrainStore {
   reviewMemory(input:{id:string;action:'accept'|'dismiss';reason:string;claimToken?:string;idempotencyKey?:string},actor:string,owner=false):Promise<Operation>{return this.exclusive(async()=>{
     await this.scan();const original=this.operationRecord(input.id);if(!original)throw Error('Proposal not found');
     if(original.resolution)return original.resolution.operationId?this.operationRecord(original.resolution.operationId)!:original;
-    if(original.status!=='needs_attention'||original.promotion||original.assessment?.role==='primary')throw Error('This operation cannot be approved as a memory; resume its assessment when linked');
+    if(original.status!=='needs_attention'||original.promotion||original.undo||original.assessment?.role==='primary')throw Error('This operation cannot be approved as a memory; resume its assessment or undo when linked');
     const job=this.work.active('operation:'+original.id);
     const guard=()=>{if(!owner){if(!job)throw Error('Proposal is not actionable');this.work.require(job.id,actor,input.claimToken);}};guard();
     if(input.action==='dismiss'){
@@ -280,6 +285,48 @@ export class BrainStore {
     guard();original.resolution={actor,at:new Date().toISOString(),reason:input.reason,operationId:result.id};this.save(original);if(job)this.work.resolve(job,'done','Reviewed; see operation '+result.id);return result;
   });}
   remember(raw:RememberInput,actor:string):Promise<Operation>{return this.exclusive(()=>this.rememberUnlocked(raw,actor));}
+  undoMemory(raw:z.infer<typeof undoMemorySchema>,actor:string):Promise<Operation>{return this.exclusive(async()=>{
+    const input=undoMemorySchema.parse(raw),fingerprint=revision(JSON.stringify(input));
+    const existing=this.db.prepare('SELECT payload,fingerprint FROM operations WHERE idem=?').get(input.idempotencyKey);
+    if(existing&&existing.fingerprint!==fingerprint)throw Error('Idempotency key reused with different content');
+    const notes=await this.scan(),original=this.operationRecord(input.operationId);if(!original)throw Error('Operation not found');
+    const completed=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.undo.operationId')=? AND json_extract(payload,'$.status')='applied' LIMIT 1").get(original.id);
+    if(completed)return JSON.parse(completed.payload as string);
+    const active=this.db.prepare("SELECT payload FROM operations WHERE json_extract(payload,'$.undo.operationId')=? AND json_extract(payload,'$.undo.started')=1 AND json_extract(payload,'$.status') IN ('pending','needs_attention') LIMIT 1").get(original.id);
+    if(active&&(!existing||JSON.parse(existing.payload as string).id!==JSON.parse(active.payload as string).id))throw Error('Undo already journaled; inspect it and retry its original idempotency key');
+    const op:Operation=existing?this.operationRecord(JSON.parse(existing.payload as string).id)!:{id:randomUUID(),path:original.path,actor,at:new Date().toISOString(),status:'needs_attention',reason:'Undo requested',before:original.proposed,proposed:original.before??'',sources:[{title:'Undo of recorded operation',uri:'urn:brain:operation:'+original.id,observedAt:new Date().toISOString()}],expectedRevision:input.expectedRevision,undo:{operationId:original.id,files:original.promotion?[{path:original.promotion.sourcePath,before:null,after:original.before},{path:original.path,before:original.proposed,after:null}]:[{path:original.path,before:original.proposed,after:original.before}],reason:input.reason}};
+    const finish=()=>{this.save(op,input.idempotencyKey,fingerprint);return op;};
+    if(original.status!=='applied'||original.undo||!original.revision){op.reason='Only an applied write or promotion can be undone';return finish();}
+    const scope=original.promotion?'promote':original.before===null?'new':'update';
+    if(!this.accept.has(scope)){op.reason='Undo requires enabled '+scope+' writes';return finish();}
+    if(input.expectedRevision!==original.revision){op.reason='Undo requires the original resulting revision; later edits must be preserved';return finish();}
+    return this.applyUndo(op,notes,finish);
+  });}
+  private async applyUndo(op:Operation,notes:Note[],finish:()=>Operation):Promise<Operation>{
+    const undo=op.undo!,original=this.operationRecord(undo.operationId)!;
+    for(const file of undo.files){
+      const target=await safePath(this.vault,file.path,true),current=await readOptional(target);
+      if(current!==file.before&&(!undo.started||current!==file.after)){op.status='needs_attention';op.reason='Undo would overwrite a later edit or reused path: '+file.path;return finish();}
+      if([file.before,file.after].some(text=>text!==null&&parseNote(file.path,text,op.at).assessmentAllowed===false)){op.status='needs_attention';op.reason='Undo content is outside the hosted privacy scope';return finish();}
+    }
+    const affected=undoLinkChanges(notes,undo.files,original.promotion?{from:original.path,to:original.promotion.sourcePath}:undefined);
+    if(affected.length){op.status='needs_attention';op.reason='Undo would change resolved links; review: '+affected.slice(0,10).join(', ');return finish();}
+    undo.started=true;op.status='pending';op.reason='Undo journaled';finish();
+    try{
+      for(const file of undo.files){
+        const target=await safePath(this.vault,file.path,true),current=await readOptional(target);if(current===file.after)continue;
+        if(current!==file.before){op.status='needs_attention';op.reason='Page changed during undo: '+file.path;return finish();}
+        if(file.after===null){await unlink(target);await syncDirectory(dirname(target));}
+        else{
+          await mkdir(dirname(target),{recursive:true});await safePath(this.vault,file.path,true);
+          if(file.before===null)await createNoteFile(target,file.after);
+          else{const temp=target+'.undo-'+randomUUID()+'.tmp';try{await createNoteFile(temp,file.after);await rename(temp,target);await syncDirectory(dirname(target));}finally{await unlink(temp).catch(()=>{});}}
+        }
+      }
+      for(const file of undo.files){this.work.stale('note:'+file.path);if(file.after===null)this.db.prepare('DELETE FROM observed WHERE path=?').run(file.path);else this.markObserved(parseNote(file.path,file.after,op.at));}
+      op.status='applied';op.reason='Undo applied to server vault; device sync is separate';const target=undo.files.find(f=>f.path===op.path);op.revision=target?.after===null?undefined:revision(target!.after!);return finish();
+    }catch{op.reason='Undo interrupted; inspect this operation to recover its journal';return finish();}
+  }
   promote(raw:z.infer<typeof promoteSchema>,actor:string):Promise<Operation>{return this.exclusive(async()=>{
     const input=promoteSchema.parse(raw);
     if(input.sources.some(s=>!s.excerpt?.trim()))throw Error('Promotion requires verified source excerpts');
