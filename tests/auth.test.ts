@@ -73,7 +73,7 @@ test('signed MCP login survives the Google callback and still requires explicit 
   const authorization = (await service.handle(request('/api/auth/oauth2/authorize?' + flow.query)))!;
   const login = new URL(authorization.headers.get('location')!, origin);
   assert.equal(login.pathname, '/sign-in');
-  const signIn = (await service.handle(request('/api/auth/sign-in/social', { provider: 'google', callbackURL: '/', oauth_query: login.search.slice(1) })))!;
+  const signIn = (await service.handle(request('/api/auth/sign-in/social', { provider: 'google', callbackURL: '/app', oauth_query: login.search.slice(1) })))!;
   assert.equal(signIn.status, 200);
   const google = new URL((await signIn.json()).url);
   assert.equal(google.origin, 'https://accounts.google.com');
@@ -88,7 +88,7 @@ test('signed MCP login survives the Google callback and still requires explicit 
   const noCookie = (await service.handle(request(callbackPath)))!;
   assert.ok(!noCookie.headers.getSetCookie().some(c => c.includes('session_token=')));
   // Start a fresh browser-bound sign-in after the missing-cookie rejection.
-  const fresh = (await service.handle(request('/api/auth/sign-in/social', { provider: 'google', callbackURL: '/', oauth_query: login.search.slice(1) })))!;
+  const fresh = (await service.handle(request('/api/auth/sign-in/social', { provider: 'google', callbackURL: '/app', oauth_query: login.search.slice(1) })))!;
   const freshGoogle = new URL((await fresh.json()).url);
   const freshCookie = fresh.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
   const callbackRequest = request('/api/auth/callback/google?code=synthetic-code&state=' + freshGoogle.searchParams.get('state'), undefined, freshCookie);
@@ -173,4 +173,23 @@ test('configured OAuth flow preserves consent, scopes, audience, refresh and imm
   await service.revokeClient(request('/api/apps', undefined, cookie), client.client_id);
   assert.equal(await service.bearer('Bearer ' + refreshed.access_token), null);
   assert.ok((await service.handle(request('/api/auth/oauth2/token', { ...refreshBody, refresh_token: refreshed.refresh_token })))!.status >= 400);
+});
+
+test('ordinary Google sign-in returns the owner to the private app route', async t => {
+  const { service } = await fixture(t);
+  const signIn = (await service.handle(request('/api/auth/sign-in/social', { provider: 'google', callbackURL: '/app' })))!;
+  assert.equal(signIn.status, 200);
+  const google = new URL((await signIn.json()).url);
+  const ctx = await service.auth.$context;
+  const provider = await ctx.socialProviders.find(p => typeof p !== 'function' && p.id === 'google');
+  assert.ok(provider && typeof provider !== 'function');
+  t.mock.method(provider, 'validateAuthorizationCode', async () => ({ accessToken: 'synthetic-google', idToken: 'e30.' + Buffer.from(JSON.stringify({ sub: 'verified-google-owner', email: config.ownerEmail, email_verified: true, name: 'Synthetic Owner' })).toString('base64url') + '.test' }));
+  const cookie = signIn.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+  const callbackRequest = request('/api/auth/callback/google?code=synthetic-code&state=' + google.searchParams.get('state'), undefined, cookie);
+  callbackRequest.headers.set('sec-fetch-mode', 'navigate');
+  const callback = (await service.handle(callbackRequest))!;
+  assert.equal(callback.status, 302);
+  assert.equal(new URL(callback.headers.get('location')!, origin).pathname, '/app');
+  const sessionCookie = callback.headers.getSetCookie().map(c => c.split(';')[0]).join('; ');
+  assert.ok(await service.session(request('/api/brain', undefined, sessionCookie)));
 });
