@@ -46,10 +46,13 @@
 
 ### Task 4: Operations, review and deployment
 **Files:** .env.example, compose files, README.md, Dockerfile if required, tests/config.test.ts and this plan.
-- [ ] Update startup/configuration docs, backup/restore and Google setup instructions, current callback URI and future domain migration steps. Confirm native SQLite migration and existing vault/Sync persistence remain separate.
-- [ ] Run full test suite, npm run check, npm run build and diff checks. Obtain one independent final review and fix material findings with regression tests.
-- [ ] Prepare Google OAuth client and production secrets without putting secrets in source or chat. If Google console access or owner consent is required, prepare the concrete action and hand it to Wilson while completing independent work.
-- [ ] Back up existing state before cutover; deploy only after configured SSO is ready. Verify real owner login, wrong-account denial, actual ChatGPT discovery/read, refresh and revocation. Preserve the original deployment as rollback; do not claim live success without these checks.
+- [x] Update startup/configuration docs, backup/restore and Google setup instructions, current callback URI and future domain migration steps. Confirm native SQLite migration and existing vault/Sync persistence remain separate.
+- [x] Run full test suite, npm run check, npm run build and diff checks. Obtain one independent final review and fix material findings with regression tests.
+- [x] Prepare Google OAuth client and production secrets without putting secrets in source or chat. If Google console access or owner consent is required, prepare the concrete action and hand it to Wilson while completing independent work.
+- [x] Back up existing state before cutover; deploy only after configured SSO is ready. Verify real owner login, wrong-account denial, actual ChatGPT discovery/read, refresh and revocation. Preserve the original deployment as rollback; do not claim live success without these checks.
 
 ## Execution notes
 Per-task local verification precedes a final reviewed commit; defer pushes until deployment configuration is ready because main auto-deploys. Native execution was selected to fulfill Wilson's explicit go-ahead without another approval round. The implementation plan may record compatibility rulings in its ignored ledger.
+
+## Acceptance evidence
+Real owner Google sign-in, unchanged successful Sync, ChatGPT 12-tool discovery, read-only status/note retrieval, revoked-access rejection, and fresh consent/reconnect passed. Wrong-account rejection, refresh rotation/replay, and old-token denial after reconnect are synthetic integration coverage; a live ChatGPT token-expiry cycle was not exercised. See `docs/deployment-status.md` for exact limits and the acceptance chat.

@@ -1,4 +1,19 @@
-> Google SSO cutover (2026-11-02): implementation and isolated tests are complete; live Google/ChatGPT acceptance is still pending. See [Google SSO operations](google-sso.md). The password-based checks below are historical and do not verify the new auth flow.
+# Hosted Google SSO checkpoint — November 2, 2026
+
+This checkpoint supersedes the historical deployment notes below.
+
+- The current UI and MCP origin remains https://brain-companion-hazel.vercel.app. Better Auth runs on the existing Render worker with a separate persistent `auth.sqlite`; vault, operation history, Headless credentials and sync schedule were preserved. The confirmed owner completed real Google sign-in, and the UI reports successful scheduled sync.
+- Google client credentials and the stable auth secret are configured privately on Render. The unused production `BRAIN_PASSWORD_HASH` value was cleared after cutover. The password endpoints and old `/oauth/*` issuer no longer authorize access. Vercel continues to use the server-side worker URL and bridge key.
+- The replacement ChatGPT plugin is **Brain Companion SSO** (`asdk_app_6ae80aff04a08191982e37a532003fc7`). The old Brain Companion registration caches the retired issuer and should not be used. Fresh DCR discovered the `/api/auth` issuer with `brain` and `offline_access` scopes, and ChatGPT discovered all 12 tools.
+- [Live acceptance chat](https://chatgpt.com/c/6ae80df3-d31c-83ec-830f-3336289e607d): `brain_status` and `inspect("BRAIN.md")` succeeded. Revoking ChatGPT in Account & connections removed the grant; the next request required reconnection. A fresh consent page loaded successfully, a single Connect click returned to ChatGPT, and its resumed status call succeeded. No vault notes or shared work were changed for these checks.
+- The real proxy test exposed Node fetch rewriting browser `Sec-Fetch-Mode` to `cors`. Commit `1133378` preserves the original value on the authenticated bridge and restores it only after validating the bridge key. A real-network regression covers navigation, fetch calls, missing metadata, and spoofed headers. The complete suite is **75 passing tests**, with TypeScript/build/diff checks passing and independent auth review completed.
+- A private pre-cutover backup on Render includes consistent SQLite state plus unchanged vault/Headless files. Extraction into an isolated temporary directory and SQLite integrity checks passed. It is on the same disk, so it is a cutover rollback copy rather than independent disaster recovery.
+
+Verification limits: wrong-account admission, refresh rotation/replay, and rejection of old tokens after reconnect were verified with synthetic integration tests. Live Google testing used only the approved owner; a real ChatGPT access-token expiry/refresh cycle and cross-device Obsidian convergence were not exercised. Two initial consent-details loads failed during rollout despite a valid signature; internal/public API checks succeeded, and subsequent reload and fresh reconnect passed. Bounded failure diagnostics remain; no cause is claimed for those transient failures.
+
+See [Google SSO operations](google-sso.md) for setup, rollback and the later domain migration.
+
+---
 
 # Harness deployment status — October 31, 2026
 
