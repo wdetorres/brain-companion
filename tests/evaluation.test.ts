@@ -32,3 +32,15 @@ test('runner enforces the request cap and releases its lock after invalid budget
     }
   }finally{rmSync(root,{recursive:true,force:true});}
 });
+
+test('assessment allowance durably counts failures and restarts, never dispatches request 21',async()=>{
+ const {withAssessmentBudget}=await import('../scripts/validate-assess-commit.ts');const root=mkdtempSync(join(tmpdir(),'brain-advice-budget-'));const original=globalThis.fetch;let sent=0;
+ globalThis.fetch=async()=>{sent++;throw Error('Synthetic network failure');};
+ try{
+  for(const count of [7,13]){const report=await withAssessmentBudget(root,async()=>{for(let i=0;i<count;i++)await assert.rejects(fetch('https://api.typesafe.ai/v1/systemone'),/Synthetic network/);});assert.equal(report.requests,count);}
+  assert.equal(sent,20);await withAssessmentBudget(root,async()=>{await assert.rejects(fetch('https://api.typesafe.ai/v1/systemone'),/budget exhausted/);});assert.equal(sent,20);
+  const file=join(root,'assess-commit-2026-11-02-budget.json');assert.equal(JSON.parse(readFileSync(file,'utf8')).requests,20);assert.equal(existsSync(join(root,'runner.lock')),false);
+  writeFileSync(file,'{"limit":21,"requests":0}');await assert.rejects(withAssessmentBudget(root,async()=>{throw Error('Must not run');}),/Invalid assessment budget/);assert.equal(existsSync(join(root,'runner.lock')),false);
+  writeFileSync(file,'{"limit":20,"requests":-1}');await assert.rejects(withAssessmentBudget(root,async()=>{}),/Invalid assessment budget/);
+ }finally{globalThis.fetch=original;rmSync(root,{recursive:true,force:true});}
+});

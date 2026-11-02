@@ -542,9 +542,15 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 }
 
 .change-summary { color: var(--reading-text, #4f4f4f); font-size: 14px; line-height: 1.8; margin: 20px 0 28px; }
-.evaluation-details { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 18px; }
-.evaluation-details > summary, .obsidian-activity > summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 8px 0; }
-.evaluation-details .jev-review { margin-top: 16px; }
+.assessed-draft { padding: 16px 22px; border-top: 1px solid var(--line); }
+.assessed-draft > summary, .obsidian-activity > summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 8px 0; }
+.assessed-draft pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; margin-top: 12px; }
+.assessment-scope { font-size: 12px; line-height: 1.6; margin: 12px 0 0; }
+.jev-advice { padding: 18px 22px; border-top: 1px solid var(--line); }
+.jev-advice h3 { font-size: 13px; margin: 0 0 12px; }
+.jev-advice ul { list-style: none; padding: 0; margin: 0 0 12px; }
+.jev-advice li { display: flex; align-items: baseline; gap: 12px; font-size: 12px; margin: 8px 0; overflow-wrap: anywhere; }
+.jev-advice li strong { min-width: 65px; }.jev-advice small { color: var(--muted); font-size: 11px; line-height: 1.6; }
 .obsidian-activity { margin: 20px 0; padding: 12px; border-top: 1px solid var(--line); }
 .obsidian-activity summary span { float: right; font-variant-numeric: tabular-nums; }
 .review-reader:focus, .change-list:focus { outline: none; }
@@ -570,7 +576,7 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
   .review-layout .change-list { max-height: none; }
   .review-layout.has-selection .change-list, .review-layout:not(.has-selection) .review-reader { display: none; }
   .back-to-review { display: inline-flex; min-height: 44px; margin: -12px 0 20px; }
-  .evaluation-details > summary, .obsidian-activity > summary { min-height: 44px; }
+  .assessed-draft > summary, .obsidian-activity > summary { min-height: 44px; }
 }
 @media (max-width: 600px) {
   .account-identity, .mcp-address { align-items: flex-start; flex-direction: column; gap: 16px; }

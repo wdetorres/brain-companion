@@ -1,5 +1,7 @@
 # Focused Brain skills
 
+> This document records the earlier deployed workflow. The new assessment/commit implementation and pending activation steps are tracked in [release validation](assess-commit-validation.md).
+
 The `brain-workflows` package contains four independent Agent Skills:
 
 | Skill | Purpose |

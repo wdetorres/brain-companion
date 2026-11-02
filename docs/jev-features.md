@@ -1,5 +1,7 @@
 # Jev memory and retrieval update
 
+> This document records the earlier deployed workflow. The new assessment/commit implementation and pending activation steps are tracked in [release validation](assess-commit-validation.md).
+
 Authorized 2026-10-31: implement all four roles, use minimized personal/project Brain excerpts in a private ignored eval dataset, spend at most 2,000 total Jev requests (increased from 1,000, then 1,500), update the local Docker service and hosted demo. Automatic writes stayed disabled during this evaluation. Wilson subsequently authorized the harness implementation but deferred activating its workflows until deployment; see [harness.md](harness.md). Existing uncommitted work was part of the baseline.
 
 Scope: shared types, Jev adapter, keyword shortlist, store/history, authenticated HTTP and MCP recall, graph and review UI, synthetic demo, evaluator/fixtures/tests, agent guidance and deployment documentation. No generative answers, embeddings, bulk reclassification, automatic link writes, or Brain workflow changes.

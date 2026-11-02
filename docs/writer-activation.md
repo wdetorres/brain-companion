@@ -1,5 +1,7 @@
 # Hosted writer activation — November 2, 2026
 
+> This document records the earlier deployed workflow. The new assessment/commit implementation and pending activation steps are tracked in [release validation](assess-commit-validation.md).
+
 **Active for eligible personal same-session captures.** The deployed MCP has `AUTO_ACCEPT=new,update`. A new note and existing-note updates applied through Jev, exact retries returned the same operations, and the saved Markdown matched local Obsidian files. Promotion remains disabled. Existing collectors, checkpoints, hooks and schedules retain their prior routes. Immediate-parent navigation and log/index bookkeeping remain explicitly local for this cutover.
 
 ## Why Jev held the updates

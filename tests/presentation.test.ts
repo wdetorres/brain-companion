@@ -1,5 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import { safeUrl, diffLines, visibleGraph, firstReview, needsReview } from '../src/presentation.ts';
+import * as presentation from '../src/presentation.ts';
 import { demoOperations } from '../src/demo.ts';
 import { createNoteResolver } from '../src/links.ts';
 test('review starts with an unresolved proposal and excludes dismissed or low-value work',()=>{
@@ -9,6 +10,11 @@ test('review starts with an unresolved proposal and excludes dismissed or low-va
  assert.equal(needsReview({...pending,resolution:{actor:'Owner',at:'2026-11-02',reason:'Checked'}}),false);
  assert.equal(firstReview([demoOperations[0]]),demoOperations[0].id);
  assert.equal(firstReview([]),null);
+});
+test('actual commit state outranks advisory classification and assessment recovery is not owner approval',()=>{
+ const op={...demoOperations[0],decision:{...demoOperations[0].decision!,outcome:'not_worth_remembering' as const},resolution:{actor:'A',at:'now',reason:'Recorded'}};
+ assert.equal((presentation as any).operationStatus(op),'Applied');assert.equal(needsReview({...op,status:'needs_attention',resolution:undefined,assessment:{id:'assessment',role:'primary',reason:'Verify',candidateMatches:true,contextChanged:false}}),false);
+ assert.equal(needsReview({...demoOperations[0],status:'needs_attention',undo:{operationId:'original',files:[],reason:'Requested'}}),false);
 });
 test('explicit Markdown filename resolves by stem without conflating a title of the bare stem',()=>{
  const resolve=createNoteResolver([{path:'A/Real.md',title:'Launch'},{path:'B/Launch.md',title:'Other'}]);

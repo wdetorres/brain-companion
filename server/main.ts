@@ -5,7 +5,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { resolve, extname } from 'node:path';
 import { BrainStore } from './store.ts';
-import { createJevJudge, createRecallJudge, createConnectionJudge } from './jev.ts';
+import { createJevJudge, createRecallJudge, createConnectionJudge, createWriteAssessor } from './jev.ts';
 import { createHandler } from './http.ts';
 import { json, createAuthService } from './auth.ts';
 import { scheduleSync } from './runtime.ts';
@@ -21,7 +21,7 @@ const authDb = live ? new DatabaseSync(resolve(statePath,'auth.sqlite')) : undef
 const auth = authSettings && authDb ? await createAuthService(authDb, authSettings) : undefined;
 const accepted = (process.env.AUTO_ACCEPT || '').split(',').filter(Boolean);
 if (accepted.some(v => !['new', 'update', 'promote'].includes(v))) throw Error('AUTO_ACCEPT supports only new,update,promote');
-const store = live ? new BrainStore({ vault: resolve(process.env.VAULT_PATH || 'data/vault'), data: resolve(process.env.STATE_PATH || 'data/state'), judge: createJevJudge(process.env.JEV_API_KEY || '', process.env.JEV_MODEL || 'jev-latest'), recallJudge: createRecallJudge(process.env.JEV_API_KEY, process.env.JEV_MODEL), connectionJudge: createConnectionJudge(process.env.JEV_API_KEY, process.env.JEV_MODEL), accept: accepted }) : undefined;
+const store = live ? new BrainStore({ vault: resolve(process.env.VAULT_PATH || 'data/vault'), data: resolve(process.env.STATE_PATH || 'data/state'), judge: createJevJudge(process.env.JEV_API_KEY || '', process.env.JEV_MODEL || 'jev-latest'), writeAssessor:createWriteAssessor(process.env.JEV_API_KEY,process.env.JEV_MODEL), recallJudge: createRecallJudge(process.env.JEV_API_KEY, process.env.JEV_MODEL), connectionJudge: createConnectionJudge(process.env.JEV_API_KEY, process.env.JEV_MODEL), accept: accepted }) : undefined;
 const handle = store && auth ? createHandler(store, { auth, bridgeKey }) : async () => json({ error: 'The private brain service is not configured yet.' }, 503);
 const stopSync = store && process.env.SYNC_ENABLED === 'true' ? scheduleSync(store, Math.max(10000, Number(process.env.SYNC_INTERVAL_MS) || 30000)) : () => {};
 const dist = resolve('dist');

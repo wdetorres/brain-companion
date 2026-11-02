@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronRight, Circle, FileText, History, Link2, LockKeyhole, LogOut, Network, PanelRightClose, RefreshCw, Search, Settings, Sparkles, X, ArrowRight } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronRight, Circle, FileText, History, LockKeyhole, LogOut, Network, PanelRightClose, RefreshCw, Search, Settings, Sparkles, X, ArrowRight } from 'lucide-react';
 import { LoginPage, AccountSettings } from './Auth.tsx';
 import { authClient } from './auth-client.ts';
 import { Graph } from './Graph.tsx';
@@ -10,21 +10,18 @@ import { Recall } from './Recall.tsx';
 import { ConnectionPanel } from './ConnectionPanel.tsx';
 import { NoteCache } from './note-cache.ts';
 import { WorkList } from './WorkList.tsx';
-import { MemoryActions } from './MemoryActions.tsx';
+import { ChangeReader, AssessmentReader, Sources } from './ChangeReader.tsx';
 import { categories, categoryLabels } from './shared.ts';
-import { JevReview } from './JevReview.tsx';
 import { Markdown } from './Markdown.tsx';
-import { demoSnapshot } from './demo.ts';
-import { diffLines, firstReview, folderLabels, needsReview, safeUrl, visibleGraph } from './presentation.ts';
-import type { BrainSnapshot, Note, Operation, Source, MemoryCategory, Connection } from './shared.ts';
+import { demoSnapshot, demoAssessments } from './demo.ts';
+import { firstReview, folderLabels, needsReview, visibleGraph, operationStatus as statusFor } from './presentation.ts';
+import type { BrainSnapshot, Note, Operation, Assessment, MemoryCategory, Connection } from './shared.ts';
 
 type View = 'graph' | 'pages' | 'changes' | 'recall';
 const isStandalone = document.documentElement.dataset.demo === 'true';
 const isDemo = isStandalone || location.pathname === '/demo' || new URLSearchParams(location.search).get('demo') === '1';
 const requestedView = new URLSearchParams(location.search).get('view');
 const initialView: View = requestedView === 'browse' ? 'pages' : requestedView === 'review' ? 'changes' : requestedView === 'changes' || requestedView === 'recall' || requestedView === 'pages' ? requestedView : 'graph';
-const statuses: Record<Operation['status'], string> = { applied: 'Applied', duplicate: 'Already remembered', needs_attention: 'Needs attention', failed: 'Failed', external: 'From Obsidian', pending: 'Pending' };
-const statusFor = (op: Operation) => op.resolution ? 'Reviewed' : op.decision?.outcome === 'not_worth_remembering' ? 'Not saved' : statuses[op.status];
 const when = (s: string) => new Date(s).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const titleFor = (p: string) => p.split('/').pop()?.replace(/\.md$/, '') || p;
 async function api<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -32,9 +29,6 @@ async function api<T>(path: string, signal?: AbortSignal): Promise<T> {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error || 'Could not reach your Brain');
   return data;
-}
-function Sources({ sources }: { sources: Source[] }) {
-  return <section className="detail-section"><h3>Sources <span>{sources.length}</span></h3>{sources.length ? sources.map((s, i) => <div className="source" key={s.uri + i}><Link2 size={13} /><div>{safeUrl(s.uri) ? <a href={safeUrl(s.uri)} target="_blank" rel="noopener noreferrer">{s.title}<ArrowUpRight size={12} /></a> : <span>{s.title}</span>}{s.excerpt && <details className="source-evidence"><summary>Supplied evidence</summary><blockquote>{s.excerpt}</blockquote></details>}<small title={s.uri}>{s.uri.startsWith('urn:') ? s.uri : s.uri.replace(/^https?:\/\//, '').split('/')[0]} · {when(s.observedAt)}</small></div></div>) : <p className="muted small">No source metadata on this page.</p>}</section>;
 }
 function NoteReader({ note, notes, onOpen, compact = false }: { note: Note; notes: Note[]; onOpen: (path: string) => void; compact?: boolean }) {
   const backlinks = notes.filter(n => n.links.includes(note.path));
@@ -46,15 +40,6 @@ function NoteReader({ note, notes, onOpen, compact = false }: { note: Note; note
     {!!note.unresolved.length && <section className="detail-section"><h3>Unresolved links</h3><p className="muted small">{note.unresolved.join(' · ')}</p></section>}
     {!compact && <div className="revision">Updated {when(note.modifiedAt)} · Revision {note.revision.slice(0, 12)}</div>}
   </>;
-}
-function ChangeReader({ operation: op, onOpen, onReview }: { operation: Operation; onOpen: (path: string) => void; onReview:(action:'accept'|'dismiss',reason:string)=>Promise<void> }) {
-  const lines = useMemo(() => diffLines(op.before ?? '', op.proposed), [op.before, op.proposed]);
-  return <article className="change-reader"><h1>{titleFor(op.path)}</h1><div className="change-info"><span className={'status ' + op.status}>{statusFor(op)}</span><span>{when(op.at)}</span></div><div className="change-actor"><Sparkles size={14} />{op.actor}</div>
-    <p className="change-summary">{op.reason}</p>
-    <div className="diff-label"><span>{op.status === 'needs_attention' ? 'Current → proposed' : 'Before → submitted'}</span>{(op.before !== null || op.status === 'applied') && <button onClick={() => onOpen(op.path)}>Open current page <ArrowUpRight size={12} /></button>}</div>
-    <div className="diff" aria-label="Markdown change">{lines.map((line, i) => <div key={i} className={'diff-line ' + line.kind}><span aria-hidden="true">{line.kind === 'add' ? '+' : line.kind === 'remove' ? '−' : ' '}</span><code>{line.text || ' '}</code></div>)}</div>
-    <Sources sources={op.sources} /><MemoryActions key={op.id} operation={op} demo={isDemo} onReview={onReview}/><details className="evaluation-details"><summary>Evaluation details</summary><JevReview operation={op} sample={isDemo} /></details><div className="revision">Operation {op.id}</div>
-  </article>;
 }
 export function App() {
   const [noteCache] = useState(() => new NoteCache((path, signal) => api<Note>('/api/note?path=' + encodeURIComponent(path), signal)));
@@ -71,8 +56,9 @@ export function App() {
   const [focus, setFocus] = useState<string | undefined>();
   const [selected, setSelected] = useState<string | null>(isDemo ? 'Projects/Weekend build.md' : null);
   const [note, setNote] = useState<Note | null>(null);
-  const [operationId, setOperationId] = useState<string | null>(null);
+  const [operationId, setOperationId] = useState<string | null>(isDemo?'sample-update':null);
   const [operation, setOperation] = useState<Operation | null>(null);
+  const [assessmentId,setAssessmentId]=useState<string|null>(null),[assessment,setAssessment]=useState<Assessment|null>(null),[assessmentError,setAssessmentError]=useState('');
   const [detailError, setDetailError] = useState('');
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Note[]>([]);
@@ -84,8 +70,8 @@ export function App() {
   const reviewList = useRef<HTMLElement>(null);
   const reviewReader = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (view === 'changes' && operationId && window.matchMedia('(max-width: 760px)').matches) reviewReader.current?.focus();
-  }, [view, operationId]);
+    if (view === 'changes' && (operationId||assessmentId) && window.matchMedia('(max-width: 760px)').matches) reviewReader.current?.focus();
+  }, [view, operationId,assessmentId]);
   useEffect(() => {
     if (view === 'pages' && selected && window.matchMedia('(max-width: 760px)').matches) browseReader.current?.focus();
   }, [view, selected]);
@@ -100,8 +86,8 @@ export function App() {
   const obsidianEdits = useMemo(() => operations.filter(o => o.status === 'external'), [operations]);
   const connections = snapshot?.connections ?? [];
   useEffect(() => {
-    if (view === 'changes' && !operationId && !window.matchMedia('(max-width: 760px)').matches) setOperationId(firstReview(operations));
-  }, [view, operationId, operations]);
+    if (view === 'changes' && !operationId && !assessmentId && !window.matchMedia('(max-width: 760px)').matches) setOperationId(firstReview(operations));
+  }, [view, operationId, assessmentId, operations]);
   async function refresh() {
     if (isDemo) return;
     setRefreshing(true); setError('');
@@ -128,6 +114,11 @@ export function App() {
     api<Operation>('/api/operation?id=' + encodeURIComponent(operationId), controller.signal).then(setOperation).catch(e => { if (!controller.signal.aborted) setDetailError(e.message); });
     return () => controller.abort();
   }, [operationId, snapshot]);
+  useEffect(()=>{
+    const controller=new AbortController(),id=assessmentId||operation?.assessment?.id;setAssessment(null);setAssessmentError('');if(!id)return;
+    if(isDemo){setAssessment(demoAssessments.find(a=>a.id===id)||null);return;}
+    api<Assessment>('/api/assessment?id='+encodeURIComponent(id),controller.signal).then(a=>{if(!controller.signal.aborted)setAssessment(a);}).catch(e=>{if(!controller.signal.aborted)setAssessmentError(e.message);});return()=>controller.abort();
+  },[assessmentId,operation?.assessment?.id,snapshot]);
   useEffect(() => {
     const controller = new AbortController(); setSearchError('');
     if (!query.trim()) { setResults([]); setSearching(false); return; }
@@ -185,7 +176,17 @@ export function App() {
     const reviewed=await post<Operation>('/api/memories/review',{id:operation.id,action,reason,idempotencyKey:crypto.randomUUID()});
     setSnapshot(await api<BrainSnapshot>('/api/brain'));setOperationId(reviewed.id);
   }
-  const operationRow = (o: Operation) => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{statusFor(o)}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>;
+  const undoAttempt=useRef<{signature:string;key:string}|null>(null);
+  async function undoMemory(reason:string){
+    if(!operation?.revision||isDemo)return;
+    const signature=JSON.stringify([operation.id,reason]);if(undoAttempt.current?.signature!==signature)undoAttempt.current={signature,key:crypto.randomUUID()};
+    const undone=await post<Operation>('/api/memories/undo',{operationId:operation.id,expectedRevision:operation.revision,reason,idempotencyKey:undoAttempt.current.key});
+    setSnapshot(await api<BrainSnapshot>('/api/brain'));selectOperation(undone.id);
+    if(undone.status!=='applied')throw Error(undone.reason);
+  }
+  function selectOperation(id:string){setAssessmentId(null);setOperationId(id);}
+  function selectAssessment(id:string){setOperationId(null);setAssessmentId(id);setDetailError('');}
+  const operationRow = (o: Operation) => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => selectOperation(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{statusFor(o)}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>;
   const connectionPanel = note && <ConnectionPanel key={note.path} note={note} notes={notes} connections={connections} demo={isDemo} noteCache={noteCache} onSuggest={suggest} onReview={reviewConnection} onOpen={openNote} />;
   if (!ready) return <main className="entry"><p className="muted">Opening your Brain…</p></main>;
   if (!snapshot) return <LoginPage error={error} />;
@@ -242,17 +243,18 @@ export function App() {
           {detailError ? <p role="alert" className="error-text">{detailError}</p> : note ? <><NoteReader note={note} notes={notes} onOpen={openNote} />{connectionPanel}</> : selected ? <div className="reader-skeleton" role="status" aria-label="Loading note"><span /><span /><span /><span /></div> : <div className="reading-empty"><BookOpen size={30} /><h2>Select a note</h2><p>Open a folder to browse your notes.</p></div>}
         </div>
       </div>}
-      {view === 'changes' && <div className={'reading-layout review-layout ' + (operationId ? 'has-selection' : '')}>
+      {view === 'changes' && <div className={'reading-layout review-layout ' + (operationId||assessmentId ? 'has-selection' : '')}>
         <section ref={reviewList} className="page-list change-list" aria-label="Review queue and activity" tabIndex={-1}>
-          <WorkList demo={isDemo} operations={operations} refreshKey={snapshot.status.indexedAt} selectedOperationId={operationId} onNote={openNote} onOperation={setOperationId}/>
+          <WorkList demo={isDemo} operations={operations} refreshKey={snapshot.status.indexedAt} selectedOperationId={operationId} selectedAssessmentId={assessmentId} onNote={openNote} onOperation={selectOperation} onAssessment={selectAssessment}/>
           <div className="list-heading"><span>Recent activity</span><span>{recentActivity.length}</span></div>
           {recentActivity.map(operationRow)}
           {!!obsidianEdits.length && <details className="obsidian-activity"><summary>Obsidian edits <span>{obsidianEdits.length}</span></summary>{obsidianEdits.map(operationRow)}</details>}
           {!operations.length && <p className="empty-text">Agent proposals and note changes will appear here.</p>}
         </section>
         <div ref={reviewReader} className="reader review-reader" aria-label="Change reader" tabIndex={-1}>
-          <button className="text-button back-to-review" onClick={() => { setOperationId(null); requestAnimationFrame(() => reviewList.current?.focus()); }}><ArrowLeft size={15} />Back to review</button>
-          {detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} onReview={reviewMemory} /> : operationId ? <div className="reader-skeleton" role="status" aria-label="Loading change"><span /><span /><span /></div> : <div className="reading-empty"><History size={30} /><h2>Select a change</h2><p>Compare the proposed text with its sources before deciding.</p></div>}
+          <button className="text-button back-to-review" onClick={() => { setOperationId(null);setAssessmentId(null);requestAnimationFrame(() => reviewList.current?.focus()); }}><ArrowLeft size={15} />Back to review</button>
+          {assessmentError&&<p role="alert" className="error-text">{assessmentError} Refresh to retry loading the assessment.</p>}
+          {detailError ? <p role="alert" className="error-text">{detailError}</p> : assessmentId ? assessment ? <AssessmentReader assessment={assessment} demo={isDemo}/> : <p role="status">Loading assessment…</p> : operation ? <ChangeReader operation={operation} assessment={assessment||undefined} demo={isDemo} onOpen={openNote} onReview={reviewMemory} onUndo={undoMemory}/> : operationId ? <div className="reader-skeleton" role="status" aria-label="Loading change"><span /><span /><span /></div> : <div className="reading-empty"><History size={30} /><h2>Select a change</h2><p>Inspect the assessment, agent decision and resulting note.</p></div>}
         </div>
       </div>}
       {view === 'recall' && <Recall csrf={csrf} demo={isDemo} notes={notes} onOpen={openNote} />}

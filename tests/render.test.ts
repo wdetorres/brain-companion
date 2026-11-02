@@ -57,7 +57,19 @@ test('Jev review separates classification from disposition and does not invent m
   const missing = render({ ...operation, decision: { ...operation.decision, probabilities: undefined } });
   assert.equal((missing.match(/Not recorded/g) || []).length, 4); assert.doesNotMatch(missing, /role="meter"/);
   assert.match(render(operation, true), /Illustrative example/);
-  assert.match(render({ status: 'external', reason: 'Synced from Obsidian' }), /No Jev decision recorded/);
+  assert.match(render({ status: 'external', reason: 'Synced from Obsidian' }), /Not assessed/);
+});
+test('write details show advisory feedback prominently, distinguish earlier drafts and render removals as deleted files',async t=>{
+ const dir=await mkdtemp(resolve('.render-test-'));t.after(()=>rm(dir,{recursive:true,force:true}));
+ const compiled=await build({stdin:{contents:`import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {ChangeReader,AssessmentReader} from './src/ChangeReader.tsx'; export const render=(operation,assessment)=>renderToStaticMarkup(React.createElement(ChangeReader,{operation,assessment,demo:false,onOpen:()=>{},onReview:async()=>{},onUndo:async()=>{}})); export const draft=(assessment)=>renderToStaticMarkup(React.createElement(AssessmentReader,{assessment,demo:false}));`,resolveDir:process.cwd(),loader:'tsx'},bundle:true,platform:'node',format:'esm',packages:'external',write:false});
+ const path=resolve(dir,'details.mjs');await writeFile(path,compiled.outputFiles[0].contents);const{render,draft}=await import(pathToFileURL(path).href);
+ const a={id:'a',actor:'Agent',at:'2026-11-02T00:00:00Z',status:'assessed',input:{path:'Trip.md',markdown:'# Assessed draft',sources:[]},context:{related:[]},decision:{outcome:'uncertain',model:'jev-test',probabilities:{worth:.98,supported:.85,duplicate:.86,conflict:.02}},recommendations:[{target:'context',path:'Inbox/Flight.md',revision:'123',action:'keep',confidence:.9,probabilities:{keep:.9}}]};
+ const op={id:'op',path:'Trip.md',actor:'Agent',at:a.at,status:'applied',reason:'Saved',before:null,proposed:'# Revised final',sources:[],revision:'result',assessment:{id:'a',role:'primary',reason:'Consolidation preserves original bookings',candidateMatches:false,contextChanged:true}};
+ const html=render(op,a);assert.match(html,/Assessment of earlier draft/);assert.match(html,/earlier context/i);assert.match(html,/Consolidation preserves/);assert.match(html,/Inbox\/Flight.md/);assert.match(html,/90% confidence/);assert.match(html,/Applied/);assert.doesNotMatch(html,/<details[^>]*class="evaluation-details"/);assert.ok(html.indexOf('jev-review')<html.indexOf('Markdown change'));assert.match(html,/Undo this change/);
+ const staged=draft(a);assert.match(staged,/Awaiting agent/);assert.match(staged,/has not been saved/i);assert.doesNotMatch(staged,/Save note/);
+ const unavailable=draft({...a,status:'unavailable',decision:undefined,recommendations:undefined});assert.match(unavailable,/Assessment unavailable/);assert.doesNotMatch(unavailable,/role="meter"/);assert.match(render(op,{...a,status:'unavailable',decision:undefined}),/Consolidation preserves/);
+ const removal=render({...op,assessment:undefined,undo:{operationId:'prior',reason:'Requested',files:[{path:'Trip.md',before:'# Created note',after:null}]}},undefined);assert.match(removal,/Deleted file/);assert.doesNotMatch(removal,/Open current page|Undo this change/);assert.match(removal,/Created note/);
+ const parent=render({...op,assessment:{...op.assessment,role:'related',candidateMatches:null}},a);assert.match(parent,/Follow-up/);assert.doesNotMatch(parent,/role="meter"/);
 });
 
 test('a proposed graph connection keeps its target visible without becoming a saved edge', async t => {
