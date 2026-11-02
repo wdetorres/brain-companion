@@ -1,6 +1,15 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import { safeUrl, diffLines, visibleGraph } from '../src/presentation.ts';
+import { safeUrl, diffLines, visibleGraph, firstReview, needsReview } from '../src/presentation.ts';
+import { demoOperations } from '../src/demo.ts';
 import { createNoteResolver } from '../src/links.ts';
+test('review starts with an unresolved proposal and excludes dismissed or low-value work',()=>{
+ const pending=demoOperations.find(o=>o.id==='sample-conflict')!;
+ assert.equal(firstReview(demoOperations),pending.id);
+ assert.deepEqual(demoOperations.filter(needsReview).map(o=>o.id),['sample-conflict','sample-uncertain']);
+ assert.equal(needsReview({...pending,resolution:{actor:'Owner',at:'2026-11-02',reason:'Checked'}}),false);
+ assert.equal(firstReview([demoOperations[0]]),demoOperations[0].id);
+ assert.equal(firstReview([]),null);
+});
 test('explicit Markdown filename resolves by stem without conflating a title of the bare stem',()=>{
  const resolve=createNoteResolver([{path:'A/Real.md',title:'Launch'},{path:'B/Launch.md',title:'Other'}]);
  assert.equal(resolve('Home.md','Launch.md'),'B/Launch.md');assert.equal(resolve('Home.md','Launch'),undefined);

@@ -213,8 +213,8 @@ The base rail is 216px wide, the search header 69px tall, and the inspector 328p
 | --- | --- |
 | Width at least 1500px | Rail grows to 232px; inspector to 380px; inspector text and graph labels increase slightly. |
 | Width at most 1150px | Rail becomes 190px; inspector 300px; page list 260px; horizontal spacing tightens. |
-| Width at most 950px | Rail becomes a 70px icon strip; collections move to a select in Graph and Pages. |
-| Width at most 760px | Navigation becomes a sticky 61px top bar; body scrolls naturally. Browse shows folders or the selected reader with Back to folders; selection moves focus into the reader, and Back returns focus to folders. Folder rows have 44px minimum targets. Review retains its capped list. Graph and inspector stack; graph panel is 510px high. |
+| Width at most 950px | Rail becomes a 70px icon strip; folder filtering stays in Graph; Browse keeps its folder pane. |
+| Width at most 760px | Navigation becomes a sticky 61px top bar; body scrolls naturally. Browse shows folders or the selected reader with Back to folders; selection moves focus into the reader, and Back returns focus to folders. Folder rows have 44px minimum targets. Review also switches between its queue and selected change, with Back to review and focus transfer. Graph and inspector stack; graph panel is 510px high. |
 | Width at most 440px | The wordmark hides while navigation labels remain; graph is 450px high; non-hub captions appear only for selected, hovered, or keyboard-focused notes. Selected hub captions retain the selected placement. |
 | Width at least 951px and height at most 800px | Rail spacing compresses and its decorative footnote hides; the rail remains independently scrollable. |
 
@@ -255,7 +255,7 @@ Browse presents actual note paths as nested, expandable folders and note rows. F
 
 ### Graph nodes
 
-The graph uses the shared off-white canvas with dark gray nodes and readable ink labels. Neutral edges stay faint until active; suggested relationships remain distinct through dotted strokes. Zoom controls use the paper surface, charcoal selection and an inset keyboard focus outline. Nodes represent whole notes, with larger dots and stronger labels for hubs. Selection adds a dark offset ring and stronger caption. Hover or keyboard focus emphasizes the active note’s direct connections and dims unrelated elements; selected note identity persists. Dot scaling and edge emphasis transition over 220ms. At the narrowest breakpoint, only hub and active captions remain visible; unselected hub labels sit above their nodes so selected captions keep their lower position. Pan and zoom change the graph transform, while the zoom controls remain anchored to the graph panel.
+The graph uses the shared off-white canvas with dark gray nodes and readable ink labels. Neutral edges stay faint until active; suggested relationships remain distinct through dotted strokes. Zoom controls use the paper surface, charcoal selection and an inset keyboard focus outline. Nodes represent whole notes, with larger dots and stronger labels for hubs. Selection adds a dark offset ring and stronger caption. Hover or keyboard focus emphasizes the active note’s direct connections and dims unrelated elements; selected note identity persists. Dot scaling and edge emphasis transition over 220ms. At the narrowest breakpoint, only hub and active captions remain visible; unselected hub labels sit above their nodes so selected captions keep their lower position. Pan and zoom change the camera, while controls remain anchored. Pulling a node moves its actual linked neighbors through a damped spring response; release settles within 1.8 seconds. Idle graphs do not animate. Suggested edges remain dotted and are not springs. Arrow keys move a focused node; Enter opens its note. Reset restores the initial layout and camera. Reduced motion allows direct node movement without neighbor animation; hidden graphs cancel motion.
 
 ### Reader and links
 
@@ -265,11 +265,17 @@ White reader panes use readable Markdown, understated source rows, and fine sect
 
 Recall uses the white reader surface with a bounded 800px working column, centered horizontally within the workspace while its text stays left-aligned. Its introductory heading is 18px; explanatory text and excerpts are 13px, question input and result titles 14px, and controls 12px. The question field uses the neutral canvas fill. Category choices are native radios presented as a wrapping segmented group, with charcoal selection and visible keyboard focus. Operational details sit in a native disclosure. Evidence is separated by fine rules; conflicts retain explicit warning icons and labels in the same monochrome palette. Narrow layouts wrap categories and move the submit action onto its own row.
 
+### Review and account
+
+Review puts pending work before recent activity; routine Obsidian edits stay in a collapsed disclosure. Desktop opens an unresolved proposal first; mobile opens the queue. The selected queue row is highlighted. Reasons, diffs, sources and existing review actions precede the collapsed evaluator details. Queue errors offer a retry and never masquerade as empty work. Low-value submissions read “Not saved” and do not inflate the attention badge.
+
+Account sections use white on the pale canvas, with a compact identity row. Sync copy separates server status from other devices. The MCP address has copy feedback and a manual-copy fallback. Connection loading errors have a retry; revoke and sign-out retain their existing authorization behavior.
+
 ### Change diff
 
 The diff is a softly rounded, bordered container with a near-white background. Added and removed rows use adjacent gray tones and explicit plus/minus signs. Monospace text wraps inside each line. The reason, actor, outcome, source evidence, and operation identity remain outside the diff in the same reading column.
 
-Button color transitions use 160ms and the shared easing curve; graph edges and dots use 220ms. Refresh spins while busy. Reduced-motion preference removes transitions and animation throughout the app.
+Button color transitions use 160ms and the shared easing curve; graph edges and dots use 220ms. Refresh spins while busy. Reduced-motion preference removes transitions and secondary motion throughout the app. Graph placement stays temporary in the current graph view and never changes note content or saved links.
 
 ## Do's and Don'ts
 

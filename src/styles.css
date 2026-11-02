@@ -125,7 +125,9 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .graph-lines line { stroke: var(--muted); stroke-opacity: .25; stroke-width: .7; transition: stroke-opacity 160ms; }
 .graph-lines line.lit { stroke: var(--ink); stroke-opacity: .65; stroke-width: 1; }
 .graph-lines line.dim { stroke-opacity: .06; }
-.graph-node { position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; justify-content: center; padding: 0; width: 24px; height: 24px; z-index: 2; border-radius: 50%; }
+.graph-node { position: absolute; left: 0; top: 0; display: flex; align-items: center; justify-content: center; padding: 0; width: 24px; height: 24px; z-index: 2; border-radius: 50%; cursor: grab; touch-action: none; }
+.graph-node.dragging { cursor: grabbing; z-index: 6; }
+.graph-node.dragging .node-dot { outline: 1px solid var(--ink); outline-offset: 6px; }
 .node-dot { border-radius: 50%; background: var(--muted); flex-shrink: 0; transition: opacity 160ms, background 160ms; }
 .node-name { position: absolute; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 11px; line-height: 14px; font-weight: 400; color: var(--muted); text-align: center; overflow-wrap: anywhere; pointer-events: none; text-shadow: 0 1px 3px var(--canvas), 0 -1px 3px var(--canvas), 1px 0 3px var(--canvas), -1px 0 3px var(--canvas); }
 .graph-node.active-node .node-dot, .graph-node.selected .node-dot { background: var(--ink); }
@@ -408,9 +410,9 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .dotted-symbol { width: 20px; border-top: 2px dotted currentColor; }
 .connection-proposal { margin: 12px 0; }
 .connection-proposal > small { display: block; padding-left: 12px; color: var(--muted, #aaa); }
-.connection-review { margin-top: 16px; padding: 16px; border: 1px solid #bca577; border-radius: 8px; }
+.connection-review { margin-top: 16px; padding: 16px; border: 1px solid var(--line); border-radius: 8px; }
 .connection-review h4 { line-height: 1.5; margin: 0 0 12px; }
-.connection-review blockquote { margin: 12px 0; padding: 10px 12px; border-left: 2px solid #bca577; white-space: pre-wrap; font-size: 12px; line-height: 1.6; max-height: 180px; overflow: auto; }
+.connection-review blockquote { margin: 12px 0; padding: 10px 12px; border-left: 1px solid var(--line); white-space: pre-wrap; font-size: 12px; line-height: 1.6; max-height: 180px; overflow: auto; }
 .connection-review pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 12px; background: var(--paper); padding: 12px; border-radius: 6px; }
 .review-actions, .recall-scores { display: flex; flex-wrap: wrap; gap: 10px; }
 .recall-view { flex: 1; min-height: 0; overflow: auto; padding: 32px 52px 60px; background: var(--paper); }
@@ -460,7 +462,9 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .work-list { padding: 16px; border-bottom: 1px solid var(--line, #e2e2e2); }
 .work-list summary { cursor: pointer; font-size: 13px; font-weight: 600; }
 .work-list summary span { float: right; color: #666; font-weight: 400; }
-.work-row { display: block; width: 100%; padding: 11px 0; text-align: left; border-bottom: 1px solid #ededed; }
+.work-row { display: block; width: 100%; padding: 11px 8px; text-align: left; border-bottom: 1px solid #ededed; }
+.work-row:hover { background: #ececec; }
+.work-row[aria-current] { background: #e4e4e4; }
 .work-row strong, .work-row small, .work-row span { display: block; overflow-wrap: anywhere; }
 .work-row strong { font-size: 12px; font-weight: 500; }
 .work-row small { margin-top: 4px; color: #666; font-size: 11px; }
@@ -483,7 +487,7 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
 .auth-identity div{display:flex;flex-direction:column;gap:4px}.auth-identity span{font-size:13px;color:var(--muted)}
 .consent-permissions{padding:18px;background:var(--canvas);border-radius:10px}.consent-permissions ul{padding-left:20px;margin-bottom:0}.consent-permissions li{margin:10px 0;line-height:1.5;font-size:14px}
 .auth-callback{font-size:12px!important;overflow-wrap:anywhere}.consent-actions{display:flex;justify-content:space-between;gap:12px;margin-top:24px}.consent-actions .primary{max-width:75%;overflow-wrap:anywhere;white-space:normal}
-.account-page{max-width:760px;padding:48px 24px 80px;margin:auto}.account-page h1{font-size:30px;letter-spacing:-.03em;margin:28px 0 8px}.account-section{margin-top:28px;padding:24px;border:1px solid var(--line);border-radius:14px}.account-section h2{font-size:18px;margin:0 0 12px}.connected-app{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}.connected-app div{display:flex;flex-direction:column;gap:7px;min-width:0;overflow-wrap:anywhere}.connected-app span,.connected-app small{font-size:12px;color:var(--muted)}.connected-app button{flex-shrink:0}.mcp-url{display:block;margin-top:18px;font-size:12px;overflow-wrap:anywhere}.sidebar-bottom a{color:inherit;text-decoration:none}.sidebar-bottom a:hover{text-decoration:underline}
+.account-page{max-width:760px;padding:48px 24px 80px;margin:auto}.account-page h1{font-size:30px;letter-spacing:-.03em;margin:28px 0 8px}.account-section{margin-top:28px;padding:24px;border:1px solid var(--line);border-radius:14px}.account-section h2{font-size:18px;margin:0 0 12px}.connected-app{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}.connected-app div{display:flex;flex-direction:column;gap:7px;min-width:0;overflow-wrap:anywhere}.connected-app span,.connected-app small{font-size:12px;color:var(--muted)}.connected-app button{flex-shrink:0}.sidebar-bottom a{color:inherit;text-decoration:none}.sidebar-bottom a:hover{text-decoration:underline}
 @media(max-width:600px){.account-page{padding:24px 16px}.account-section{padding:18px}.connected-app{align-items:flex-start;flex-direction:column}}
 
 /* Browse uses the vault's actual folders; the reader keeps the existing paper surface. */
@@ -535,4 +539,40 @@ kbd { font: 10px inherit; font-size: 10px; white-space: nowrap; color: #757575; 
   .nav-item { padding: 10px 7px; gap: 5px; }
   .graph-folder-select select { max-width: 155px; }
   .view-actions { margin-left: auto; }
+}
+
+.change-summary { color: var(--reading-text, #4f4f4f); font-size: 14px; line-height: 1.8; margin: 20px 0 28px; }
+.evaluation-details { margin-top: 28px; border-top: 1px solid var(--line); padding-top: 18px; }
+.evaluation-details > summary, .obsidian-activity > summary { cursor: pointer; color: var(--muted); font-size: 12px; padding: 8px 0; }
+.evaluation-details .jev-review { margin-top: 16px; }
+.obsidian-activity { margin: 20px 0; padding: 12px; border-top: 1px solid var(--line); }
+.obsidian-activity summary span { float: right; font-variant-numeric: tabular-nums; }
+.review-reader:focus, .change-list:focus { outline: none; }
+.back-to-review { display: none; }
+.account-page { max-width: 820px; }
+.account-section { background: var(--paper); }
+.account-section > p:last-child { margin-bottom: 0; }
+.account-identity { display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.account-identity div { min-width: 0; overflow-wrap: anywhere; }
+.account-identity h2 { font-size: 14px; color: var(--muted); font-weight: 500; }
+.account-identity p { margin-bottom: 8px; }
+.account-identity .quiet-button { flex-shrink: 0; }
+.account-identity .small { margin-bottom: 0; }
+.sync-state { font-size: 16px; font-weight: 500; }
+.connected-app:last-of-type { border-bottom: 0; }
+.mcp-address { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.mcp-address > div { min-width: 0; }
+.mcp-address > div > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+.mcp-address code { display: block; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; user-select: all; }
+.mcp-address button { flex-shrink: 0; }
+.copy-status { min-height: 20px; margin: 8px 0 0; }
+@media (max-width: 760px) {
+  .review-layout .change-list { max-height: none; }
+  .review-layout.has-selection .change-list, .review-layout:not(.has-selection) .review-reader { display: none; }
+  .back-to-review { display: inline-flex; min-height: 44px; margin: -12px 0 20px; }
+  .evaluation-details > summary, .obsidian-activity > summary { min-height: 44px; }
+}
+@media (max-width: 600px) {
+  .account-identity, .mcp-address { align-items: flex-start; flex-direction: column; gap: 16px; }
+  .account-section .quiet-button { min-height: 44px; }
 }

@@ -1,6 +1,6 @@
 # Folder browsing — local acceptance
 
-November 2, 2026. Branch: `codex/folder-browsing`. No push or deployment.
+November 2, 2026. Branch: `codex/folder-browsing`. These checks were completed locally before acceptance; the subsequent release is recorded below.
 
 ## Implemented
 
@@ -14,7 +14,7 @@ November 2, 2026. Branch: `codex/folder-browsing`. No push or deployment.
 
 ## Performance coordination
 
-Integrated performance-session commit `4fc749f` as `d66fa72`. Its cache lifecycle, revision invalidation, sign-out clearing, shared ConnectionPanel cache, targeted server reads, auth checks and no-store responses remain. The one merge conflict combined the revised sidebar with the cache clear on sign-out. Singapore configuration is committed locally and only takes effect after a future authorized deployment.
+Integrated performance-session commit `4fc749f` as `d66fa72`. Its cache lifecycle, revision invalidation, sign-out clearing, shared ConnectionPanel cache, targeted server reads, auth checks and no-store responses remain. The one merge conflict combined the revised sidebar with the cache clear on sign-out. Singapore configuration was included in the subsequent authorized deployment handled by the performance chat.
 
 ## Acceptance results
 
@@ -50,6 +50,6 @@ Desktop and mobile screenshots are stored outside the repository under `/Users/w
 
 ## Acceptance gate and remaining work
 
-Implementation and automated/manual checks are complete. Wilson's acceptance is pending. Per his instruction, subsequent graph interaction, review prioritization and account-surface improvements start after that acceptance; no deployment is authorized.
+Wilson accepted this iteration on November 2 and authorized graph interaction and remaining refinements. The performance chat separately received deployment approval and released this accepted iteration with the loading fixes and current Jev fix as 8581cc9. The second iteration remains separate and is not deployed.
 
 Not checked: production latency after routing changes, live account/review mutations, physical touch hardware, or a complete accessibility audit. Empty physical folders cannot appear because the API exposes notes rather than a directory inventory. Folder disclosure is keyboard accessible; it does not implement the additional arrow-key behavior of an ARIA tree widget.

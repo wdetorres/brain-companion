@@ -1,4 +1,10 @@
-import type{Note}from'./shared.ts';
+import type{Note, Operation}from'./shared.ts';
+export function needsReview(operation: Operation) {
+ return operation.status === 'needs_attention' && !operation.resolution && operation.decision?.outcome !== 'not_worth_remembering';
+}
+export function firstReview(operations: Operation[]) {
+ return (operations.find(needsReview) || operations[0])?.id || null;
+}
 export function safeUrl(value:string):string|undefined{try{const u=new URL(value);return ['https:','http:','obsidian:'].includes(u.protocol)?value:undefined;}catch{return;}}
 export function visibleGraph(notes:Note[],folder:string,system:boolean,focus?:string){
  const neighbors=new Set(focus?[focus,...(notes.find(n=>n.path===focus)?.links||[]),...notes.filter(n=>n.links.includes(focus)).map(n=>n.path)]:[]);

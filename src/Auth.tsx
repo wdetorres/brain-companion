@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, ArrowUpRight, Check, LockKeyhole, Network } from 'lucide-react';
+import { ArrowLeft, ArrowUpRight, Check, Copy, LockKeyhole, Network } from 'lucide-react';
 import { authClient } from './auth-client.ts';
 import type { BrainSnapshot } from './shared.ts';
 
@@ -50,10 +50,26 @@ export function ConsentPage() {
 }
 export function AccountSettings({ csrf, status, user }: { csrf: string; status: BrainSnapshot['status']; user: Owner | null }) {
   const [apps,setApps]=useState<AppConnection[]|null>(null),[error,setError]=useState(''),[pending,setPending]=useState<string|null>(null);
-  useEffect(()=>{let active=true;void read<{apps:AppConnection[]}>('/api/apps').then(r=>{if(active)setApps(r.apps);}).catch(e=>{if(active)setError(e.message);});return()=>{active=false;};},[]);
-  return <main className="account-page"><a className="demo-link" href="/"><ArrowLeft size={15}/> Back to your Brain</a><h1>Account & connections</h1><p className="muted">Your identity, your vault, and the apps you authorize.</p>
-    <section className="account-section"><h2>Signed in with Google</h2><p>{user?.email}</p><p className="small muted">Signing out ends this browser session. Manage app access below.</p><button className="quiet-button" onClick={async()=>{const r=await authClient.signOut();if(r.error)setError('Could not sign out. Try again.');else location.assign('/sign-in');}}>Sign out</button></section>
-    <section className="account-section"><h2>Obsidian Sync</h2><p>{status.sync}</p><p className="small muted">Last successful sync: {status.lastSync ? new Date(status.lastSync).toLocaleString() : 'No successful sync recorded'}</p><p className="small muted">This is the server’s sync status; other devices may still be catching up. Connection setup is managed on the worker.</p></section>
-    <section className="account-section"><h2>Connected apps</h2><p className="small muted">Revoke an app to stop its access and require authorization again.</p>{error && <p role="alert" className="error-text">{error}</p>}{apps===null ? <p role="status">Loading connections…</p> : apps.length===0 ? <p>No apps authorized yet. Start a connection from ChatGPT using your Brain Companion MCP URL.</p> : apps.map(app=><article className="connected-app" key={app.clientId}><div><strong>{app.name}</strong><span>Authorized · {app.scopes.includes('brain')?'Brain read and write access':'Limited access'}</span><small>{app.lastUsed ? `Last MCP request: ${new Date(app.lastUsed).toLocaleString()}` : 'No successful MCP request recorded'}</small></div><button className="quiet-button" disabled={pending!==null} onClick={async()=>{setPending(app.clientId);setError('');try{await read('/api/apps/revoke',{csrf,clientId:app.clientId});setApps(current=>current?.filter(a=>a.clientId!==app.clientId)??[]);}catch(e){setError((e as Error).message);}finally{setPending(null);}}}>{pending===app.clientId?'Revoking…':'Revoke access'}</button></article>)}<code className="mcp-url">{location.origin}/mcp</code></section>
+  const [attempt,setAttempt]=useState(0),[copyState,setCopyState]=useState<'idle'|'copied'|'failed'>('idle');
+  useEffect(()=>{
+    let active=true; setError(''); setApps(null);
+    void read<{apps:AppConnection[]}>('/api/apps').then(r=>{if(active)setApps(r.apps);}).catch(e=>{if(active)setError(e.message);});
+    return()=>{active=false;};
+  },[attempt]);
+  useEffect(()=>{
+    if(copyState!=='copied')return;
+    const timer=setTimeout(()=>setCopyState('idle'),2500);
+    return()=>clearTimeout(timer);
+  },[copyState]);
+  const mcpUrl = location.origin + '/mcp';
+  return <main className="account-page"><a className="demo-link" href="/"><ArrowLeft size={15}/> Back to your Brain</a><h1>Account & connections</h1>
+    {error && <p role="alert" className="error-text">{error}</p>}
+    <section className="account-section account-identity"><div><h2>Signed in with Google</h2><p>{user?.email}</p><p className="small muted">Signing out ends this session. Connected apps keep their access.</p></div><button className="quiet-button" onClick={async()=>{const r=await authClient.signOut();if(r.error)setError('Could not sign out. Try again.');else location.assign('/sign-in');}}>Sign out</button></section>
+    <section className="account-section"><h2>Obsidian Sync</h2><p className="sync-state">{status.sync}</p><p className="small muted">Last successful sync: {status.lastSync ? new Date(status.lastSync).toLocaleString() : 'No successful sync recorded'}</p><p className="small muted">This is the server’s sync status. Other devices may still be catching up.</p></section>
+    <section className="account-section"><h2>Connected apps</h2><p className="small muted">Revoking access requires the app to reconnect with your approval.</p>
+      {apps===null ? error ? <button className="quiet-button" onClick={()=>setAttempt(n=>n+1)}>Try again</button> : <p role="status">Loading connections…</p> : apps.length===0 ? <p>No apps connected. Add the address below in your agent’s MCP settings to connect.</p> : apps.map(app=><article className="connected-app" key={app.clientId}><div><strong>{app.name}</strong><span>{app.scopes.includes('brain')?'Brain read and write access':'Limited access'}</span><small>{app.lastUsed ? `Last request: ${new Date(app.lastUsed).toLocaleString()}` : 'No successful request recorded'}</small></div><button className="quiet-button" disabled={pending!==null} onClick={async()=>{setPending(app.clientId);setError('');try{await read('/api/apps/revoke',{csrf,clientId:app.clientId});setApps(current=>current?.filter(a=>a.clientId!==app.clientId)??[]);}catch(e){setError((e as Error).message);}finally{setPending(null);}}}>{pending===app.clientId?'Revoking…':'Revoke access'}</button></article>)}
+      <div className="mcp-address"><div><span>MCP address</span><code>{mcpUrl}</code></div><button className="quiet-button" onClick={async()=>{try{await navigator.clipboard.writeText(mcpUrl);setCopyState('copied');}catch{setCopyState('failed');}}}>{copyState==='copied'?<Check size={15}/>:<Copy size={15}/>} {copyState==='copied'?'Copied':'Copy address'}</button></div>
+      <p className="copy-status small muted" role="status">{copyState==='failed'?'Could not copy. Select and copy the address above.':copyState==='copied'?'Address copied.':''}</p>
+    </section>
   </main>;
 }

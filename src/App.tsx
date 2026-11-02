@@ -15,7 +15,7 @@ import { categories, categoryLabels } from './shared.ts';
 import { JevReview } from './JevReview.tsx';
 import { Markdown } from './Markdown.tsx';
 import { demoSnapshot } from './demo.ts';
-import { diffLines, folderLabels, safeUrl, visibleGraph } from './presentation.ts';
+import { diffLines, firstReview, folderLabels, needsReview, safeUrl, visibleGraph } from './presentation.ts';
 import type { BrainSnapshot, Note, Operation, Source, MemoryCategory, Connection } from './shared.ts';
 
 type View = 'graph' | 'pages' | 'changes' | 'recall';
@@ -24,6 +24,7 @@ const isDemo = isStandalone || location.pathname === '/demo' || new URLSearchPar
 const requestedView = new URLSearchParams(location.search).get('view');
 const initialView: View = requestedView === 'browse' ? 'pages' : requestedView === 'review' ? 'changes' : requestedView === 'changes' || requestedView === 'recall' || requestedView === 'pages' ? requestedView : 'graph';
 const statuses: Record<Operation['status'], string> = { applied: 'Applied', duplicate: 'Already remembered', needs_attention: 'Needs attention', failed: 'Failed', external: 'From Obsidian', pending: 'Pending' };
+const statusFor = (op: Operation) => op.resolution ? 'Reviewed' : op.decision?.outcome === 'not_worth_remembering' ? 'Not saved' : statuses[op.status];
 const when = (s: string) => new Date(s).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 const titleFor = (p: string) => p.split('/').pop()?.replace(/\.md$/, '') || p;
 async function api<T>(path: string, signal?: AbortSignal): Promise<T> {
@@ -48,11 +49,11 @@ function NoteReader({ note, notes, onOpen, compact = false }: { note: Note; note
 }
 function ChangeReader({ operation: op, onOpen, onReview }: { operation: Operation; onOpen: (path: string) => void; onReview:(action:'accept'|'dismiss',reason:string)=>Promise<void> }) {
   const lines = useMemo(() => diffLines(op.before ?? '', op.proposed), [op.before, op.proposed]);
-  return <article className="change-reader"><h1>{titleFor(op.path)}</h1><div className="change-info"><span className={'status ' + op.status}>{statuses[op.status]}</span><span>{when(op.at)}</span></div><div className="change-actor"><Sparkles size={14} />{op.actor}</div>
-    <JevReview operation={op} sample={isDemo} />
+  return <article className="change-reader"><h1>{titleFor(op.path)}</h1><div className="change-info"><span className={'status ' + op.status}>{statusFor(op)}</span><span>{when(op.at)}</span></div><div className="change-actor"><Sparkles size={14} />{op.actor}</div>
+    <p className="change-summary">{op.reason}</p>
     <div className="diff-label"><span>{op.status === 'needs_attention' ? 'Current → proposed' : 'Before → submitted'}</span>{(op.before !== null || op.status === 'applied') && <button onClick={() => onOpen(op.path)}>Open current page <ArrowUpRight size={12} /></button>}</div>
     <div className="diff" aria-label="Markdown change">{lines.map((line, i) => <div key={i} className={'diff-line ' + line.kind}><span aria-hidden="true">{line.kind === 'add' ? '+' : line.kind === 'remove' ? '−' : ' '}</span><code>{line.text || ' '}</code></div>)}</div>
-    <Sources sources={op.sources} /><MemoryActions key={op.id} operation={op} demo={isDemo} onReview={onReview}/><div className="revision">Operation {op.id}</div>
+    <Sources sources={op.sources} /><MemoryActions key={op.id} operation={op} demo={isDemo} onReview={onReview}/><details className="evaluation-details"><summary>Evaluation details</summary><JevReview operation={op} sample={isDemo} /></details><div className="revision">Operation {op.id}</div>
   </article>;
 }
 export function App() {
@@ -70,7 +71,7 @@ export function App() {
   const [focus, setFocus] = useState<string | undefined>();
   const [selected, setSelected] = useState<string | null>(isDemo ? 'Projects/Weekend build.md' : null);
   const [note, setNote] = useState<Note | null>(null);
-  const [operationId, setOperationId] = useState<string | null>(isDemo && initialView === 'changes' ? demoSnapshot.operations[0]?.id || null : null);
+  const [operationId, setOperationId] = useState<string | null>(null);
   const [operation, setOperation] = useState<Operation | null>(null);
   const [detailError, setDetailError] = useState('');
   const [query, setQuery] = useState('');
@@ -80,6 +81,11 @@ export function App() {
   const searchInput = useRef<HTMLInputElement>(null);
   const browseFolders = useRef<HTMLElement>(null);
   const browseReader = useRef<HTMLDivElement>(null);
+  const reviewList = useRef<HTMLElement>(null);
+  const reviewReader = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (view === 'changes' && operationId && window.matchMedia('(max-width: 760px)').matches) reviewReader.current?.focus();
+  }, [view, operationId]);
   useEffect(() => {
     if (view === 'pages' && selected && window.matchMedia('(max-width: 760px)').matches) browseReader.current?.focus();
   }, [view, selected]);
@@ -89,8 +95,13 @@ export function App() {
     return () => document.removeEventListener('keydown', shortcut);
   }, []);
   const notes = snapshot?.notes ?? [];
-  const operations = (snapshot?.operations ?? []).filter(o => !category || o.decision?.category === category || o.category === category);
+  const operations = snapshot?.operations ?? [];
+  const recentActivity = useMemo(() => operations.filter(o => o.status !== 'external' && !needsReview(o)), [operations]);
+  const obsidianEdits = useMemo(() => operations.filter(o => o.status === 'external'), [operations]);
   const connections = snapshot?.connections ?? [];
+  useEffect(() => {
+    if (view === 'changes' && !operationId && !window.matchMedia('(max-width: 760px)').matches) setOperationId(firstReview(operations));
+  }, [view, operationId, operations]);
   async function refresh() {
     if (isDemo) return;
     setRefreshing(true); setError('');
@@ -141,7 +152,7 @@ export function App() {
     if (!isInFolder(path, graphFolder)) { setFolder(''); setFocus(undefined); }
     if (view === 'changes' || view === 'recall') setView('pages');
   }
-  function changeView(next: View) { setView(next); setQuery(''); if (next === 'changes' && !operationId) setOperationId(operations[0]?.id || null); }
+  function changeView(next: View) { setView(next); setQuery(''); }
   function showSystem(show: boolean) {
     setSystem(show);
     if (!show && notes.some(n => n.path === selected && ['inbox', 'system'].includes(n.folder))) setSelected(null);
@@ -174,6 +185,7 @@ export function App() {
     const reviewed=await post<Operation>('/api/memories/review',{id:operation.id,action,reason,idempotencyKey:crypto.randomUUID()});
     setSnapshot(await api<BrainSnapshot>('/api/brain'));setOperationId(reviewed.id);
   }
+  const operationRow = (o: Operation) => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{statusFor(o)}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>;
   const connectionPanel = note && <ConnectionPanel key={note.path} note={note} notes={notes} connections={connections} demo={isDemo} noteCache={noteCache} onSuggest={suggest} onReview={reviewConnection} onOpen={openNote} />;
   if (!ready) return <main className="entry"><p className="muted">Opening your Brain…</p></main>;
   if (!snapshot) return <LoginPage error={error} />;
@@ -185,7 +197,7 @@ export function App() {
       </a>
       <div className="workspace-label"><span className="workspace-avatar">W</span><div><strong>Wilson’s brain</strong><span>Personal workspace</span></div></div>
       <nav aria-label="Main navigation">
-        {([['graph', Network, 'Graph'], ['pages', BookOpen, 'Browse'], ['changes', History, 'Review']] as const).map(([id, Icon, label]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label} onClick={() => changeView(id)}><Icon size={18} strokeWidth={1.6} /><span>{label}</span>{id === 'changes' && snapshot.operations.some(o => o.status === 'needs_attention' && !o.resolution) && <span className="nav-count attention-count">{snapshot.operations.filter(o => o.status === 'needs_attention' && !o.resolution).length}</span>}</button>)}
+        {([['graph', Network, 'Graph'], ['pages', BookOpen, 'Browse'], ['changes', History, 'Review']] as const).map(([id, Icon, label]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label} onClick={() => changeView(id)}><Icon size={18} strokeWidth={1.6} /><span>{label}</span>{id === 'changes' && snapshot.operations.some(needsReview) && <span className="nav-count attention-count">{snapshot.operations.filter(needsReview).length}</span>}</button>)}
       </nav>
       <div className="sidebar-bottom"><LockKeyhole size={14} /><span>{isDemo ? 'Sample workspace' : <a href="/settings">Account & connections</a>}</span>{!isDemo && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={async () => { const r = await authClient.signOut(); if (!r.error) { noteCache.clear(); setSelected(null); setOperationId(null); setSnapshot(null); } else setError('Could not sign out. Refresh and try again.'); }}><LogOut size={15} /></button>}</div>
     </aside>
@@ -202,7 +214,7 @@ export function App() {
       <div className="view-header">
         <h1>{view === 'graph' ? (focus ? titleFor(focus) : 'Graph') : view === 'pages' ? 'Browse' : view === 'recall' ? 'Recall' : 'Review'}</h1>
         <div className="view-actions">
-          {view !== 'recall' && <label className="collection-select memory-select"><span className="sr-only">Filter memory category</span><select aria-label="Filter memory category" value={category} onChange={e => { setCategory(e.target.value as MemoryCategory | ''); setSelected(null); setOperationId(null); }}><option value="">All categories</option>{categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}</select></label>}
+          {(view === 'graph' || view === 'pages') && <label className="collection-select memory-select"><span className="sr-only">Filter memory category</span><select aria-label="Filter memory category" value={category} onChange={e => { setCategory(e.target.value as MemoryCategory | ''); setSelected(null); }}><option value="">All categories</option>{categories.map(c => <option key={c} value={c}>{categoryLabels[c]}</option>)}</select></label>}
           {view === 'graph' && <label className="collection-select graph-folder-select"><span className="sr-only">Filter graph by folder</span><select aria-label="Filter graph by folder" value={graphFolder} onChange={e => { setFolder(e.target.value); setFocus(undefined); }}><option value="">All folders</option>{folderPaths.map(path => <option value={path} key={path}>{path}</option>)}</select></label>}
           <button className={'quiet-button refresh-button ' + (refreshing ? 'busy' : '')} disabled={refreshing || isDemo} onClick={() => void refresh()} title={isDemo ? 'Sample data does not refresh' : 'Read the latest server vault'}><RefreshCw size={15} /><span>{refreshing ? 'Refreshing' : 'Refresh'}</span></button>
         </div>
@@ -210,7 +222,7 @@ export function App() {
       <div className="graph-layout" style={{ display: view === 'graph' ? undefined : 'none' }}>
         <section className="graph-panel" aria-label="Note graph">
           <div className="graph-toolbar"><div className="graph-counts"><span>{shown.length} notes</span><span>{connectionCount} connections</span><span className="suggestion-legend">⋯ Suggested links</span></div><div className="graph-options">{focus && <button className="text-button" onClick={() => setFocus(undefined)}><ArrowLeft size={14} />Whole graph</button>}<label className="checkbox-label"><input type="checkbox" checked={system} onChange={e => showSystem(e.target.checked)} />Inbox & system</label></div></div>
-          <Graph notes={shown} selected={selected} onSelect={openNote} connections={connections} />
+          <Graph notes={shown} selected={selected} onSelect={openNote} connections={connections} visible={view === 'graph'} />
           {graphNotes.length > 200 && !focus && <div className="graph-limit">Showing 200 of {graphNotes.length} notes. Choose a folder to narrow the graph.</div>}
         </section>
         {selected ? <aside className="inspector" aria-label="Selected note">
@@ -221,7 +233,7 @@ export function App() {
       </div>
       {view === 'pages' && <div className={'reading-layout browse-layout ' + (selected ? 'has-selection' : '')}>
         <section ref={browseFolders} className="page-list browse-folders" aria-label="Folders" tabIndex={-1}>
-          <div className="list-heading"><span>Folders</span><span>{browsableNotes.length} notes</span></div>
+          <div className="list-heading"><span>Folders</span><span>{browsableNotes.length} {browsableNotes.length === 1 ? 'note' : 'notes'}</span></div>
           <FolderBrowser notes={browsableNotes} selected={selected} onOpen={openNote} />
           <label className="system-toggle"><input type="checkbox" checked={system} onChange={e => showSystem(e.target.checked)} />Inbox & system</label>
         </section>
@@ -230,7 +242,19 @@ export function App() {
           {detailError ? <p role="alert" className="error-text">{detailError}</p> : note ? <><NoteReader note={note} notes={notes} onOpen={openNote} />{connectionPanel}</> : selected ? <div className="reader-skeleton" role="status" aria-label="Loading note"><span /><span /><span /><span /></div> : <div className="reading-empty"><BookOpen size={30} /><h2>Select a note</h2><p>Open a folder to browse your notes.</p></div>}
         </div>
       </div>}
-      {view === 'changes' && <div className="reading-layout"><section className="page-list change-list" aria-label="Recent changes"><WorkList demo={isDemo} operations={operations} refreshKey={snapshot.status.indexedAt} onNote={openNote} onOperation={setOperationId}/><div className="list-heading"><span>Recent activity</span><span>{operations.length}</span></div>{operations.map(o => <button key={o.id} className={'change-row ' + (operationId === o.id ? 'selected' : '')} aria-pressed={operationId === o.id} onClick={() => setOperationId(o.id)}><span className={'activity-icon ' + o.status}>{o.status === 'applied' ? <Check size={15} /> : o.status === 'needs_attention' ? <Circle size={15} /> : <History size={15} />}</span><div><strong>{titleFor(o.path)}</strong><span className={'status ' + o.status}>{o.resolution ? 'Reviewed' : statuses[o.status]}</span><small>{o.actor}<span>{when(o.at)}</span></small></div></button>)}{!operations.length && <p className="empty-text">Agent proposals and Obsidian edits will appear here. Select a proposal to see its Jev review.</p>}</section><div className="reader">{detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} onReview={reviewMemory} /> : <div className="reading-empty"><History size={30} /><h2>{operationId ? 'Loading change…' : 'See how memories are reviewed.'}</h2><p>Jev checks evidence support, duplication, and conflicts. Select a change to see its recorded scores and outcome.</p></div>}</div></div>}
+      {view === 'changes' && <div className={'reading-layout review-layout ' + (operationId ? 'has-selection' : '')}>
+        <section ref={reviewList} className="page-list change-list" aria-label="Review queue and activity" tabIndex={-1}>
+          <WorkList demo={isDemo} operations={operations} refreshKey={snapshot.status.indexedAt} selectedOperationId={operationId} onNote={openNote} onOperation={setOperationId}/>
+          <div className="list-heading"><span>Recent activity</span><span>{recentActivity.length}</span></div>
+          {recentActivity.map(operationRow)}
+          {!!obsidianEdits.length && <details className="obsidian-activity"><summary>Obsidian edits <span>{obsidianEdits.length}</span></summary>{obsidianEdits.map(operationRow)}</details>}
+          {!operations.length && <p className="empty-text">Agent proposals and note changes will appear here.</p>}
+        </section>
+        <div ref={reviewReader} className="reader review-reader" aria-label="Change reader" tabIndex={-1}>
+          <button className="text-button back-to-review" onClick={() => { setOperationId(null); requestAnimationFrame(() => reviewList.current?.focus()); }}><ArrowLeft size={15} />Back to review</button>
+          {detailError ? <p role="alert" className="error-text">{detailError}</p> : operation ? <ChangeReader operation={operation} onOpen={openNote} onReview={reviewMemory} /> : operationId ? <div className="reader-skeleton" role="status" aria-label="Loading change"><span /><span /><span /></div> : <div className="reading-empty"><History size={30} /><h2>Select a change</h2><p>Compare the proposed text with its sources before deciding.</p></div>}
+        </div>
+      </div>}
       {view === 'recall' && <Recall csrf={csrf} demo={isDemo} notes={notes} onOpen={openNote} />}
       <footer className="statusbar"><span>{isDemo ? <><span className="demo-dot" />Sample notes & activity</> : <><LockKeyhole size={12} />Private explorer</>}</span><span>{isDemo ? (isStandalone ? 'Local demo' : 'Demo workspace') : snapshot.status.sync}{snapshot.status.lastSync ? ' · ' + when(snapshot.status.lastSync) : ''}<span className="status-separator">/</span>{snapshot.status.search}</span></footer>
     </main>

@@ -338,6 +338,11 @@
         "purpose": "Graph edge stroke/opacity and node-dot scale transition."
       },
       {
+        "name": "graph-pull",
+        "value": "requestAnimationFrame; damped springs; at most 1800ms after interaction",
+        "purpose": "Direct dragging with connected-neighbor response, then idle. Cancel when hidden; reduced motion moves only the directly controlled node."
+      },
+      {
         "name": "refresh-spin",
         "value": "1.5s linear infinite",
         "purpose": "Busy refresh icon; removed under reduced motion."
