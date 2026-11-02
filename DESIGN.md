@@ -207,15 +207,15 @@ The hierarchy is compact and quiet. Titles use modest weight and slightly tighte
 
 The desktop app is a viewport-height flex shell (`100dvh`, minimum height 500px) with clipped outer overflow. The navigation, note list, and reading/inspector regions own their scroll behavior. Persistent surfaces meet at fine dividers rather than floating in cards.
 
-The base rail is 216px wide, the search header 69px tall, and the inspector 328px wide. Pages and Changes use a 296px list alongside a flexible reader. The full reader has 42px top, 52px horizontal, and 60px bottom padding. Header horizontal padding is 28px. Repeated gaps and padding center on the frontmatter spacing values, with smaller local adjustments for dense controls.
+The base rail is 216px wide, the search header 69px tall, and the inspector 328px wide. Browse uses a 320px folder pane alongside a flexible reader; Review retains its 296px activity list. The full reader has 42px top, 52px horizontal, and 60px bottom padding. Header horizontal padding is 28px. Repeated gaps and padding center on the frontmatter spacing values, with smaller local adjustments for dense controls.
 
 | Condition | Implemented change |
 | --- | --- |
 | Width at least 1500px | Rail grows to 232px; inspector to 380px; inspector text and graph labels increase slightly. |
 | Width at most 1150px | Rail becomes 190px; inspector 300px; page list 260px; horizontal spacing tightens. |
 | Width at most 950px | Rail becomes a 70px icon strip; collections move to a select in Graph and Pages. |
-| Width at most 760px | Navigation becomes a sticky 61px top bar; body scrolls naturally; graph and reader stack; page lists cap at 300px high; graph panel is 510px high. |
-| Width at most 440px | Navigation labels hide; graph is 450px high; non-hub captions appear only for selected, hovered, or keyboard-focused notes. Selected hub captions retain the selected placement. |
+| Width at most 760px | Navigation becomes a sticky 61px top bar; body scrolls naturally. Browse shows folders or the selected reader with Back to folders; selection moves focus into the reader, and Back returns focus to folders. Folder rows have 44px minimum targets. Review retains its capped list. Graph and inspector stack; graph panel is 510px high. |
+| Width at most 440px | The wordmark hides while navigation labels remain; graph is 450px high; non-hub captions appear only for selected, hovered, or keyboard-focused notes. Selected hub captions retain the selected placement. |
 | Width at least 951px and height at most 800px | Rail spacing compresses and its decorative footnote hides; the rail remains independently scrollable. |
 
 ## Elevation & Depth
@@ -247,15 +247,15 @@ Search sits in a pale rounded wrapper with a leading SVG icon; the wrapper has a
 
 ### Navigation
 
-The dark rail uses softly rounded rows with 12px gaps. Active navigation inverts to a pale fill with dark text; inactive hover raises the black surface tone. Collections retain explicit labels and small gray markers. Counts use tabular numerals. Narrow layouts transition from an icon strip to a top bar; accessible names remain when visible labels disappear.
+The dark rail has three primary destinations: Graph, Browse, and Review. Active navigation inverts to a pale fill with dark text; inactive hover raises the black surface tone. Recall is a secondary action beside search. The old Collections list, Start here section, slogan and duplicate graph legend are removed. Graph has one physical-folder filter, including nested paths. Review attention counts remain visible at every width. Narrow layouts transition from an icon strip to a top bar; mobile retains the three destination labels and provides account access beside search.
 
 ### List items and status chips
 
-Pages and Changes use flat rows, a pale hover tone, and a slightly darker selected fill. Page titles truncate within the list; reading content wraps. Activity uses a small rounded SVG icon tile plus a text status. The change reader adds a thin current-color outline around its status chip. Status wording and icons carry meaning; status hues remain neutral.
+Browse presents actual note paths as nested, expandable folders and note rows. Folder counts include descendants; root notes remain at the root. Names wrap, folders sort naturally, and notes sort by title within each folder. Selection uses the existing pale filled row. Review retains flat activity rows with a pale hover tone and a slightly darker selected fill. Activity uses a small rounded SVG icon tile plus a text status. The change reader adds a thin current-color outline around its status chip. Status wording and icons carry meaning; status hues remain neutral.
 
 ### Graph nodes
 
-The graph uses the shared off-white canvas with dark gray nodes and readable ink labels. Neutral edges stay faint until active; suggested relationships remain distinct through dotted strokes. Zoom controls use the paper surface, charcoal selection and an inset keyboard focus outline. Nodes represent whole notes, with larger dots and stronger labels for hubs. Selection adds a dark offset ring and stronger caption. Hover or keyboard focus emphasizes the active note’s direct connections and dims unrelated elements; selected note identity persists. Dot scaling and edge emphasis transition over 220ms. At the narrowest breakpoint, only hub and active captions remain visible; unselected hub labels sit above their nodes so selected captions keep their lower position. Pan and zoom change the graph transform, while the legend and zoom controls remain anchored to the graph panel.
+The graph uses the shared off-white canvas with dark gray nodes and readable ink labels. Neutral edges stay faint until active; suggested relationships remain distinct through dotted strokes. Zoom controls use the paper surface, charcoal selection and an inset keyboard focus outline. Nodes represent whole notes, with larger dots and stronger labels for hubs. Selection adds a dark offset ring and stronger caption. Hover or keyboard focus emphasizes the active note’s direct connections and dims unrelated elements; selected note identity persists. Dot scaling and edge emphasis transition over 220ms. At the narrowest breakpoint, only hub and active captions remain visible; unselected hub labels sit above their nodes so selected captions keep their lower position. Pan and zoom change the graph transform, while the zoom controls remain anchored to the graph panel.
 
 ### Reader and links
 
