@@ -13,7 +13,7 @@ Discover tools, call `brain_status`, and read `brain://policy`. If resources are
 
 Use `brain_status`, bounded `search`, `inspect` and `list_work` to examine the requested scope: missing provenance/metadata, unresolved links, conflicts, deferred work and sync observations. Follow a configured local diagnostic procedure when required for fuller coverage. Report exact paths and coverage gaps; bounded listings are not a whole-Brain audit.
 
-Do not call `remember`, `claim_work`, `finish_work`, `review_memory`, `promote`, `suggest_connections` or `review_connection` during a read-only check. Suggestions persist state even before a link is accepted. Do not refresh caches, write logs/checkpoints or acknowledge source queues. Report findings without repairing them.
+Do not call `assess_memory`, `undo_memory`, `remember`, `claim_work`, `finish_work`, `review_memory`, `promote`, `suggest_connections` or `review_connection` during a read-only check. Suggestions persist state even before a link is accepted. Do not refresh caches, write logs/checkpoints or acknowledge source queues. Report findings without repairing them.
 
 ## Authorized link maintenance
 
@@ -30,3 +30,7 @@ If the owner requires local suggestions, use that configured integration; do not
 QMD refresh, native link resolution, graph appearance and Obsidian plugins require their actual local runtimes and explicit task authority. Follow the owner's integration instructions; do not install software, enable a cloud embedding provider or create schedules as an incidental repair.
 
 Use existing authorized log/checkpoint mechanisms after a mutating maintenance run. Protected policy and `_System` files are not writable through the note MCP. Defer factual reconciliation, promotion, deletion and broad reorganization outside the assigned scope. Never report successful device sync or a scheduler run from a saved instruction file alone.
+
+## Exception recovery in existing authorized jobs
+
+A job already authorized to process shared work follows `brain-review`: at most its configured batch limit (five if unspecified), ready interrupted assessments/commits and unresolved Inbox first, then its existing permitted link/duplicate/changed-note checks. Reuse stored advice, skip live leases and future deferrals, and preserve exact blockers. Completed direct captures need no routine promotion. This does not give a read-only maintenance run write/queue authority, create a new schedule, or permit archive/delete actions based on Jev advice. Record real executor/run evidence separately from documentation updates.

@@ -1,6 +1,6 @@
 # Brain harness
 
-Any owner-authorized MCP client can consume, capture, review and promote verified knowledge. Agents supply reasoning, duplicate checks and source verification. Enabled new/update writes save directly; the server applies write rules and records outcomes. Jev assesses recall, connection suggestions and promotion.
+Any owner-authorized MCP client can consume, capture, review and promote verified knowledge. Agents supply reasoning, duplicate checks and source verification. Enabled new/update writes save directly; the server applies write rules and records outcomes. Jev provides synchronous advisory quality/lifecycle feedback through `assess_memory`; agents choose and commit the final update. Jev also assesses recall and connection suggestions.
 
 ```mermaid
 flowchart LR
@@ -10,7 +10,7 @@ flowchart LR
   H <--> Q[(SQLite index, work and history)]
 ```
 
-The server exposes `brain_status`, `search`, `recall`, `inspect`, `remember`, `list_work`, `claim_work`, `finish_work`, `review_memory`, `promote`, `suggest_connections` and `review_connection`. Existing recall/inspect/remember callers continue to work. The authoritative workflow is [the agent guide](agent-guide.md), also served as `brain://guide`; vault-specific rules are `brain://policy`.
+The server exposes `brain_status`, `search`, `recall`, `inspect`, `assess_memory`, `remember`, `undo_memory`, `list_work`, `claim_work`, `finish_work`, `review_memory`, `promote`, `suggest_connections` and `review_connection`. Existing recall/inspect/remember callers continue to work. The authoritative workflow is [the agent guide](agent-guide.md), also served as `brain://guide`; vault-specific rules are `brain://policy`.
 
 ## Connect any compatible client
 
@@ -23,11 +23,11 @@ The server exposes `brain_status`, `search`, `recall`, `inspect`, `remember`, `l
 
 SQLite FTS5 provides bounded lexical retrieval. The persisted index reuses parsed Markdown when the file's inode, size and modification/change timestamps are unchanged. Refresh still reconciles filesystem metadata and links across the vault; this release is not an event-only index or a guarantee of constant-time refresh. A restart reuses the parsed index. No external embedding or queue service is required.
 
-Inbox items, changed observed notes and actionable proposals produce deduplicated work. A five-minute claim belongs to the full authenticated client identity; claim tokens are omitted from listings. Expired workers cannot finish or review a reassigned job. New revisions invalidate old work, and source gaps can be deferred instead of reviewed every night. Original source collectors retain their own queues and budgets.
+Interrupted assessments, Inbox items, changed observed notes and actionable legacy proposals produce deduplicated work. Normal direct capture does not require a later promotion. Genuine evidence/routing uncertainty uses Inbox; an interrupted staged candidate stays in assessment work without another copy. A five-minute claim belongs to the full authenticated client identity; claim tokens are omitted from listings. Expired workers cannot finish or review a reassigned job. New revisions invalidate old work, and source gaps can be deferred instead of reviewed every night. Original source collectors retain their own queues and budgets. The existing authorized sweep consumes a bounded ready batch, reuses stored advice and defers inaccessible evidence; live claims and future deferrals are skipped. No new server cron is added. See the [agent guide](agent-guide.md) and [review procedure](../skills/brain-review/SKILL.md); a tested protocol does not prove a real scheduler ran.
 
 Promotion is an explicit Inbox-to-existing-folder operation, not bulk reorganization. A journal retains the original note and writes the destination before removing the source. Existing destination files and changed source revisions are never intentionally overwritten. Moves that break or retarget resolved links are held with affected paths. Correct outgoing links in the proposal; broader link repair needs its own authorized work. The server copy has exactly one writer and serialized sync; concurrent independent direct filesystem writers are unsupported.
 
-The browser's Changes view lists shared work and lets the owner inspect evidence/diffs, save a retained memory or dismiss it. Owner review can close an active agent claim. Memory acceptance writes directly without rerunning Jev and preserves revision and privacy checks. A successful server write is separate from successful device sync.
+The browser’s Review view prominently displays real advisory scores, recommendations, agent rationale and actual write status, including earlier-draft/context labels and unavailable advice. Shared work distinguishes saved Inbox notes from unsaved assessments. Bounded Undo restores a recorded prior state only when content, paths and incoming links remain safe. Legacy retained proposals can still be saved or dismissed. Owner review can close an active agent claim. Memory acceptance writes directly without rerunning Jev and preserves revision and privacy checks. A successful server write is separate from successful device sync.
 
 ## Hosting
 
