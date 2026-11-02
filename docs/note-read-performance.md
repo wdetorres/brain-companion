@@ -45,7 +45,7 @@ Render's [filter rules](https://render.com/docs/monorepo-support#setting-build-f
 
 1. Keep the held UI release separate. Have the release owner review/apply the filter payload to the existing service; inspect the saved paths and any resulting deploy state before proceeding.
 2. Release this backend fix against current main without the held UI changes. It matches `server/**`, so one actual backend replacement remains necessary. Preserve the existing disk, auth, writer settings, and service plan.
-3. After recovery, measure authenticated note reads that overlap a real sync, verify fresh/changed-note handling and successful sync, and check existing sign-in. Recheck the normal browser reader.
+3. After recovery, measure authenticated note reads that overlap a real sync, including a just-invalidated index as well as ready indexed notes. Verify fresh/changed-note handling, successful sync and existing sign-in. Recheck the normal browser reader. The just-invalidated case still uses the serialized fallback; report its actual delay rather than treating the ready-index benchmark as a blanket pass.
 4. Only after the owner's performance gate is satisfied, release the held UI. Confirm Vercel advances and Render does not redeploy for that UI-only diff. The exact queued UI candidate should be compared against the configured filter before pushing.
 
 Build filters prevent needless replacements; they do **not** make true backend restarts zero-downtime. This single-instance service's persistent disk remains a [zero-downtime exception](https://render.com/docs/deploys#zero-downtime-deploys). No paid infrastructure, scaling, auth changes, or sync scheduling changes are part of this fix.
