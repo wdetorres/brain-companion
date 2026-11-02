@@ -19,7 +19,7 @@ export function createHandler(store:BrainStore,config:{auth:AuthService;bridgeKe
    if(url.pathname==='/api/apps'&&req.method==='GET')return json({apps:await auth.clients(req)});
    if(req.method==='POST'&&['/api/apps/revoke','/api/consent'].includes(url.pathname)){
     const text=await req.text();if(text.length>16384)return json({error:'Request too large'},413);
-    const body=JSON.parse(text);if(!auth.csrf(req,body?.csrf))return json({error:'Invalid origin or CSRF token'},403);
+    const body=JSON.parse(text);if(!auth.csrf(req,body?.csrf)){console.warn('Brain app request rejected',{path:url.pathname,hasOrigin:!!origin,sameOrigin:origin===auth.origin,hasCsrfCookie:(req.headers.get('cookie')||'').includes('brain_csrf='),hasCsrfToken:typeof body?.csrf==='string'});return json({error:'Invalid origin or CSRF token'},403);}
     if(url.pathname==='/api/apps/revoke'){const input=z.object({csrf:z.string(),clientId:z.string().min(1).max(256)}).strict().parse(body);await auth.revokeClient(req,input.clientId);return json({ok:true});}
     const input=z.object({csrf:z.string(),query:z.string().min(1).max(12000)}).strict().parse(body);return json(await auth.consentDetails(req,input.query));
    }
@@ -38,6 +38,6 @@ export function createHandler(store:BrainStore,config:{auth:AuthService;bridgeKe
    if(url.pathname==='/api/work'){const offset=z.coerce.number().int().min(0).max(1000000).parse(url.searchParams.get('offset')||0);const items=await store.listWork({limit:10,offset});return json({items,nextOffset:items.length===10?offset+10:null});}
    if(url.pathname==='/api/search')return json({notes:await store.search(url.searchParams.get('q')||'')});
    return json({error:'Not found'},404);
-  }catch{return json({error:'Request could not be completed'},400);}
+  }catch(error){if(new URL(req.url).pathname==='/api/consent')console.warn('Brain consent validation failed',{error:error instanceof Error?error.name:'unknown'});return json({error:'Request could not be completed'},400);}
  };
 }
