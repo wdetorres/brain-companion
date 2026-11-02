@@ -39,6 +39,10 @@
       "destination": "/api/bridge?route=api/operation"
     },
     {
+      "source": "/api/assessment",
+      "destination": "/api/bridge?route=api/assessment"
+    },
+    {
       "source": "/api/search",
       "destination": "/api/bridge?route=api/search"
     },

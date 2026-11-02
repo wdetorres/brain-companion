@@ -105,3 +105,16 @@ test('external assessment excludes internal/client/policy notes before the short
   assert.equal((await store.search('launch')).length,4);
   await assert.rejects(store.suggestConnections('Private.md'),/excluded/);
 });
+test('assessment reads omit claims and browser undo requires owner, origin, CSRF and a bounded payload',async t=>{
+ const {store,vault}=await setup(t);store.accept.add('new');const origin='https://brain.example.com',{service:auth,db}=await fixture(t),login=await owner(auth,db),handle=createHandler(store,{auth});
+ const session=await handle(new Request(origin+'/api/auth/session')),{csrf}=await session.json(),csrfCookie=session.headers.get('set-cookie')!.split(';')[0],cookie=csrfCookie+'; '+login.cookie;
+ const input={path:'Undoable.md',markdown:'# Undoable',sources:[{title:'Source',uri:'urn:test:undoable',observedAt:'2026-11-02T00:00:00Z',excerpt:'A sourced note'}],expectedRevision:null,idempotencyKey:'browser-assessment',intent:'capture' as const},a=await store.assessMemory(input,'Agent');
+ const get=(cookie?:string)=>new Request(origin+'/api/assessment?id='+a.assessment.id,{headers:cookie?{Cookie:cookie}:{}});
+ assert.equal((await handle(get())).status,401);const inspected=await handle(get(cookie));assert.equal(inspected.status,200);assert.ok(!(await inspected.text()).includes(a.claimToken!));
+ const {intent,...candidate}=input,op=await store.remember({...candidate,idempotencyKey:'browser-save',assessment:{id:a.assessment.id,claimToken:a.claimToken!,reason:'Verified'}},'Agent');
+ const body={operationId:op.id,expectedRevision:op.revision,reason:'Owner requested undo',idempotencyKey:'browser-undo',csrf};
+ const req=(payload:object,cookieValue=cookie,site=origin)=>new Request(origin+'/api/memories/undo',{method:'POST',headers:{Cookie:cookieValue,Origin:site,'Content-Type':'application/json'},body:JSON.stringify(payload)});
+ assert.equal((await handle(req(body,csrfCookie))).status,401);assert.equal((await handle(req({...body,csrf:'wrong'}))).status,403);assert.equal((await handle(req(body,cookie,'https://evil.test'))).status,403);
+ assert.equal((await handle(req({...body,markdown:'replacement'}))).status,400);assert.equal((await handle(req({...body,reason:'x'.repeat(5000)}))).status,413);
+ const undone=await handle(req(body));assert.equal(undone.status,200);assert.equal((await undone.json()).status,'applied');await assert.rejects(readFile(join(vault,input.path)),{code:'ENOENT'});
+});
