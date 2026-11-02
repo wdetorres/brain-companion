@@ -49,3 +49,11 @@ test('reviewed links resolve to the chosen target even with an overlapping folde
   assert.equal(text,'\n\nRelated: [[../Resources/Guide]]\n');
   assert.equal(resolveNoteLink(nodes,nodes[0].path,text.match(/\[\[(.*?)\]\]/)![1]),nodes[1].path);
 });
+
+test('recent notes use valid modification dates, keep stable ties and do not mutate the index', () => {
+ const notes = ['2026-11-01', 'invalid', '2026-11-02', '2026-10-30', '2026-11-02', '2026-10-01'].map((modifiedAt, i) => ({ path: String(i), modifiedAt })) as import('../src/shared.ts').Note[];
+ const original = [...notes];
+ assert.deepEqual(presentation.recentNotes(notes).map(n => n.path), ['2', '4', '0', '3']);
+ assert.deepEqual(notes, original);
+ assert.deepEqual(presentation.recentNotes([]), []);
+});

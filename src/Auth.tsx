@@ -19,7 +19,7 @@ export function LoginPage({ error = '' }: { error?: string }) {
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState('');
   const params = new URLSearchParams(typeof location === 'undefined' ? '' : location.search);
   const pending = params.has('sig');
-  return <Frame><span className="eyebrow">WELCOME BACK</span><h1>Your brain.<br />One place to connect.</h1><p>{pending ? 'Sign in to review the app requesting access to your Brain.' : 'Explore your notes, follow connections, and see what your agents remember.'}</p>
+  return <Frame><h1>Your brain.<br />One place to connect.</h1><p>{pending ? 'Sign in to review the app requesting access to your Brain.' : 'Explore your notes, follow connections, and see what your agents remember.'}</p>
     {(error || failure || params.has('error')) && <p role="alert" className="error-text">{error || failure || 'Sign-in was cancelled or could not be completed. Use your approved Google account and try again.'}</p>}
     <button className="google-signin" disabled={busy || !!error} onClick={async () => { setBusy(true); setFailure(''); try { const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/app', errorCallbackURL: '/sign-in?error=sign_in_failed' }); if (result.error) throw Error(); } catch { setFailure('Could not sign in. Try again with your approved Google account.'); setBusy(false); } }}><span className="google-letter" aria-hidden="true">G</span>{busy ? 'Opening Google…' : 'Continue with Google'}<ArrowUpRight size={17} /></button>
     <p className="small muted">Only your approved Google account can open this workspace.</p><a className="demo-link" href="/demo">Explore the sample brain <ArrowUpRight size={14} /></a>

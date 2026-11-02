@@ -1,0 +1,34 @@
+{
+  "package": "@lobehub/icons-static-svg",
+  "version": "1.102.0",
+  "source": "https://registry.npmjs.org/@lobehub/icons-static-svg/-/icons-static-svg-1.102.0.tgz",
+  "icons": [
+    {
+      "name": "claude",
+      "sha256": "365a70a7eb3956d9b9a96086058ebe04e1dbd8e291a756ad964e8a283fbd6d38",
+      "bytes": 1701
+    },
+    {
+      "name": "openai",
+      "sha256": "a595df6b423920c67a7f8f73c063e4bfb72d415948097b6cac063a2366bb5186",
+      "bytes": 1687
+    },
+    {
+      "name": "gemini",
+      "sha256": "87d5b3c4be75a66f54c1936482a263df68185545b741129badd1b7c2449c18d3",
+      "bytes": 651
+    },
+    {
+      "name": "grok",
+      "sha256": "9175fc90c22655160231976c849f25a03b888d7cc0e04c5f1b987b659bb07c95",
+      "bytes": 756
+    },
+    {
+      "name": "cursor",
+      "source": "https://cursor.com/brand",
+      "asset": "General Logos/Cube/SVG/CUBE_2D_DARK.svg",
+      "sha256": "cd0e3e5d8991a4cdd4577f8896cd063105207665165c73e25a1ff918dd367eb7"
+    }
+  ],
+  "licenseSource": "https://raw.githubusercontent.com/lobehub/lobe-icons/master/LICENSE"
+}

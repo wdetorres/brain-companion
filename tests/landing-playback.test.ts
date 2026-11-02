@@ -3,7 +3,7 @@ import { buildSync } from 'esbuild';
 import { runInNewContext } from 'node:vm';
 import { test } from 'node:test';
 
-const compiled = buildSync({ entryPoints: ['src/landing.ts'], bundle: true, format: 'esm', write: false, outdir: 'dist/assets' }).outputFiles.find(file => file.path.endsWith('.js'))!.text;
+const compiled = buildSync({ entryPoints: ['src/landing.ts'], external: ['/fonts/*'], bundle: true, format: 'esm', write: false, outdir: 'dist/assets' }).outputFiles.find(file => file.path.endsWith('.js'))!.text;
 type PreviewElement = {
   dataset: Record<string, string>; textContent: string; hidden: boolean;
   events: Record<string, () => void>; attributes: Record<string, string>;
@@ -78,4 +78,14 @@ test('sequence ends once and replay starts a fresh illustrative timeline', () =>
   assert.equal(p.element('#agent-name').textContent, 'Claude');
   assert.equal(p.element('#note-schedule').textContent, 'Friday, 10:00 AM');
   assert.equal(p.frames.size, 1);
+});
+
+test('agent identity follows the selected conversation', () => {
+  const p = preview(true);
+  assert.equal(p.element('#agent-logo').attributes.src, '/agents/claude.svg');
+  p.click('recall');
+  assert.equal(p.element('#agent-name').textContent, 'ChatGPT');
+  assert.equal(p.element('#agent-logo').attributes.src, '/agents/openai.svg');
+  p.click('save');
+  assert.equal(p.element('#agent-logo').attributes.src, '/agents/claude.svg');
 });

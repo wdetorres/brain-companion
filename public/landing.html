@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#fafafa">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080808">
 <meta name="description" content="One shared Brain across your connected agents. Save in one conversation, recall in the next.">
 <title>Brain Companion — One brain. Any agent.</title>
 <link rel="canonical" href="https://brain.wilsondetorres.com/">
@@ -34,7 +34,9 @@
 <p>Start in Claude. Pick it up in ChatGPT. Your ideas, decisions,<br class="wide-break"> and context stay in the same Brain.</p>
 <a class="primary-action" href="/demo">Explore the sample Brain <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
 <span class="intro-caption">No sign-in needed.</span>
-<p class="agent-list" aria-label="Connect your agents through MCP">ChatGPT <span>Claude</span> Gemini <span>Cursor</span> Grok Bot</p>
+<ul class="agent-list" aria-label="Connect your agents through MCP">
+<li><img src="/agents/openai.svg" width="22" height="22" alt="">ChatGPT</li><li><img src="/agents/claude.svg" width="22" height="22" alt="">Claude</li><li><img src="/agents/gemini.svg" width="22" height="22" alt="">Gemini</li><li><img class="cursor-logo" src="/agents/cursor.svg" width="22" height="22" alt="">Cursor</li><li><img src="/agents/grok.svg" width="22" height="22" alt="">Grok Bot</li>
+</ul>
 <span class="agent-caption">One shared Brain, through your MCP connections.</span>
 </section>
 <section class="demo-section page-width" id="demo" aria-label="Scripted Brain MCP conversation demo">
@@ -47,7 +49,7 @@
 </div>
 <div class="demo-body">
 <div class="conversation" id="chat-transcript">
-<div class="conversation-header"><span class="agent-avatar" aria-hidden="true"><svg class="icon"><use href="#i-tool"/></svg></span><strong id="agent-name">Claude</strong><span class="connection-label">Brain MCP connected</span></div>
+<div class="conversation-header"><span class="agent-avatar" aria-hidden="true"><img id="agent-logo" src="/agents/claude.svg" width="20" height="20" alt=""></span><strong id="agent-name">Claude</strong><span class="connection-label">Brain MCP connected</span></div>
 <div class="user-message"><span class="sr-only">You:</span><p id="chat-prompt">Remember: the walkthrough is Monday at 10 AM, not Friday.</p></div>
 <div class="mcp-call" id="mcp-call" aria-label="Illustrative MCP call">
 <div class="call-header"><span class="call-indicator" aria-hidden="true"><svg class="icon"><use href="#i-check"/></svg></span><span>Brain <code id="call-name">remember</code></span><span id="call-state">Saved</span></div>

@@ -24,3 +24,8 @@ export function diffLines(before:string,after:string):DiffLine[]{
  const out:DiffLine[]=[];let i=0,j=0;while(i<a.length||j<b.length){if(i<a.length&&j<b.length&&a[i]===b[j]){out.push({kind:'same',text:a[i++]});j++;}else if(i<a.length&&(j===b.length||dp[i+1][j]>=dp[i][j+1]))out.push({kind:'remove',text:a[i++]});else out.push({kind:'add',text:b[j++]});}return out;
 }
 export const folderLabels:Record<string,string>={all:'All notes',brain:'Brain',projects:'Projects',areas:'Areas',resources:'Resources',archives:'Archives',inbox:'Inbox',system:'System'};
+
+export function recentNotes(notes: Note[]) {
+ return notes.filter(note => Number.isFinite(Date.parse(note.modifiedAt)))
+  .sort((a, b) => Date.parse(b.modifiedAt) - Date.parse(a.modifiedAt)).slice(0, 4);
+}

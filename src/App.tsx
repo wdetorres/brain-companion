@@ -14,7 +14,7 @@ import { ChangeReader, AssessmentReader, Sources } from './ChangeReader.tsx';
 import { categories, categoryLabels } from './shared.ts';
 import { Markdown } from './Markdown.tsx';
 import { demoSnapshot, demoAssessments } from './demo.ts';
-import { firstReview, folderLabels, needsReview, visibleGraph, operationStatus as statusFor } from './presentation.ts';
+import { firstReview, folderLabels, needsReview, recentNotes, visibleGraph, operationStatus as statusFor } from './presentation.ts';
 import type { BrainSnapshot, Note, Operation, Assessment, MemoryCategory, Connection } from './shared.ts';
 
 type View = 'graph' | 'pages' | 'changes' | 'recall';
@@ -130,6 +130,7 @@ export function App() {
     return () => { clearTimeout(timer); controller.abort(); };
   }, [query, snapshot]);
   const browsableNotes = useMemo(() => notes.filter(n => (!category || n.category === category) && (system || !['inbox', 'system'].includes(n.folder))), [notes, category, system]);
+  const recentlyChanged = useMemo(() => recentNotes(browsableNotes), [browsableNotes]);
   const folderPaths = useMemo(() => [...new Set(browsableNotes.flatMap(n => parentFolders(n.path)))].sort((a, b) => a.localeCompare(b, undefined, { numeric: true })), [browsableNotes]);
   const graphFolder = folderPaths.includes(folder) ? folder : '';
   const graphNotes = useMemo(() => browsableNotes.filter(n => isInFolder(n.path, graphFolder)), [browsableNotes, graphFolder]);
@@ -200,6 +201,7 @@ export function App() {
       <nav aria-label="Main navigation">
         {([['graph', Network, 'Graph'], ['pages', BookOpen, 'Browse'], ['changes', History, 'Review']] as const).map(([id, Icon, label]) => <button key={id} className={'nav-item ' + (view === id ? 'active' : '')} aria-current={view === id ? 'page' : undefined} aria-label={label} title={label} onClick={() => changeView(id)}><Icon size={18} strokeWidth={1.6} /><span>{label}</span>{id === 'changes' && snapshot.operations.some(needsReview) && <span className="nav-count attention-count">{snapshot.operations.filter(needsReview).length}</span>}</button>)}
       </nav>
+      {!!recentlyChanged.length && <section className="recent-notes" aria-label="Recently changed notes"><h2>Recently changed</h2>{recentlyChanged.map(n => <button key={n.path} aria-current={selected === n.path ? 'page' : undefined} title={n.path} onClick={() => openNote(n.path)}><FileText size={14} /><span>{n.title}</span></button>)}</section>}
       <div className="sidebar-bottom"><LockKeyhole size={14} /><span>{isDemo ? 'Sample workspace' : <a href="/settings">Account & connections</a>}</span>{!isDemo && <button className="icon-button" aria-label="Sign out" title="Sign out" onClick={async () => { const r = await authClient.signOut(); if (!r.error) { noteCache.clear(); setSelected(null); setOperationId(null); setSnapshot(null); } else setError('Could not sign out. Refresh and try again.'); }}><LogOut size={15} /></button>}</div>
     </aside>
     <main className="main-shell">

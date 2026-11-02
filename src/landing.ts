@@ -5,6 +5,7 @@ const demo = document.querySelector<HTMLElement>('.demo-frame')!;
 const play = document.querySelector<HTMLButtonElement>('#play-demo')!;
 const reduced = matchMedia('(prefers-reduced-motion: reduce)');
 const agent = document.querySelector('#agent-name')!;
+const agentLogo = document.querySelector('#agent-logo')!;
 const prompt = document.querySelector('#chat-prompt')!;
 const response = document.querySelector<HTMLElement>('#chat-response')!;
 const draft = document.querySelector('#draft-text')!;
@@ -37,6 +38,7 @@ function render() {
   demo.dataset.playing = String(playing);
   demo.dataset.phase = String(f.phase);
   agent.textContent = f.recall ? 'ChatGPT' : 'Claude';
+  agentLogo.setAttribute('src', `/agents/${f.recall ? 'openai' : 'claude'}.svg`);
   prompt.textContent = f.prompt;
   prompt.closest<HTMLElement>('.user-message')!.dataset.visible = String(f.messageVisible);
   response.textContent = f.answer;
