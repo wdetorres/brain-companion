@@ -57,9 +57,9 @@
 - [x] Back up affected local Markdown and automation definitions privately; read before edits and preserve unrelated customizations.
 - [x] Install matching copies; reconcile the existing brain-capture name instead of leaving competing definitions. Verify client discovery using supported read-only mechanisms.
 - [x] Align canonical and installed instructions. Preserve current local capture/weekly methods and explicitly list remote scheduler/client targets not verified.
-- [ ] Verify saved files, relevant links and hashes; refresh authorized derived indexes if available. Check live MCP readback separately from local files.
-- [ ] Record completed adoption versus pending writer cutover in `docs/skill-migration.md`, without private source data.
-- [ ] Perform the executing-plans final fresh review; fix material findings, run appropriate checks and commit. Keep the completed branch local for user review.
+- [x] Verify saved files, relevant links and hashes; refresh authorized derived indexes if available. Check live MCP readback separately from local files.
+- [x] Record completed adoption versus pending writer cutover in `docs/skill-migration.md`, without private source data.
+- [x] Perform the executing-plans final fresh review; fix material findings, run appropriate checks and commit. Keep the completed branch local for user review.
 
 ## Execution rulings
 

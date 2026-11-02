@@ -40,10 +40,12 @@ Read-only health checks do not claim/finish work, write logs or request persiste
 - Existing MCP source instructions and served guide aligned; these repository changes require normal deployment before production serves their updated prose. Tool schemas and enforcement are unchanged.
 - Independent simulated workflow check and isolated MCP tests completed; see [validation](skill-validation.md).
 - All four skills are installed in local Codex and Claude skill directories and mirrored under the vault's `_System/Skills/`. Every source and installed file matched byte-for-byte. Existing `brain-capture` was backed up and replaced, with no competing definition left in those roots.
-- Native Codex `skills/list` returned all four enabled skills, with no Brain errors, for both the project and vault contexts. Claude inline bundle discovery passed; standalone files are installed but live Claude session/OAuth verification remains pending.
+- Native Codex `skills/list` returned all four enabled skills, with no Brain errors, for both the project and vault contexts. A nonpersisted Claude CLI session also listed all four standalone skills and completed with zero tool calls. Claude inline bundle discovery passed. These checks do not establish Claude's MCP OAuth or live mutation readiness.
 - Canonical owner routing, four stage contracts, search guidance, agent setup and local Codex/Claude global guidance now refer to the focused skills and an owner-only migration profile. Ordinary local writers and maintenance methods remain explicitly selected.
 - The three existing local Codex automation prompts were updated through the supported automation tool. Saved prompt readback matched exactly; comparison of every other field confirmed that only prompts and update timestamps changed. No jobs were created or run as tests.
 - Private rollback copies of affected local files and original automation definitions are outside the repository and vault. Remote Claude desktop accomplishments, Grok review and Dots enrichment prompts remain pending independent verification; their local setup notes explicitly preserve current behavior.
+- QMD keyword/embedding refresh completed. The native-derived graph reported no stale paths and no unresolved links. Hosted MCP readback matched the local capture skill and owner migration profile by content hash; this is representative sync evidence, not full cross-device convergence.
+- Final independent branch review found no material or minor findings. All 75 repository tests passed, alongside type checking and build. The branch remains local; updated server/guide prose has not been deployed.
 
 ## Writer cutover still required
 
