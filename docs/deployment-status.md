@@ -1,8 +1,24 @@
-# Hosted Google SSO checkpoint — November 2, 2026
+# Custom-domain checkpoint — November 2, 2026
+
+This is the current deployment checkpoint. The sections below are historical.
+
+- **Live UI:** https://brain.wilsondetorres.com. **MCP:** https://brain.wilsondetorres.com/mcp. The apex still serves the existing portfolio; its DNS records were preserved.
+- Added the subdomain to the existing Vercel project and only its assigned DNS-only CNAME in Cloudflare. DNS and the HTTPS certificate verified successfully. The former Vercel hostname redirects all tested UI/auth/MCP/discovery paths with HTTP 307.
+- Updated canonical `PUBLIC_ORIGIN` on Render, the matching Vercel production setting and private local deployment configuration. Render cutover deployment `dep-dbk12utg1s2s73909od0` became live at `2026-11-02T04:29:26Z`. No application code, credentials, vault paths or sync schedule changed.
+- Added the exact new Google callback and verified real owner sign-in. Removed the old callback after successful login. Existing owner/user/account records were preserved; old sessions, client registration and MCP grants were retired transactionally after a consistent private database backup and integrity checks.
+- The current ChatGPT app is **Brain Companion**, ID `asdk_app_6ae8125cb734819199367c91b5350691`, using the new domain with DCR and `brain` / `offline_access`. The previous SSO app is labeled **Brain Companion (old Vercel domain)** and disconnected. Its definition was retained, not permanently deleted. The original password-based app had already been uninstalled.
+- ChatGPT discovered all **12 tools** (5 read, 7 write). In the [live domain acceptance chat](https://chatgpt.com/c/6ae812d6-5a90-83ec-a97c-d588dcdd2cc7), status and bounded `BRAIN.md` inspection succeeded. Account & connections on the new domain recorded the successful MCP request and fresh successful Obsidian sync. No notes or shared work were changed for testing.
+- All 10 focused auth/config tests passed, including canonical-origin migration and old-resource rejection. Public checks verified canonical discovery, anonymous 401 responses, foreign/old-origin 403 responses and a host-only Secure CSRF cookie. Documentation links and diff checks passed.
+
+See the [hosting runbook](hosting-runbook.md) for the complete sequence, resource map, backup location, previous setup and rollback instructions. This was a configuration migration; no new application logic or dependencies were added. Live token-expiry/refresh, non-owner Google login, cross-device convergence and off-disk disaster recovery remain unverified.
+
+---
+
+# Historical Google SSO checkpoint — November 2, 2026
 
 This checkpoint supersedes the historical deployment notes below.
 
-For the complete hosted setup sequence, resource map and pending custom-domain migration, start with the [hosting runbook](hosting-runbook.md). The domain migration is authorized but has not changed production yet.
+This records acceptance before the custom-domain migration. See the [hosting runbook](hosting-runbook.md) for the current configuration.
 
 - The current UI and MCP origin remains https://brain-companion-hazel.vercel.app. Better Auth runs on the existing Render worker with a separate persistent `auth.sqlite`; vault, operation history, Headless credentials and sync schedule were preserved. The confirmed owner completed real Google sign-in, and the UI reports successful scheduled sync.
 - Google client credentials and the stable auth secret are configured privately on Render. The unused production `BRAIN_PASSWORD_HASH` value was cleared after cutover. The password endpoints and old `/oauth/*` issuer no longer authorize access. Vercel continues to use the server-side worker URL and bridge key.

@@ -1,14 +1,14 @@
 # Hosting, sign-in and ChatGPT setup record
 
-Updated November 2, 2026 (Asia/Manila), before the custom-domain migration.
+Updated November 2, 2026 (Asia/Manila). Initial pre-migration checkpoint: commit `877fc4e`.
 
 This is the continuation point for the hosted setup. Completed steps below record this session's observed results; they are not a claim that every service was rechecked at this documentation checkpoint. [Deployment status](deployment-status.md) retains historical checkpoints, and [Google SSO operations](google-sso.md) explains auth setup and rollback.
 
 ## Current state
 
-The live UI and MCP use **https://brain-companion-hazel.vercel.app**. The Render worker holds the vault and persistent state. Google sign-in and the ChatGPT connection passed live checks. The working ChatGPT app is now named **Brain Companion**, and the legacy app was uninstalled.
+The live UI and MCP now use **https://brain.wilsondetorres.com**. The Render worker holds the vault and persistent state. The old Vercel hostname redirects to the new one. Fresh Google sign-in, successful sync status and actual ChatGPT status/note reads passed on the new domain.
 
-Wilson has authorized migration to **wilsondetorres.com**. Only preliminary inspection has begun: no domain, DNS, Google callback, canonical-origin or ChatGPT endpoint changes have been made for that migration. DNS ownership, existing website use and the exact Vercel DNS target still need verification.
+Wilson chose **brain.wilsondetorres.com** after inspection showed the apex already serves his portfolio. The apex and `www` records remain unchanged. The original password-based ChatGPT app was already uninstalled before this migration; the previous SSO registration is now named **Brain Companion (old Vercel domain)**, disconnected, and its backend grants are retired. Its definition remains available for reference, not active use.
 
 ### Resource map
 
@@ -24,7 +24,8 @@ Wilson has authorized migration to **wilsondetorres.com**. Only preliminary insp
 | Persistent paths | Vault `/data/vault`; state `/data/state`; Headless configuration `/data/config` |
 | Google Cloud | Project `rugged-cooler-304004` (My First Project); app Brain Companion; External / Testing |
 | Owner | `detorres.wilson21@gmail.com`; first verified login pins the stable Google subject |
-| Working ChatGPT app | [Brain Companion settings](https://chatgpt.com/settings/plugins-settings/plugin_asdk_app_6ae80aff04a08191982e37a532003fc7), app `asdk_app_6ae80aff04a08191982e37a532003fc7` |
+| Working ChatGPT app | [Brain Companion settings](https://chatgpt.com/settings/plugins-settings/plugin_asdk_app_6ae8125cb734819199367c91b5350691), app `asdk_app_6ae8125cb734819199367c91b5350691` |
+| Retired Vercel-domain SSO app | `asdk_app_6ae80aff04a08191982e37a532003fc7`; renamed Brain Companion (old Vercel domain), disconnected and grants retired |
 | Retired ChatGPT app | `asdk_app_6ae7f0403a5c819196965a3c5d1d541d`; uninstalled, not permanently deleted |
 
 Resource IDs and URLs are identifiers, not credentials. Never add secret values, cookies, tokens, passwords, vault excerpts or private backup contents to this document.
@@ -86,22 +87,38 @@ The [approved design](superpowers/specs/2026-11-02-google-sso-design.md) and [co
 
 Real checks established owner Google login, successful worker sync status, ChatGPT tool discovery/read, revoked-access rejection and fresh reconnect. Synthetic integration tests cover non-owner rejection, refresh rotation/replay and denial of old tokens after reconnect. A live access-token-expiry/refresh cycle, a second real Google account, cross-device Obsidian convergence and load capacity were not exercised.
 
-## Next: migrate the domain
+## Completed custom-domain migration
 
-**Status: pending.** Complete and record each item before marking the new domain live. Use the existing app, worker, vault and Google client; no new auth system or sync setup is needed.
+**Status: complete.** The existing app, worker, vault and Google client were reused; no new auth system or sync setup was needed.
 
-- [ ] Inspect `wilsondetorres.com` authoritative DNS, existing website use and Vercel domain ownership. Resolve any existing-site conflict before replacing apex records. Record the chosen canonical hostname.
-- [ ] Add the hostname to the existing personal Vercel project. Use the exact DNS target Vercel provides. Change only required records at the authoritative provider; preserve email and unrelated records, and avoid a nameserver migration.
-- [ ] Verify DNS propagation and HTTPS certificate readiness for that hostname.
-- [ ] Add the exact new Google callback `https://<canonical-host>/api/auth/callback/google` to the existing Web application client. Update applicable Google origin/branding settings without requesting new scopes. Keep the old callback only for a defined rollback window.
-- [ ] Back up current `auth.sqlite` consistently and retain current configuration privately. The pre-SSO backup does not contain the current Better Auth state. Preserve the pinned owner, account, vault, operation history and Headless configuration.
-- [ ] Coordinate Render `PUBLIC_ORIGIN`, any matching Vercel environment/configuration and old-host behavior. Keep the worker URL, bridge key, Google credentials, auth secret and sync settings unchanged unless a specific failure requires otherwise. Finish in-flight authorization before switching origins.
-- [ ] Retire old browser sessions and MCP grants without deleting owner/account data. Ensure the old hostname cannot keep serving an independent authenticated app; redirecting the landing page alone does not migrate OAuth clients or audience-bound tokens.
-- [ ] Sign in on the new hostname. Verify canonical discovery, owner login, anonymous denial, origin/CSRF boundaries, unchanged vault/history and fresh successful sync status.
-- [ ] Update or recreate the ChatGPT MCP registration for `https://<canonical-host>/mcp`. Rediscover its issuer and use DCR with `brain` and `offline_access`. Complete explicit consent and verify a real status/read call; an “account connected” label alone is insufficient.
-- [ ] Retire the previous ChatGPT registration only after the new connection works. Update this record, setup examples and deployment status with the final hostname, deployment IDs, acceptance results and rollback deadline.
+Completed domain steps:
 
-If cutover fails, restore the previous canonical-origin configuration and matching routing/callbacks, then sign in and reconnect on the previous origin. Retired grants may require fresh consent. Do not restore an old vault snapshot over newer notes to undo an auth/domain change.
+1. Confirmed the portfolio at the apex and obtained Wilson's choice of `brain.wilsondetorres.com`.
+2. Verified the personal Cloudflare zone (`00d5bd9b4654191698617426da750759`) and its three existing records. Added only DNS-only CNAME `brain` → `68a75bf8f54272f1.vercel-dns-017.com`, Vercel's exact assigned target; record ID `e8419186bdb4da04760aa717bba527b7`. Existing apex/`www` CNAMEs and Google verification TXT were preserved.
+3. Added the subdomain to the existing Vercel project. Vercel reported verified ownership and valid DNS configuration. Live TLS verification passed with a certificate for `brain.wilsondetorres.com`.
+4. Added `https://brain.wilsondetorres.com/api/auth/callback/google` to the existing Google OAuth client. Google confirmed the client was saved; no credentials or scopes changed. Kept the previous callback during cutover, then removed it after successful new-domain login. Google confirmed that cleanup was saved.
+5. Used SQLite's online backup API to back up state databases under private `/data/backups/pre-domain-2026-11-02/`, with integrity checks passing. Saved relevant configuration and auth row-count baselines there, mode 0600 within a mode-0700 directory. The backup contained one pinned owner, user, account, browser session, client, consent, access token and refresh token.
+6. Updated only `PUBLIC_ORIGIN` on Render and the matching Vercel production variable. Render deployment `dep-dbk12utg1s2s73909od0` became live at `2026-11-02T04:29:26Z`. Worker/bridge URLs and keys, Google credentials, auth secret and sync settings stayed unchanged.
+7. Configured a platform-level **307** redirect from `brain-companion-hazel.vercel.app` to the new hostname. Verified redirects for `/`, auth session, MCP and discovery paths. The temporary redirect keeps rollback straightforward.
+8. Retired old sessions, client registration, access/refresh tokens, consent, pending verification and last-use records in a single SQLite transaction. Verified zero remaining old auth records, unchanged owner/user/account data and valid foreign keys. No vault or operation-history records were deleted.
+9. Verified new issuer/resource discovery, 401 denial for anonymous vault/MCP requests, 403 rejection of old/foreign origins, and a host-only Secure CSRF cookie. Fresh Google login reached Account & connections and reported successful scheduled sync. Rechecked that the portfolio still serves at the apex. All 10 focused auth/config tests passed, including origin migration and old-resource rejection.
+10. Updated the private local production-origin setting too, preserving mode 0600. Local Compose's localhost override remains separate.
+11. ChatGPT's existing app editor did not expose endpoint editing, so created a new registration using `https://brain.wilsondetorres.com/mcp`. Discovery selected DCR and the new `/api/auth` issuer; retained `brain` and base scope `offline_access`. Creation rejected the old name even after renaming the retired app, so used **Brain Companion Domain** temporarily, then renamed the connected replacement to **Brain Companion**. Current app ID: `asdk_app_6ae8125cb734819199367c91b5350691`.
+12. The signed consent page loaded successfully using the new owner session. A single **Connect ChatGPT** click completed authorization. ChatGPT's app panel showed all **12 tools** (5 read, 7 write). The [read-only acceptance chat](https://chatgpt.com/c/6ae812d6-5a90-83ec-a97c-d588dcdd2cc7) successfully called `brain_status` and inspected `BRAIN.md`; the app UI recorded a last MCP request at 12:34:39 PM and successful sync at 12:34:59 PM (Asia/Manila). No note writes, memory proposals or work claims were made.
+13. Disconnected the old Vercel-domain account in ChatGPT after the replacement worked. Its settings now offer **Connect**, not an active connected account. Retained the old app definition without permanently deleting it. Updated this runbook, setup examples and deployment checkpoint; private backups and secret values remain outside Git.
+
+- [x] Inspect `wilsondetorres.com` authoritative DNS, existing website use and Vercel domain ownership. Resolve any existing-site conflict before replacing apex records. Record the chosen canonical hostname.
+- [x] Add the hostname to the existing personal Vercel project. Use the exact DNS target Vercel provides. Change only required records at the authoritative provider; preserve email and unrelated records, and avoid a nameserver migration.
+- [x] Verify DNS propagation and HTTPS certificate readiness for that hostname.
+- [x] Add the exact new Google callback `https://brain.wilsondetorres.com/api/auth/callback/google` to the existing Web application client without requesting new scopes.
+- [x] Back up current `auth.sqlite` consistently and retain current configuration privately. The pre-SSO backup does not contain the current Better Auth state. Preserve the pinned owner, account, vault, operation history and Headless configuration.
+- [x] Coordinate Render `PUBLIC_ORIGIN`, any matching Vercel environment/configuration and old-host behavior. Keep the worker URL, bridge key, Google credentials, auth secret and sync settings unchanged unless a specific failure requires otherwise. Finish in-flight authorization before switching origins.
+- [x] Retire old browser sessions and MCP grants without deleting owner/account data. Ensure the old hostname cannot keep serving an independent authenticated app; redirecting the landing page alone does not migrate OAuth clients or audience-bound tokens.
+- [x] Sign in on the new hostname. Verify canonical discovery, owner login, anonymous denial, origin/CSRF boundaries and fresh successful sync status. Vault/history databases were not modified by migration actions; cross-device convergence remains unverified.
+- [x] Recreate the ChatGPT MCP registration for `https://brain.wilsondetorres.com/mcp`. Rediscover its issuer and use DCR with `brain` and `offline_access`. Complete explicit consent and verify a real status/read call; an “account connected” label alone is insufficient.
+- [x] Retire the previous ChatGPT connection after the new connection works. Update this record, setup examples and deployment status with the final hostname and acceptance results. The dual-callback rollback window ended after successful new-domain login; only the new Google callback remains registered.
+
+For rollback, re-add the previous exact Google callback, remove the old-host redirect and restore the previous canonical-origin configuration before signing in on the previous host. Register/reconnect ChatGPT against that origin; retired grants require fresh consent. Do not restore an old vault snapshot over newer notes to undo an auth/domain change. Backups remain private on the same Render disk; independent disaster recovery is still not established.
 
 ## Resume safely
 

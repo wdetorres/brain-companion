@@ -56,7 +56,7 @@ Jev receives the proposed text, source metadata and optional evidence excerpts, 
 
 ## Deploy
 
-For the existing hosted instance, start with the [hosting runbook](docs/hosting-runbook.md): completed setup, resource map, verification results and the pending custom-domain migration.
+The hosted app is at [brain.wilsondetorres.com](https://brain.wilsondetorres.com). Start with the [hosting runbook](docs/hosting-runbook.md) for completed setup, resource map, verification results and migration status.
 
 Use one persistent Docker service, either as the complete app or with the optional Vercel frontend. [Standalone managed hosting](docs/harness.md#hosting) serves its own HTTPS MCP endpoint without a bridge secret. Do not put the writable vault or SQLite database on a Vercel function filesystem.
 
@@ -93,7 +93,7 @@ Use one Docker web service on Starter ($7/month compute), with a **1 GB disk mou
 Set these worker variables, alongside the Google SSO settings, bridge key, and Jev key described above:
 
 ```dotenv
-PUBLIC_ORIGIN=https://brain-companion-hazel.vercel.app
+PUBLIC_ORIGIN=https://brain.wilsondetorres.com
 VAULT_PATH=/data/vault
 STATE_PATH=/data/state
 XDG_CONFIG_HOME=/data/config
@@ -107,7 +107,7 @@ Verify persistence by recording a real note's revision, the latest operation ID,
 
 Vercel receives only `BRAIN_SERVICE_URL` and `BRAIN_BRIDGE_KEY`, scoped to **production**. The public OAuth issuer and resource stay on the Vercel origin. The Docker image and these environment variables also work on Railway with a volume at `/data`; no Render SDK is required.
 
-The frontend is deployed in the personal Vercel account at [brain-companion-hazel.vercel.app/demo](https://brain-companion-hazel.vercel.app/demo). The demo uses clearly labeled sample notes and activity. See the [deployment checkpoint](docs/deployment-status.md) for backend, real-vault sync, and agent connectivity status.
+The frontend is deployed in the personal Vercel account at [brain.wilsondetorres.com/demo](https://brain.wilsondetorres.com/demo). The demo uses clearly labeled sample notes and activity. See the [deployment checkpoint](docs/deployment-status.md) for backend, real-vault sync, and agent connectivity status.
 
 ## Connect Obsidian Sync
 
