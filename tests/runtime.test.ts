@@ -13,9 +13,11 @@ test('sync and memory writes share the same queue and sync failures keep an hone
   t.after(async () => { store.close(); await rm(dir, { recursive: true, force: true }); });
   let release!: () => void;
   const hold = new Promise<void>(r => { release = r; });
-  const syncing = syncOnce(store, async () => { events.push('sync-start'); await hold; events.push('sync-end'); });
+  let started!: () => void;
+  const starting = new Promise<void>(r => { started = r; });
+  const syncing = syncOnce(store, async () => { events.push('sync-start'); started(); await hold; events.push('sync-end'); });
   const writing = store.remember({ path: 'Test.md', markdown: '# Test', expectedRevision: null, idempotencyKey: 'sync-queue-test', sources: [{ title: 'Evidence', uri: 'urn:test:sync', observedAt: new Date().toISOString() }] }, 'test');
-  await new Promise(r => setImmediate(r));
+  await starting;
   assert.deepEqual(events, ['sync-start']); release();
   await Promise.all([syncing, writing]);
   assert.deepEqual(events, ['sync-start', 'sync-end', 'judge']);

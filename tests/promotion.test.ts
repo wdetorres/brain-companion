@@ -4,6 +4,7 @@ import { mkdtemp,mkdir,writeFile,readFile,rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BrainStore } from '../server/store.ts';
+import { syncOnce } from '../server/runtime.ts';
 const sources=[{title:'Decision',uri:'urn:test:decision',observedAt:'2026-10-31T00:00:00Z',excerpt:'Use SQLite.'}];
 const judge=async()=>({outcome:'new' as const,confidence:.99,category:'decision' as const,worthRemembering:true,probabilities:{supported:.99,conflict:0,worth:.99,duplicate:0},model:'test',usage:{}});
 async function fixture(t:any){const root=await mkdtemp(join(tmpdir(),'harness-promote-'));const vault=join(root,'vault');await mkdir(join(vault,'00 Inbox'),{recursive:true});await mkdir(join(vault,'01 Projects'));await writeFile(join(vault,'00 Inbox/Plan.md'),'# Plan\nUse SQLite.');const store=new BrainStore({vault,data:join(root,'data'),judge,accept:['new','update','promote']});t.after(async()=>{store.close();await rm(root,{recursive:true,force:true});});const note=await store.inspect('00 Inbox/Plan.md');const job=(await store.listWork({}))[0];const claim=await store.claimWork(job.id,'A');const input={sourcePath:note.path,path:'01 Projects/Plan.md',markdown:note.markdown,sources,expectedRevision:note.revision,idempotencyKey:'promote-plan-key',claimToken:claim.claimToken};return{root,vault,store,input};}
@@ -16,4 +17,18 @@ test('an unchanged Inbox note cannot substantiate itself when source evidence is
  const {store,input,vault}=await fixture(t);const original=store.judge;
  Object.defineProperty(store,'judge',{value:async(...args:Parameters<typeof original>)=>args[1]?original(...args):{outcome:'uncertain',confidence:.1,category:'decision',probabilities:{supported:.1,conflict:0,worth:.99},model:'test',usage:{}}});
  const op=await store.promote(input,'A');assert.equal(op.status,'needs_attention');assert.equal(await readFile(join(vault,input.sourcePath),'utf8'),input.markdown);
+});
+test('sync warming does not recover a pending promotion before remote edits arrive',async t=>{
+ const {vault,store,input}=await fixture(t);
+ const op=await store.promote(input,'A');
+ await writeFile(join(vault,input.sourcePath),input.markdown);
+ store.db.prepare('UPDATE operations SET payload=? WHERE id=?').run(JSON.stringify({...op,status:'pending'}),op.id);
+ await syncOnce(store,async()=>{
+   assert.equal(await readFile(join(vault,input.sourcePath),'utf8'),input.markdown,'Pre-sync warming must not delete the pending source');
+   assert.equal(JSON.parse(String(store.db.prepare('SELECT payload FROM operations WHERE id=?').get(op.id)?.payload)).status,'pending');
+   await writeFile(join(vault,input.sourcePath),'# Remote edit while server was offline');
+ });
+ assert.equal(store.syncStatus,'Last sync succeeded');
+ assert.equal((await store.operation(op.id))?.status,'needs_attention');
+ assert.equal(await readFile(join(vault,input.sourcePath),'utf8'),'# Remote edit while server was offline');
 });

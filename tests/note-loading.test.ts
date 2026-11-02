@@ -58,6 +58,64 @@ test('an unchanged indexed note loads while sync holds the mutation queue',async
   } finally {finish.resolve();await syncing;}
 });
 
+test('cold, reopened and consecutive syncs serve initial reads and validated summaries before sync ends',async t=>{
+  const {root,store:first}=await fixture(t);
+  let store=first;
+  for(const cycle of ['cold','reopened','repeat']){
+    if(cycle==='reopened'){
+      store.close();
+      await writeFile(join(store.vault,'Target.md'),'# Rocket\nChanged while stopped.');
+      store=new BrainStore({vault:store.vault,data:join(root,'state'),judge:store.judge});
+      t.after(()=>store.close());
+    }
+    const finish=gate();
+    const lastSync=store.lastSync;
+    const syncing=syncOnce(store,async()=>{await writeFile(join(store.vault,'Target.md'),'# Partial');await finish.promise;await writeFile(join(store.vault,'Target.md'),'# Rocket\nCompleted '+cycle);});
+    // Start requests immediately, including before the cold index is ready.
+    const reads=Promise.all([store.inspect('Home.md'),store.snapshot(),store.status()]);
+    try {
+      const result=await Promise.race([reads,delay(1000,null)]);
+      assert.ok(result,cycle+' initial requests must not wait for network sync');
+      const [note,snapshot,status]=result;
+      assert.equal(note.title,'Home');assert.equal(snapshot.notes.length,2);assert.equal(status.notes,2);
+      assert.equal(snapshot.status.sync,'Syncing with Obsidian');assert.equal(status.sync,'Syncing with Obsidian');
+      assert.equal(snapshot.status.lastSync,lastSync);assert.equal(status.lastSync,lastSync);
+      assert.notEqual(snapshot.notes.find(n=>n.path==='Target.md')?.title,'Partial');
+      if(cycle==='reopened')assert.equal(snapshot.notes.find(n=>n.path==='Target.md')?.markdown,'# Rocket\nChanged while stopped.');
+      assert.equal((await store.snapshot()).status.indexedAt,snapshot.status.indexedAt);
+    }finally{finish.resolve();await syncing;await reads;}
+    assert.equal((await store.inspect('Target.md')).markdown,'# Rocket\nCompleted '+cycle);
+    assert.equal(store.syncStatus,'Last sync succeeded');
+  }
+});
+
+test('a failed partial sync revalidates notes without claiming success or leaving a syncing snapshot',async t=>{
+  const {store}=await fixture(t);
+  await syncOnce(store,async()=>{});
+  const lastSync=store.lastSync;
+  await syncOnce(store,async()=>{await writeFile(join(store.vault,'Target.md'),'# Changed by partial sync');throw Error('Synthetic failure');});
+  assert.match(store.syncStatus,/failed/i);assert.equal(store.lastSync,lastSync);
+  assert.equal((await store.index.current('Target.md'))?.title,'Changed by partial sync');
+  const snapshot=await store.snapshot();
+  assert.match(snapshot.status.sync,/failed/i);assert.equal(snapshot.notes.find(n=>n.path==='Target.md')?.title,'Changed by partial sync');
+});
+
+test('failed warming and reconciliation clear the read view, release readers and keep failure status',async t=>{
+  const {store}=await fixture(t);
+  for(const failAt of [1,2]){
+    let calls=0,ran=false;
+    const refresh=store.index.refresh.bind(store.index);
+    const mock=t.mock.method(store.index,'refresh',async()=>{if(++calls===failAt)throw Error('Synthetic index failure');return refresh();});
+    try{
+      await syncOnce(store,async()=>{ran=true;});
+      assert.equal(ran,failAt===2);assert.match(store.syncStatus,/failed/i);assert.equal(store.lastSync,null);
+      assert.equal(await store.index.current('Home.md'),undefined);
+    }finally{mock.mock.restore();}
+    const snapshot=await store.snapshot();assert.match(snapshot.status.sync,/failed/i);
+    assert.equal((await store.inspect('Home.md')).title,'Home');
+  }
+});
+
 test('a note changed during sync waits for its completed contents while other notes remain readable',async t=>{
   const {store}=await fixture(t);
   await store.inspect('Target.md');
