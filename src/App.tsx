@@ -192,7 +192,7 @@ export function App() {
   if(!isDemo && location.pathname === '/settings')return <AccountSettings csrf={csrf} status={snapshot.status} user={user}/>;
   return <div className="app-shell">
     <aside className="sidebar">
-      <a href={isStandalone ? '#' : isDemo ? '/demo' : '/'} className="brand" aria-label="Brain home">
+      <a href={isStandalone ? '#' : isDemo ? '/demo' : '/app'} className="brand" aria-label="Brain home">
         <span className="brand-mark"><Network size={23} strokeWidth={1.5} /></span><span>brain<span className="brand-period">.</span></span>
       </a>
       <div className="workspace-label"><span className="workspace-avatar">W</span><div><strong>Wilson’s brain</strong><span>Personal workspace</span></div></div>

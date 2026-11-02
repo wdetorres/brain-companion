@@ -185,3 +185,9 @@ Never run two active services against the same vault/state volumes. After interr
 The web app supports reviewed link additions and checked memory-proposal review, plus a bounded shared-work list. It has no general text editor, rollback, ingestion, or chat. MCP promotion is limited to verified Inbox filing into existing folders and refuses moves that change resolved link targets. There is no hidden LLM rewriting step. Policy files (`AGENTS.md`, `BRAIN.md`, `CONTEXT.md`, `SKILL.md`, `CLAUDE.md`, `GEMINI.md`, `README.md`), hidden paths, symlinks, and underscore-prefixed folders are blocked for MCP writes. Attachments are rendered as labels, not fetched or executed. Raw Markdown HTML is shown as text.
 
 Do not expose this initial single-owner service as a public multi-user product without further security review, operational limits, and load testing.
+
+## Public landing page
+
+The approved “One brain. Any agent.” landing is being promoted to the hosted Vercel root `/`; the private app entry moves to `/app`. `/demo`, its Jev recall view, sign-in, consent, settings, and backend forwarding retain their existing behavior. This hosted route map supersedes the older root-entry instructions above; the local/Render server is unchanged.
+
+The landing uses an independent frontend build and a clearly labeled scripted conversation. Its semantic-search language is an authorized intended-state assumption; current retrieval remains a keyword shortlist plus Jev. See [landing architecture, tests, and release checks](docs/landing.md) for source paths, deployment status, and the requirement to preserve the running Render deployment.

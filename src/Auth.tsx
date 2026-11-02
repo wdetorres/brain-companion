@@ -21,7 +21,7 @@ export function LoginPage({ error = '' }: { error?: string }) {
   const pending = params.has('sig');
   return <Frame><span className="eyebrow">WELCOME BACK</span><h1>Your brain.<br />One place to connect.</h1><p>{pending ? 'Sign in to review the app requesting access to your Brain.' : 'Explore your notes, follow connections, and see what your agents remember.'}</p>
     {(error || failure || params.has('error')) && <p role="alert" className="error-text">{error || failure || 'Sign-in was cancelled or could not be completed. Use your approved Google account and try again.'}</p>}
-    <button className="google-signin" disabled={busy || !!error} onClick={async () => { setBusy(true); setFailure(''); try { const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/', errorCallbackURL: '/sign-in?error=sign_in_failed' }); if (result.error) throw Error(); } catch { setFailure('Could not sign in. Try again with your approved Google account.'); setBusy(false); } }}><span className="google-letter" aria-hidden="true">G</span>{busy ? 'Opening Google…' : 'Continue with Google'}<ArrowUpRight size={17} /></button>
+    <button className="google-signin" disabled={busy || !!error} onClick={async () => { setBusy(true); setFailure(''); try { const result = await authClient.signIn.social({ provider: 'google', callbackURL: '/app', errorCallbackURL: '/sign-in?error=sign_in_failed' }); if (result.error) throw Error(); } catch { setFailure('Could not sign in. Try again with your approved Google account.'); setBusy(false); } }}><span className="google-letter" aria-hidden="true">G</span>{busy ? 'Opening Google…' : 'Continue with Google'}<ArrowUpRight size={17} /></button>
     <p className="small muted">Only your approved Google account can open this workspace.</p><a className="demo-link" href="/demo">Explore the sample brain <ArrowUpRight size={14} /></a>
   </Frame>;
 }
@@ -40,7 +40,7 @@ export function ConsentPage() {
     try { const result = await authClient.oauth2.consent({ accept }); if(result.error || !result.data?.url)throw Error(); location.assign(result.data.url); }
     catch { setFailure('The connection could not be completed. Try again, or restart it from your app.');setPending(null); }
   }
-  return <Frame className="consent-entry">{state.kind === 'loading' ? <p role="status">Checking connection request…</p> : state.kind === 'error' ? <><h1>Start a fresh connection</h1><p role="alert">{state.message}</p><a className="demo-link" href="/">Back to your Brain</a></> : <>
+  return <Frame className="consent-entry">{state.kind === 'loading' ? <p role="status">Checking connection request…</p> : state.kind === 'error' ? <><h1>Start a fresh connection</h1><p role="alert">{state.message}</p><a className="demo-link" href="/app">Back to your Brain</a></> : <>
     <h1>Connect to your Brain</h1><p className="consent-client">{state.consent.name}</p>
     <div className="auth-identity"><Check size={16} /><div><strong>{state.session.user?.name}</strong><span>{state.session.user?.email}</span></div></div>
     <div className="consent-permissions"><strong>Allow this app to:</strong><ul>{state.consent.scopes.includes('brain') && <><li>Search and read your synced notes.</li><li>Submit sourced memories and review shared work.</li><li>File notes and accept links under your existing Brain policies.</li></>}{state.consent.scopes.includes('offline_access') && <li>Keep access until you revoke it, even after you close this browser.</li>}</ul></div>
@@ -62,7 +62,7 @@ export function AccountSettings({ csrf, status, user }: { csrf: string; status: 
     return()=>clearTimeout(timer);
   },[copyState]);
   const mcpUrl = location.origin + '/mcp';
-  return <main className="account-page"><a className="demo-link" href="/"><ArrowLeft size={15}/> Back to your Brain</a><h1>Account & connections</h1>
+  return <main className="account-page"><a className="demo-link" href="/app"><ArrowLeft size={15}/> Back to your Brain</a><h1>Account & connections</h1>
     {error && <p role="alert" className="error-text">{error}</p>}
     <section className="account-section account-identity"><div><h2>Signed in with Google</h2><p>{user?.email}</p><p className="small muted">Signing out ends this session. Connected apps keep their access.</p></div><button className="quiet-button" onClick={async()=>{const r=await authClient.signOut();if(r.error)setError('Could not sign out. Try again.');else location.assign('/sign-in');}}>Sign out</button></section>
     <section className="account-section"><h2>Obsidian Sync</h2><p className="sync-state">{status.sync}</p><p className="small muted">Last successful sync: {status.lastSync ? new Date(status.lastSync).toLocaleString() : 'No successful sync recorded'}</p><p className="small muted">This is the server’s sync status. Other devices may still be catching up.</p></section>
