@@ -134,7 +134,7 @@ The existing private Brain project note, `01 Projects/Personal/Brain Companion.m
 
 ## Skill deployment and writer activation trial — November 2, 2026
 
-The four-skill migration was pushed to `main` at `d50b773` and verified Ready/live on Vercel and Render. A private pre-writer backup passed stable file-copy and SQLite integrity checks. A temporary `AUTO_ACCEPT=new,update` trial held both sourced append proposals; the target note was unchanged. Acceptance was restored to empty, with the rollback deploy live and authenticated MCP/sync working. Existing local writer routes remain selected. See [the activation record](writer-activation.md) for exact deployment IDs, backup location, test limits and the next gate. No evaluator experiment was shipped.
+The four-skill migration was deployed at `d50b773`. Its first write trial held two proposals and was rolled back to empty acceptance. After the evaluator fix, `AUTO_ACCEPT=new,update` was enabled and v23 deployed at merged runtime commit `f3a8f1c`, preserving the concurrent UI work. A new note and existing-note updates applied; exact retries and local Obsidian content hashes matched. Owner routing now selects the verified same-session lane with local parent/log/index bookkeeping. Promotion, collectors, checkpoints and schedules retain their previous settings. See [the activation record](writer-activation.md) for operation/deploy IDs, the pre-trial same-disk backup, evaluator misses, budget and remaining recovery/client limits.
 
 ## Resume safely
 

@@ -1,36 +1,48 @@
 # Hosted writer activation — November 2, 2026
 
-**Current result: not activated.** The four-skill migration is deployed. A bounded hosted write trial retained two proposals without changing the target note. `AUTO_ACCEPT` was restored to empty and verified through the connected MCP. Existing local writers, collectors, checkpoints and schedules retain their prior routes.
+**Active for eligible personal same-session captures.** The deployed MCP has `AUTO_ACCEPT=new,update`. A new note and existing-note updates applied through Jev, exact retries returned the same operations, and the saved Markdown matched local Obsidian files. Promotion remains disabled. Existing collectors, checkpoints, hooks and schedules retain their prior routes. Immediate-parent navigation and log/index bookkeeping remain explicitly local for this cutover.
 
-## Deployment and rollback evidence
+## Why Jev held the updates
 
-- GitHub `main` was fast-forwarded from `df5dcc4` to `d50b773272ad4f0868b5ec1d8ef1bf519f7d4d3e`.
-- Vercel production `dpl_HSiruJxr7E7HEB7jhEL7a9nars6L` became Ready. Render `dep-dbk2f63bc2fs73e1k910` became live. The worker's deployed guide contains the four-workflow instructions.
-- The public landing page returned 200, anonymous `/api/brain` and `/mcp` returned 401, and OAuth discovery retained the canonical issuer/resource. The worker's `/healthz` returned 200. The Vercel public origin does not route `/healthz` and returns 404 there.
-- A private same-disk backup at `/data/backups/pre-writer-2026-11-02` contains the vault, Headless configuration and SQLite online backups. Source/copy file hashes were stable across the copy; both databases passed `integrity_check`. Files/directories have private permissions. This is a rollback copy, not independent disaster recovery or a full restore test.
-- Only `AUTO_ACCEPT` was temporarily changed to `new,update`, using an environment merge. Render activation deployment `dep-dbk2gq2jnfac739dctfg` exposed those settings through authenticated `brain_status`. Promotion stayed disabled.
-- After the trial failed, only that variable was restored to empty. Render rollback deployment `dep-dbk2hsg473hc73c4r9i0` became live at `2026-11-02T06:09:27.566849Z`. MCP subsequently returned `autoAccept: []` and successful scheduled sync.
+The original evaluator assessed a complete long note as one candidate. It confused preserved dated checkpoints with the newer state and assigned possible context loss even when the old Markdown was an exact prefix. Related context also diluted support for a new note: the corrected lesson scored 0.98 against its evidence alone but 0.72 with the production shortlist.
 
-## Failed readiness check
+The shipped v23 adapter separates source support from novelty and historical compatibility for appends and new notes with related context. Exact prefix preservation ending at a newline is checked in code. Novelty distinguishes new information, an already-recorded memory, and uncertainty; uncertainty is not treated as a confidently identified duplicate. Related notes still participate in duplicate/conflict checks. Source support, novelty and compatibility must each reach 0.95; conflict must remain at most 0.05. Replacement checks, privacy eligibility, revision protection and journaled writes remain intact. Related-note ranking uses parsed body text so frontmatter cannot crowd out the subject.
 
-The trial used a useful, sourced addition to an existing eligible personal project note, with its already-linked parent hub inspected first. The proposal preserved the current Markdown byte-for-byte and appended the deployment milestone. The evaluator returned `conflict` (0.56), including a `lost_context` score of 0.36 despite the preserved prefix. The note revision remained unchanged. An exact retry returned the same operation ID and held outcome without another evaluation.
+This improves the failure mode but does not eliminate conservative holds. A shortened development lesson also made an incorrect exclusivity claim about zero removed-context scores; it was not applied. The supported original lesson was subsequently accepted through a fresh normal review after v23 deployed. No proposal was forced through, no threshold was lowered, and no held knowledge capture was retried locally.
 
-A smaller corrected proposal explicitly dated the new state and superseded the earlier undeployed checkpoint. It also remained held: conflict 0.65, lost context 0.37. Both operations remain available for review. Neither proposal was retried as a local note write, and no source checkpoint or capture-queue acknowledgement was advanced.
+## Deployment and rollback record
 
-This demonstrates conservative rejection and idempotent handling of a held operation. It does **not** verify an applied write, successful-write retry, a new note, parent-hub mutation or hosted-to-desktop convergence after a write.
+| Checkpoint | Evidence |
+| --- | --- |
+| Four-skill deployment | `d50b773272ad4f0868b5ec1d8ef1bf519f7d4d3e`; Vercel `dpl_HSiruJxr7E7HEB7jhEL7a9nars6L` Ready; Render `dep-dbk2f63bc2fs73e1k910` live. |
+| First activation trial | `new,update` briefly enabled; two deployment append proposals held and the target note stayed unchanged. Exact retry returned the same held operation. |
+| First-trial rollback | Only `AUTO_ACCEPT` restored to empty; Render `dep-dbk2hsg473hc73c4r9i0` live at `2026-11-02T06:09:27.566849Z`; authenticated MCP subsequently confirmed empty acceptance and successful sync. |
+| v22 deployment | `8fd1a1301adfcac3e6651ea1ae8157ac55e9452b`; Vercel `dpl_CzLehN33KG66FUC4xB6how96u3ia` Ready; Render `dep-dbk2uk6417fc73bgoam0` live. |
+| Writer enabled | Only `AUTO_ACCEPT` merged to `new,update`; Render `dep-dbk2v5ec6qcc73dckn0g` live at `2026-11-02T06:37:52.389506Z`. |
+| v23 and concurrent UI changes | Writer commit `eeaa9feb2475ce095869027261da03b66bf05c58` merged with the UI work as `f3a8f1ce6ba92d1f59133c6fdfc18fe74a7addd8`; Vercel `dpl_GaipVr3HFBhieEygrGDwuJd8cbVj` Ready; Render `dep-dbk35eivcj2c73fj5520` live at `2026-11-02T06:51:26.499702Z`. |
 
-## Initial investigation and next acceptance gate
+A private same-disk backup at `/data/backups/pre-writer-2026-11-02` contains the pre-trial vault, Headless configuration and SQLite online backups. Source/copy file hashes were stable; both databases passed `integrity_check`; permissions are private. This predates the applied captures and is not an independent disaster-recovery copy or a full restore test.
 
-An isolated development experiment assessed only an appended addition while retaining the current note as context, and treated exact prefix preservation as zero removed text. Synthetic cases covered dated updates, contradiction, unsupported completion, evaluator injection, unrelated fact loss, duplication and a new note. The final experiment matched seven of eight expected outcomes, with no unsafe acceptances in this small set; the real long-history update still failed. Narrowing that update further also failed. The experiment therefore was **not shipped**; the deployed evaluator and thresholds remain `memory-recall-links-v21`.
+To disable acceptance, restore only `AUTO_ACCEPT` to empty, deploy and verify authenticated `brain_status`. That does not undo applied notes or erase proposal history. Do not restore the old vault over newer notes merely to change acceptance settings. Explicit connection review is a separate mutation capability.
 
-Four requests were reserved for the two live proposals and 30 new requests were used in isolated development, bringing the existing cumulative evaluation ledger to **1,875 / 2,000**. Exact-request cache replays are not independent evidence. Private cases, outputs and the unshipped patch remain outside version control.
+## Applied writes and recovery checks
 
-Before reactivation, resolve the long-note update failure on a representative evaluation set without weakening privacy, conflict, preservation or support checks. Verify both legitimate additions and adversarial/unsupported changes, then repeat one meaningful hosted capture. Check the applied operation, exact retry, required parent navigation and desktop sync. Only then change owner routing for the verified lane. Scheduled collectors additionally need their own checkpoint/acknowledgement acceptance; protected bookkeeping and assessment-excluded notes still need an explicit strategy.
+| Operation | Result |
+| --- | --- |
+| `cf49eccd-0694-45e5-b52f-c92513dcda80` | Existing project acceptance-state update, v22: support 0.99, conflict 0.02. Exact retry returned the same applied operation. Hosted/local revision `d4261f7afa975d2532229b84246b96bd3a39342cbc6ec172c4744f2e3a730444` matched before the final milestone append. |
+| `713a6f08-69f0-40d5-ab0f-7d1e7a753648` | New preservation lesson, v23: support 0.98, novelty 0.99, conflict 0.01. Exact retry/readback passed. Hosted/local revision `c7670020319a6e4bce7eac6a4817dddb57d0e756c4da54278f2b3a682ef3e1ed` matched. |
+| `984edf9c-b844-4ee3-9dd9-20e0a693baf7` | Final project activation milestone, v23: support 0.97, novelty 1.00, conflict 0.02. Exact retry/readback passed. Hosted/local revision `2a11eba9c4681b01876e4500d6f7233c60b194d12ef67c7520354f037f3924d1` matched. |
 
-To disable a future trial, restore only `AUTO_ACCEPT` to empty, deploy, and verify the live MCP result. Disabling acceptance does not delete held proposals or undo applied notes. Do not restore the vault backup over newer notes to undo a configuration change. Off-disk recovery, interrupted-sync recovery, other clients' writer readiness and collector cutover remain unverified.
+The existing project parent already linked its note. The new lesson links its Learnings parent and the project; native Obsidian updated the immediate Learnings parent through the route selected before submission. Hosted parent/lesson/profile readback matched local hashes and links resolved. **Parent-index mutation through MCP was not verified.** Standalone clients without the required local bookkeeping cannot claim a complete new-note filing through this owner route.
 
-## Follow-up fix — November 2, 2026
+Five remaining trial proposals were closed with matching applied-operation references and reasons distinguishing the superseding capture from their unwritten original text. The two reviewed originals closed their own work items. `list_work(kind: proposal)` then returned no items. No unrelated Inbox/review work or source acknowledgement was advanced. Private exact retry payloads, operation results and local instruction backups remain outside Git under `/Users/wilson/.local/state/brain-companion/writer-activation-20261102/`.
 
-Wilson explicitly requested resolving the holds and completing hosted writer activation. v22 now assesses the supported addition independently from whether it adds compatible context, supersedes dated history, or conflicts with the same fact/time. It proves unchanged prefix preservation in code and still requires high source support, novelty and historical compatibility. Numerical acceptance thresholds were not lowered. Full replacements retain v21 behavior. See [the evaluator record](jev-features.md#append-assessment-fix--november-2-2026) for the exact results, conservative misses and request accounting.
+## Owner rollout and validation
 
-The final 13 synthetic append regression cases all matched their labels. The corrected real held proposal passes with production shortlisting; the broader original remains held for insufficient support. All 77 tests, TypeScript and build passed. At this code checkpoint, production acceptance remains disabled pending deployment and live verification.
+Canonical owner routing, root instructions, Capture stage, Sources/cadence, relevant agent setup and installed Codex/Claude guidance were updated and read back. All four portable skill directories still match their canonical source; their MCP-first procedure needed no owner-specific changes. Existing collectors and maintenance methods remain selected, so no scheduler changes were required.
+
+The merged tree passed **89 tests**, TypeScript and the production build. Authenticated MCP reads/writes worked; the public page and worker `/healthz` returned 200, while anonymous `/api/brain` and `/mcp` returned 401. Vercel does not route public `/healthz`. QMD keyword/embedding refresh completed; the native graph reported 226 notes, 1,301 edges, no stale paths and no unresolved links. Existing template orphans and unused embedding chunks were not cleaned up.
+
+Model evaluation is documented in [jev-features.md](jev-features.md). The final focused ten-case check had seven exact labels, with no unsafe acceptance and three conservative mismatches; its strict exact-label gate did not pass. The real lesson and final live writes passed their unchanged thresholds. The 50-case unchanged-path cached replay passed but does not test the new context branch. Following Wilson's explicit extension, cumulative evaluation/live-verification usage reached **2,050 / 2,050**; no further paid evaluation was run.
+
+Remaining limits: conservative false holds; local parent/log/index bookkeeping; collector/checkpoint cutover; other clients' OAuth/reload and unattended execution; off-disk recovery and interrupted-sync recovery. These were not implied by enabling `new,update`.

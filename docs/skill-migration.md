@@ -30,7 +30,7 @@ OpenAI documents Claude-compatible manifests as supported; this package uses tha
 
 The skill defaults to MCP. An owner can explicitly retain an existing local capture/review route before submitting anything. That procedure must already define source scope, privacy, revisions, navigation, logging and checkpoints. It is not an automatic fallback after a rejected, held or uncertain MCP action.
 
-The current deployment has new/update/promote acceptance disabled. Internal or otherwise assessment-excluded notes cannot apply through the existing Jev-gated path, and protected operational files cannot be written through MCP. Preserve those existing local workflows until equivalent hosted behavior is designed and verified. Never weaken privacy metadata to make a proposal pass.
+The current deployment has verified `new,update` acceptance enabled for eligible personal same-session captures; promotion remains disabled. Internal or otherwise assessment-excluded notes cannot apply through the existing Jev-gated path, and protected operational files cannot be written through MCP. Preserve those existing local workflows until equivalent hosted behavior is designed and verified. Never weaken privacy metadata to make a proposal pass.
 
 Read-only health checks do not claim/finish work, write logs or request persisted suggestions. Explicit link acceptance is separate from `autoAccept`; an empty list is not a universal mutation lock. Existing local Smart Connections work keeps its local method and budget.
 
@@ -47,10 +47,10 @@ Read-only health checks do not claim/finish work, write logs or request persiste
 - QMD keyword/embedding refresh completed. The native-derived graph reported no stale paths and no unresolved links. Hosted MCP readback matched the local capture skill and owner migration profile by content hash; this is representative sync evidence, not full cross-device convergence.
 - Final independent branch review found no material or minor findings. All 75 repository tests passed, alongside type checking and build. Commit `d50b773` was pushed to `main` and verified Ready/live on Vercel and Render.
 
-## Writer cutover still required
+## Verified same-session writer cutover
 
-Wilson subsequently requested deployment and work on hosted writer activation. A bounded `new,update` trial held two append proposals; acceptance was restored to empty. No production note changed and the existing local routes remain selected. See [activation evidence and the remaining gate](writer-activation.md).
+Wilson requested resolving the held proposals and finishing activation. v23 is deployed, a new note and existing-note updates applied, exact retries returned the same operations, and saved files matched local Obsidian hashes. See [activation evidence and limits](writer-activation.md).
 
-Before replacing a production writer: resolve that evaluator failure, then verify an eligible sourced write, parent-navigation completion, idempotent recovery, exact source checkpoint/acknowledgement handling and device sync. Protected checkpoints may remain with their current local consumer.
+The owner profile now selects MCP for eligible personal same-session capture. New-note parent navigation and local log/index work retain the existing authorized native route, selected before submission. This does not establish parent-index mutation through MCP. Existing collectors, assessment-excluded captures and disconnected clients keep their preselected local routes; no held MCP proposal may be retried locally. Collector checkpoint/acknowledgement acceptance remains a separate cutover.
 
 Pending service work includes an explicit strategy for assessment-excluded captures; changing a skill cannot supply that capability. Remote Claude/Grok/Dots scheduler adoption requires their actual supported configuration interfaces. Preserve schedules, source access, limits and notification intent; never infer a successful migration from synced Markdown alone.

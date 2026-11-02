@@ -28,7 +28,7 @@ Suggested connections classify a pair as connected, unrelated or an evaluator-di
 
 ## Evaluation outcome — October 31, 2026
 
-**The frozen acceptance gate passed on development and the final untouched holdout.** At the time of this gate, automatic writes were disabled. The subsequent harness supports verified writes and explicit link review by the owner or an authorized agent, but automatic writes remain disabled until deployment/adoption.
+**The frozen acceptance gate passed on development and the final untouched holdout.** At the time of this gate, automatic writes were disabled. The subsequent harness supports verified writes and explicit link review by the owner or an authorized agent. Writes remained disabled at that checkpoint; the November 2 activation is recorded below.
 
 The private dataset contains **336 distinct cases from 29 Brain notes**: 286 development cases and a fresh 50-case holdout. It covers personal preferences, project constraints/results, pending checks, dated service/travel status, career records, decisions, duplicates, sourced revisions, conflicting accounts, unsupported inferences, chatter and authored attacks. Two final-holdout preferences are explicitly authored variants grounded in the source topics, not claims about Wilson. Client material, credentials, account identifiers, raw transcripts and third-party personal details were excluded. Exact source paths, minimized evidence, fingerprints and label rationale stay in ignored local files.
 
@@ -91,3 +91,7 @@ New-note trials exposed a second failure: source support for a corrected lesson 
 Before the final novelty choice, the expanded 18-case set matched 17 exact labels; one unsupported case was held as conflict rather than uncertain. The final bounded ten-case check (nine synthetic cases plus the real lesson) matched seven exact labels: one duplicate was uncertain, one valid new preference was held on historical compatibility, and one unsupported case was conflict rather than uncertain. The real lesson passed with support 0.98 and novelty 0.99. No unsafe acceptance occurred, but the strict exact-label gate **did not pass**. These conservative misses remain limitations; no labels or numerical thresholds were relaxed. The unchanged-path 50-case frozen replay passed with zero new requests; none of those cases exercises the new-note-with-related-context branch.
 
 Wilson explicitly extended the cumulative request allowance to **2,050** on November 2. Before the final live new-note check, usage is **2,044 / 2,050**. The runner's maximum and budget-boundary test reflect that authorization. All **78 tests**, TypeScript and production build passed.
+
+### Completed hosted checks
+
+The final v23 runtime was merged with the concurrent UI changes at `f3a8f1c`; the combined tree passed 89 tests, TypeScript and build. The original supported lesson then applied through normal review with support 0.98, novelty 0.99 and conflict 0.01. A final project milestone also applied with support 0.97, novelty 1.00 and conflict 0.02. Exact retries returned the same operations, and hosted/local note hashes matched. Cumulative evaluation/live-verification usage is **2,050 / 2,050**. No further paid evaluation was run. See [activation evidence](writer-activation.md) for the conservative failures, applied operations, local-bookkeeping boundary and remaining checks.

@@ -1,6 +1,6 @@
-# Skill deployment and writer trial — November 2, 2026
+# Hosted writer active — November 2, 2026
 
-Commit `d50b773` is deployed to Vercel production and the Render worker at the existing canonical domain. The four skills and updated served guide are live. A subsequent `new,update` acceptance trial held both real append proposals; automatic acceptance was restored to empty and verified. Existing notes and writer routes remain unchanged. See [writer activation](writer-activation.md) for deployment IDs, backup, failed readiness evidence and the next gate.
+The four focused skills and v23 evaluator are deployed at the existing canonical domain. `AUTO_ACCEPT=new,update` is enabled; a new note and existing-note updates applied through MCP, exact retries returned the same operations, and hosted/local Obsidian hashes matched. Runtime commit `f3a8f1c` preserves the concurrent UI changes and passed 89 tests, TypeScript and build. Parent/log/index bookkeeping and existing collectors retain their selected local routes; promotion remains disabled. See [writer activation](writer-activation.md) for deployed IDs, backup, held-proposal history, evaluation limits and remaining checks.
 
 ## Custom-domain checkpoint — November 2, 2026
 
