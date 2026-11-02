@@ -45,6 +45,10 @@ test('Vercel gets the public index while standalone builds retain the private ap
   delete env.VERCEL; delete env.VERCEL_ENV;
   execFileSync(process.execPath, ['scripts/build.mjs'], { env, stdio: 'pipe' });
   assert.match(await readFile('dist/index.html', 'utf8'), /id="root"/);
+  const portable=await readFile('dist/brain-explorer-demo.html','utf8');
+  assert.ok(portable.includes(await readFile('public/THIRD_PARTY_NOTICES.txt','utf8')));
+  assert.ok(portable.includes(await readFile('LICENSE','utf8')));
+  assert.equal(await readFile('dist/LICENSE','utf8'),await readFile('LICENSE','utf8'));
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...env, VERCEL: '1', VERCEL_ENV: 'production' }, stdio: 'pipe' });
   const landing = await readFile('dist/index.html', 'utf8');
   assert.match(landing, /One brain\. Any agent\./);

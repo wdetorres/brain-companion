@@ -5,6 +5,8 @@
       "src/shared.ts",
       "src/links.ts",
       "docs/agent-guide.md",
+      "LICENSE",
+      "public/THIRD_PARTY_NOTICES.txt",
       "Dockerfile",
       ".dockerignore",
       "package.json",

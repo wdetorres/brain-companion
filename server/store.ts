@@ -1,6 +1,6 @@
 import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import { mkdir, readFile, rename, open, unlink, stat } from 'node:fs/promises';
+import { mkdirSync, chmodSync } from 'node:fs';
+import { mkdir, readFile, rename, open, unlink, stat, link } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
@@ -32,14 +32,14 @@ export class BrainStore {
   private syncView?:{snapshot:BrainSnapshot;status:ReturnType<BrainStore['statusFrom']>};
   syncStatus='Not configured'; lastSync:string|null=null;
   constructor(options:{vault:string;data:string;judge:Judge;accept?:string[];recallJudge?:RecallJudge;connectionJudge?:ConnectionJudge;writeAssessor?:WriteAssessor}) {
-    this.vault=resolve(options.vault); mkdirSync(this.vault,{recursive:true});mkdirSync(options.data,{recursive:true});
+    this.vault=resolve(options.vault); mkdirSync(this.vault,{recursive:true,mode:0o700});mkdirSync(options.data,{recursive:true,mode:0o700});chmodSync(options.data,0o700);
     this.db=new DatabaseSync(resolve(options.data,'brain.sqlite'));this.judge=options.judge;this.accept=new Set(options.accept||[]);this.recallJudge=options.recallJudge;this.connectionJudge=options.connectionJudge;
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, idem TEXT UNIQUE, fingerprint TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS observed (path TEXT PRIMARY KEY, revision TEXT, markdown TEXT); CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
     this.db.exec('CREATE TABLE IF NOT EXISTS connections (id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
     this.db.exec('CREATE TABLE IF NOT EXISTS assessments (id TEXT PRIMARY KEY, idem TEXT UNIQUE NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL, progress TEXT NOT NULL DEFAULT \'{}\')');this.writeAssessor=options.writeAssessor;
-    if(this.db.prepare('SELECT value FROM metadata WHERE key=?').get('noteParserVersion')?.value!=='2'){
+    if(this.db.prepare('SELECT value FROM metadata WHERE key=?').get('noteParserVersion')?.value!=='3'){
       this.db.exec('DROP TABLE IF EXISTS note_index; DROP TABLE IF EXISTS note_fts');
-      this.db.prepare('INSERT OR REPLACE INTO metadata VALUES(?,?)').run('noteParserVersion','2');
+      this.db.prepare('INSERT OR REPLACE INTO metadata VALUES(?,?)').run('noteParserVersion','3');
     }
     this.index=new NoteIndex(this.db,this.vault);
     this.work=new WorkQueue(this.db);
@@ -387,7 +387,11 @@ export class BrainStore {
     try{
       await mkdir(dirname(target),{recursive:true});await safePath(this.vault,op.path,true);temp=target+'.'+randomUUID()+'.tmp';
       const fd=await open(temp,'wx',0o600);try{await fd.writeFile(op.proposed,'utf8');await fd.sync();}finally{await fd.close();}
-      await rename(temp,target);temp='';const parent=await open(dirname(target),'r');try{await parent.sync();}finally{await parent.close();}
+      await safePath(this.vault,op.path,true);
+      const current=await readOptional(target);
+      if((current===null?null:revision(current))!==expectedRevision){await unlink(temp);temp='';op.status='needs_attention';op.reason='Page changed while preparing write; inspect and resubmit';return finish();}
+      if(expectedRevision===null){await link(temp,target);await unlink(temp);}else await rename(temp,target);
+      temp='';await syncDirectory(dirname(target));
     }catch(e){if(temp)await unlink(temp).catch(()=>{});op.reason='Write interrupted; inspect server state to reconcile the journal';return finish();}
     // Do not demote a published write when recording completion fails.
     op.status='applied';op.reason='Applied to server vault; device sync is separate';op.revision=revision(op.proposed);finish();this.recordCategory(op);this.completeNoteWork(op);

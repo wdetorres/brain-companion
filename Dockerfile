@@ -6,9 +6,9 @@ COPY . .
 RUN npm run check && npm test && npm run build && npm prune --omit=dev
 
 FROM node:24-bookworm-slim
-# Keep the official beta CLI reproducible across hosts.
+# Proprietary optional runtime; pass HEADLESS_VERSION= to omit it.
 ARG HEADLESS_VERSION=0.0.14
-RUN npm install --global obsidian-headless@${HEADLESS_VERSION}
+RUN if [ -n "$HEADLESS_VERSION" ]; then npm install --global obsidian-headless@${HEADLESS_VERSION}; fi
 WORKDIR /app
 COPY --from=build --chown=node:node /app /app
 RUN mkdir -p /data/vault /data/state /data/config /home/node/.config && chown -R node:node /data /home/node

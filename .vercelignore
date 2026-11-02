@@ -8,3 +8,11 @@ dist/
 .impeccable/
 .render-test-*/
 *.log
+private/
+backups/
+docs/superpowers/
+*.sqlite*
+*.db*
+*.pem
+*.key
+.DS_Store

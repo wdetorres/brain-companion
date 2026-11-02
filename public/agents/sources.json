@@ -25,9 +25,8 @@
     },
     {
       "name": "cursor",
-      "source": "https://cursor.com/brand",
-      "asset": "General Logos/Cube/SVG/CUBE_2D_DARK.svg",
-      "sha256": "cd0e3e5d8991a4cdd4577f8896cd063105207665165c73e25a1ff918dd367eb7"
+      "sha256": "0cb51bddf264ae108926fd554c063ef40fc1aac3c5c921ddb39ad184e4e5d0ef",
+      "bytes": 547
     },
     {
       "name": "codex",

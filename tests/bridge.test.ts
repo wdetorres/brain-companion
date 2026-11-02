@@ -1,6 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import bridge from '../api/bridge.ts';
+import { Readable } from 'node:stream';
+
+test('bridge rejects oversized streams and invalid configured destinations without forwarding',async t=>{
+ const previous={backend:process.env.BRAIN_SERVICE_URL,key:process.env.BRAIN_BRIDGE_KEY};
+ t.after(()=>{for(const [key,value] of [['BRAIN_SERVICE_URL',previous.backend],['BRAIN_BRIDGE_KEY',previous.key]]){if(value===undefined)delete process.env[key!];else process.env[key!]=value;}});
+ process.env.BRAIN_BRIDGE_KEY='synthetic-test-key';
+ t.mock.method(globalThis,'fetch',async()=>{throw Error('Must not forward');});
+ const response=()=>({statusCode:200,headers:{} as Record<string,string>,setHeader(k:string,v:string){this.headers[k]=v;},end(){}});
+ for(const origin of ['not-a-url','http://worker.example','https://user:password@worker.example','https://worker.example/path']){
+  process.env.BRAIN_SERVICE_URL=origin;const res=response();await bridge({url:'/api/bridge?route=mcp',method:'POST',headers:{},body:'{}'} as any,res as any);assert.equal(res.statusCode,503);assert.equal(res.headers['Cache-Control'],'no-store');
+ }
+ process.env.BRAIN_SERVICE_URL='https://worker.example';const res=response();
+ const req=Object.assign(Readable.from([Buffer.alloc(300001)]),{url:'/api/bridge?route=mcp',method:'POST',headers:{}});
+ await bridge(req as any,res as any);assert.equal(res.statusCode,413);
+});
 
 test('Vercel bridge binds its destination and preserves OAuth query and response cookies', async t => {
   const oldFetch = globalThis.fetch, oldBackend = process.env.BRAIN_SERVICE_URL, oldKey = process.env.BRAIN_BRIDGE_KEY;

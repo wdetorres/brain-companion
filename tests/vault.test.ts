@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, symlink, rm } from 'node:fs/promises';
+import { mkdtemp, mkdir, writeFile, readFile, symlink, rm, stat, chmod } from 'node:fs/promises';
+import { writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BrainStore } from '../server/store.ts';
-import { readVault } from '../server/vault.ts';
+import { readVault, parseNote } from '../server/vault.ts';
 
 const source = { title: 'Planning conversation', uri: 'https://example.com/conversation', observedAt: '2026-10-31T00:00:00Z' };
 async function fixture(t: any, judge: any = async () => ({ outcome: 'new', confidence: .99, model: 'test', usage: {} })) {
@@ -29,9 +30,12 @@ test('retains ambiguous same-name links as unresolved', async t => {
 });
 test('rejects traversal, policy files and symlink writes', async t => {
   const {store,vault,dir}=await fixture(t); await mkdir(join(dir,'outside')); await symlink(join(dir,'outside'),join(vault,'escape'));
-  for(const path of ['../secret.md','/tmp/a.md','AGENTS.md','_System/rules.md','.obsidian/config.md','escape/a.md']) {
+  for(const path of ['../secret.md','/tmp/a.md','AGENTS.md','PARA.md','_System/rules.md','.obsidian/config.md','escape/a.md']) {
     await assert.rejects(store.remember({path,markdown:'# Bad',sources:[source],expectedRevision:null,idempotencyKey:'key-'+path},'test'));
   }
+  await writeFile(join(vault,'PARA.md'),'# Private filing policy');
+  assert.equal(parseNote('PARA.md','# Private filing policy','').assessmentAllowed,false);
+  assert.match(await store.policy(),/Private filing policy/,'Policy remains readable by the owner');
 });
 test('applies exact submitted markdown, persists history and returns the same operation for a retry', async t => {
   const {store,vault,dir}=await fixture(t); const input={path:'Projects/Plan.md',markdown:'# Plan\n\nMonday.\n',sources:[source],expectedRevision:null,idempotencyKey:'remember-plan-001'};
@@ -51,6 +55,22 @@ test('serializes competing creates so one wins and one retains a proposal', asyn
   const {store}=await fixture(t); const base={path:'Plan.md',sources:[source],expectedRevision:null};
   const ops=await Promise.all([store.remember({...base,markdown:'# A',idempotencyKey:'competing-write-a'},'agent'),store.remember({...base,markdown:'# B',idempotencyKey:'competing-write-b'},'agent')]);
   assert.deepEqual(ops.map(o=>o.status),['applied','needs_attention']);
+});
+test('rechecks a staged write and preserves a file created or edited outside the queue',async t=>{
+ const {store,vault}=await fixture(t);
+ for(const existing of [false,true]){
+  const path=existing?'Existing.md':'New.md';if(existing)await writeFile(join(vault,path),'# Before');
+  const expectedRevision=existing?(await store.inspect(path)).revision:null;
+  const internal=store as any,save=internal.save.bind(store);let changed=false;
+  internal.save=(op:any,...args:any[])=>{const result=save(op,...args);if(op.status==='pending'&&!changed){changed=true;writeFileSync(join(vault,path),'# Concurrent edit');}return result;};
+  const op=await store.remember({path,markdown:'# Agent',sources:[source],expectedRevision,idempotencyKey:'staged-write-'+existing},'agent');
+  internal.save=save;assert.equal(op.status,'needs_attention');assert.equal(await readFile(join(vault,path),'utf8'),'# Concurrent edit');
+ }
+});
+test('state directories restrict access even when an older installation created them broadly',async t=>{
+ const {store,vault,dir}=await fixture(t),data=join(dir,'state');store.close();await chmod(data,0o755);
+ const reopened=new BrainStore({vault,data,judge:async()=>{throw Error('Unused');}});t.after(()=>reopened.close());
+ assert.equal((await stat(data)).mode&0o777,0o700);
 });
 test('disabled writes retain a proposal without consulting Jev', async t => {
   let calls=0;const {store,vault}=await fixture(t,async()=>{calls++;throw Error('Unavailable')});store.accept.clear();

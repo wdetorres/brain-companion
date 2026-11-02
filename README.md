@@ -1,26 +1,12 @@
 # Brain Companion
 
-An agent-agnostic Brain harness and Explorer for an Obsidian vault. Agents verify sources and write final Markdown directly; the browser shows notes, connections, sources, and changes.
+A personal second brain shared across your agents, with Markdown notes and a browser for exploring them. Built for one owner and their authorized MCP clients; others can run their own instance. This is a self-hosted personal project, with no shared signup service or tenant isolation.
 
-## What is implemented
+Agents read sources, check duplicates, and write final Markdown. Optional Jev assessments provide advice about quality, recall, and connections. Enabled writes commit the agent's text without a model approval gate. Notes remain usable in Obsidian.
 
-- Graph, Pages, Changes, and Jev Recall views, with search, backlinks, sources, change diffs, graph pan/zoom, folder filters, and a focused neighborhood.
-- Explicit synthetic demo at `/demo`. The normal route requires the owner’s Google sign-in and never falls back to fake live data.
-- Fourteen MCP tools for status, local search, assessed recall, inspection, advisory write assessment, capture, bounded undo, shared work claims, proposal review, Inbox promotion and connection review. Four portable skills—`brain-recall`, `brain-capture`, `brain-review`, `brain-maintain`—share the same tools and policy. See [installation and migration](docs/skill-migration.md) and [the harness guide](docs/harness.md).
-- Persistent SQLite FTS5 indexing with reused parsing, revision-bound work, five-minute claims, explicit owner memory review and journaled Inbox promotion.
-- One shared brain. Single-owner browser sessions and OAuth authorization with S256 PKCE, resource binding, dynamic client registration, hashed opaque tokens, rotating refresh tokens, and revocation.
-- Persistent Markdown files and SQLite operation history. Revision checks, serialized writes, idempotency, a write journal, atomic replacement, and retained conflict/uncertain proposals.
-- Jev System One adapter for advisory write quality/lifecycle recommendations, recall evidence/conflict review, reviewed connection suggestions, strict result validation, recorded usage/model/question version, and a budgeted evaluation runner. No backend text generation.
-- Optional Obsidian Headless one-shot sync in the same queue as writes. Sync status is separate from server write status.
-- Vercel frontend and forwarding function; Docker/Compose service with persistent volumes.
+## Try the sample Brain
 
-Instant search uses SQLite FTS5; the explicit Recall action and MCP `recall` use Jev to assess up to eight shortlisted notes. Categories filter classified notes and proposals. Dotted graph edges are suggestions; review both notes and the exact appended link before saving. Save/dismiss are authenticated, CSRF-protected owner actions with revision checks and journaled writes. The graph uses a deterministic force layout of actual resolved links, with collision-filtered labels, scroll zoom, pan, and neighbor highlighting. The simulation settles once when its connections change; it does not animate continuously. Graph display is bounded to 200 notes per view. Semantic retrieval/QMD is not implemented. The changes view shows the most recent 100 operations; older records remain addressable by operation ID.
-
-**Evaluation status:** the frozen Brain-derived gate passed on 286 development cases and a fresh 50-case holdout: 92.9% held-out memory accuracy, 100% category/worth/recall accuracy, and 100% connection precision with 80% coverage. Verified automatic writes and promotion are opt-in server settings; links require explicit review. See [results, iteration history and limits](docs/jev-features.md).
-
-## Try the Explorer
-
-Requires Node 24 or newer.
+Requires **Node 24 or newer** and npm. From a clean checkout:
 
 ```sh
 npm ci
@@ -28,92 +14,51 @@ npm run build
 npm start
 ```
 
-Open `http://localhost:3000/demo`. No credentials or private notes are needed. The root route explains that the live service is not configured. The source release also includes `brain-explorer-demo.html`, a self-contained build of the same UI using sample data that can be opened directly.
+Open [localhost:3000/demo](http://localhost:3000/demo). It uses explicitly synthetic notes and activity, needs no credentials, and makes no live vault or model requests. Without authentication configuration, private APIs are unavailable. `dist/brain-explorer-demo.html` is the same sample app as a portable file.
 
-```sh
-npm test
-npm run check
-npm run build
-```
+The standalone server serves the Explorer at `/`; Vercel builds serve the public landing page there and the Explorer at `/app`. Both serve `/demo`, `/mcp`, and the same owner authentication routes.
 
-Tests exercise real temporary vaults, SQLite restart behavior, the OAuth and MCP request handlers, bridge routing, safe Markdown rendering, and sync/write serialization. See the [deployment checkpoint](docs/deployment-status.md) for live deployment checks and remaining credential-dependent verification.
-
-## Configure a local private service
+## Run your own private Brain
 
 ```sh
 cp .env.example .env
+mkdir -p data/vault/Projects
+printf '# Example\n\nA synthetic note for setup verification.\n' > data/vault/Projects/Example.md
 ```
 
-Create a Google OAuth **Web application** client with the callback `http://localhost:3000/api/auth/callback/google`. Set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BRAIN_OWNER_EMAIL` and a random `BETTER_AUTH_SECRET` (generate with `openssl rand -hex 32`) in `.env`. Use only the explicitly approved owner's verified Google email; the first successful login pins that account's stable Google subject. Other Google accounts are rejected. There is no password fallback.
+Create your own Google OAuth **Web application** client with callback `http://localhost:3000/api/auth/callback/google`. In `.env`, set `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `BRAIN_OWNER_EMAIL`, and `BETTER_AUTH_SECRET` (generate with `openssl rand -hex 32`). Keep `PUBLIC_ORIGIN=http://localhost:3000`. Then run `npm start` and sign in at `/app`.
 
-Keep `PUBLIC_ORIGIN=http://localhost:3000` and leave `BRAIN_BRIDGE_KEY` empty for local development. Put synthetic notes in `VAULT_PATH`, then run `npm start`. Production requires complete SSO configuration and fails startup if it is missing. With all four SSO settings absent, development serves only the explicit demo.
+The first successful login pins the configured owner's verified Google subject. Another Google account cannot take over that instance. See [Google sign-in](docs/google-sso.md) for production callbacks and identity changes.
 
-Set `JEV_API_KEY` only on the persistent service. Agents use `assess_memory` for Jev write advice, then decide and commit through `remember` or `promote`. Jev also assesses recall and connection suggestions. Commit calls never rerun Jev or depend on its scores/availability. The API key is not part of the browser bundle or Vercel environment.
+Keep `VAULT_PATH` and `STATE_PATH` outside version control; the default `data/` is ignored. Use a separate server vault, never the folder already synced by a desktop Obsidian process. Keep `AUTO_ACCEPT` empty and `SYNC_ENABLED=false` until synthetic tests and backups are ready. Set `AUTO_ACCEPT=new,update` to permit captures and edits; add `promote` only if you want Inbox filing. These settings do not disable explicit connection review, claims, or other authorized mutations.
 
-`AUTO_ACCEPT` is empty by default. Set `AUTO_ACCEPT=new,update` to enable direct agent creates and updates after verifying the service. Agents own source and duplicate checks; the server retains privacy checks, protected paths, revision checks, exact retries and journaled writes. Add `promote` separately only when authorizing verified Inbox moves. Retained proposals can be saved directly or dismissed by the owner or a claimed agent reviewer. Acceptance preserves the original expected revision without rerunning Jev. Existing proposals are not automatically replayed when configuration changes.
+A Jev key is optional. Search, inspection, and enabled writes work without it. Set `JEV_API_KEY` only on your backend if you want advisory assessments, assessed recall, and connection suggestions. Those operations send selected text to an external service and may incur charges. Read the [privacy and trust boundaries](SECURITY.md) before enabling them.
 
-For write assessment, Jev receives the proposed text, source metadata and optional evidence excerpts, current page, and up to five eligible related pages. Quality and lifecycle advice are separate recorded results; two to four HTTP requests compare evidence/history, classify memory value and recommend actions. Existing internal, client-marked, restricted and policy notes are excluded from external assessment. It does **not** fetch the original evidence URLs. Scores are model judgments, not verified probabilities of truth. Its output never overrides revision checks or protected paths.
+## Connect an agent
+
+Deploy your own HTTPS service, add **your origin + `/mcp`** to a compatible remote MCP client, and complete owner OAuth. Install the [four portable workflows](docs/skill-migration.md) or use the served `brain://guide`. A skill does not supply credentials or access to anyone else's Brain. This repository does not grant access to the maintainer's personal service.
+
+Start with `brain_status`, bounded `search`, and `inspect`. Use synthetic notes to verify a capture and an exact retry before connecting private sources. The [agent guide](docs/agent-guide.md) covers assessment advice, commits, review, undo, and filing. [Architecture and limits](docs/harness.md) describe the single-owner model.
 
 ## Deploy
 
-The hosted app is at [brain.wilsondetorres.com](https://brain.wilsondetorres.com). Start with the [hosting runbook](docs/hosting-runbook.md) for completed setup, resource map, verification results and migration status.
+Use one persistent Docker service behind HTTPS. Run **one replica** and mount a writable disk at `/data`. Set `PUBLIC_ORIGIN` to your canonical HTTPS origin, configure Google sign-in, and retain `/data/vault`, `/data/state`, and `/data/config`. The image runs as the `node` user. Use `/healthz` for health checks and allow 150 seconds for shutdown.
 
-Use one persistent Docker service, either as the complete app or with the optional Vercel frontend. [Standalone managed hosting](docs/harness.md#hosting) serves its own HTTPS MCP endpoint without a bridge secret. Do not put the writable vault or SQLite database on a Vercel function filesystem.
-
-### Temporary local Docker
-
-After configuring Google SSO in `.env` (register `http://localhost:3010/api/auth/callback/google` for this local port), start the same backend locally:
+For local Docker, configure `.env` with the callback `http://localhost:3010/api/auth/callback/google`, then:
 
 ```sh
 docker compose -f compose.yaml -f compose.local.yaml up -d --build
 ```
 
-Open `http://localhost:3010` and sign in with Google. The override permits HTTP on localhost and removes the Vercel bridge requirement; the host port remains bound only to `127.0.0.1`. The base production settings remain unchanged.
+The host port is bound to `127.0.0.1`. The local override permits localhost HTTP; do not expose it through a public tunnel. Named volumes survive container replacement. `docker compose down -v` **deletes those volumes**.
 
-The named volumes preserve the vault, SQLite state, and Obsidian Headless account files across restarts and container replacement. Do **not** use `docker compose down -v`: it deletes those volumes. Use the Obsidian setup commands below against this separate container vault, never the desktop app's existing sync directory. Add `JEV_API_KEY` to `.env` when available; unavailable assessment is recorded honestly and does not veto authorized writes.
+The optional Vercel frontend uses `vercel.json`. Set only `BRAIN_SERVICE_URL` (the backend HTTPS origin) and a random `BRAIN_BRIDGE_KEY` on Vercel. Set the same bridge key on the backend and use the Vercel/custom frontend origin as backend `PUBLIC_ORIGIN`. Scope these values to production; previews should have no private backend or their own isolated synthetic instance. Direct hosting needs no bridge key. `deploy/render-build-filter.json` is an optional backend-only filter for a split deployment; omit it when the Docker service also serves your UI.
 
-This is a temporary Mac-dependent deployment. Docker must be running and the Mac awake. The hosted Vercel Explorer stays on its existing demo until an HTTPS tunnel or hosted backend is connected. Remote agents cannot reach `localhost`; use the managed service’s HTTPS origin, or the canonical Vercel origin when retaining the optional bridge. Do not expose the localhost override through a public tunnel.
+### Optional Obsidian Sync
 
-### Hosted backend
+Obsidian Headless and Sync are separate proprietary software/services. The Dockerfile downloads pinned `obsidian-headless@0.0.14` for personal sync compatibility; it is **not covered by this project's MIT license**. To build without it, use `docker build --build-arg HEADLESS_VERSION= -t brain-companion .` and keep `SYNC_ENABLED=false`. Do not redistribute a CLI-containing image without the applicable rights; see [third-party notices](THIRD_PARTY_NOTICES.md).
 
-1. Deploy this Docker image on a small host with a persistent disk and an HTTPS reverse proxy. `docker compose up -d --build` exposes the worker only on the host's `127.0.0.1:3010`; point the host's HTTPS reverse proxy there. The worker must be reachable by Vercel over HTTPS.
-2. Generate a random bridge secret, for example `openssl rand -hex 32`. Store it in the worker and Vercel as `BRAIN_BRIDGE_KEY`.
-3. Set worker `PUBLIC_ORIGIN` to the final Vercel/custom origin, the four Google SSO settings above, `JEV_API_KEY`, and the chosen `AUTO_ACCEPT`. Compose pins the paths to `/data/vault` and `/data/state` regardless of development paths in `.env`.
-4. Create the **brain-companion** project in the personal Vercel account. Import this folder, use Other as framework, `npm run build` as build command, and `dist` as output. `vercel.json` configures the bridge and routes. Set `BRAIN_SERVICE_URL` to the worker's HTTPS origin and `BRAIN_BRIDGE_KEY` to the same secret. Scope private service values to production only unless a preview intentionally gets its own isolated vault.
-5. Deploy. Visit `/demo`, sign in at `/`, and verify anonymous `/api/brain` is rejected and `/mcp` advertises OAuth. Recheck authorization against the **final** canonical origin, because tokens are bound to it.
-
-Without worker environment variables, the Vercel UI and `/demo` work while private API requests return a setup error. This is intentional. Avoid Vercel's own interactive Deployment Protection on the final MCP endpoint, since a remote MCP client cannot complete that separate login. The application's OAuth and browser login remain required.
-
-The Dockerfile pins Obsidian's official open-beta CLI to `0.0.14`; override with `--build-arg HEADLESS_VERSION=<version>` only after testing that version. Application dependencies are locked in `package-lock.json`. The Node 24 base image still tracks security updates through its tag.
-
-### Render Hobby
-
-Use one Docker web service on Starter ($7/month compute), with a **1 GB disk mounted at `/data`**. Keep the workspace on Hobby. Set `/healthz` as the HTTP health-check path and allow 150 seconds for shutdown so an in-flight one-shot sync can finish. The disk adds its own storage charge.
-
-Set these worker variables, alongside the Google SSO settings, bridge key, and Jev key described above:
-
-```dotenv
-PUBLIC_ORIGIN=https://brain.wilsondetorres.com
-VAULT_PATH=/data/vault
-STATE_PATH=/data/state
-XDG_CONFIG_HOME=/data/config
-SYNC_ENABLED=false
-AUTO_ACCEPT=
-```
-
-On Linux, Obsidian Headless stores credentials and local vault registration under `$XDG_CONFIG_HOME/obsidian-headless`. This keeps them on the **same disk** as Markdown and SQLite. Attach the disk before authenticating or syncing. Render mounts it only at runtime, so run `ob login` and the sync commands below in the service's **Shell**, not a build command or a one-off job. Keep automatic sync off until the first manual sync succeeds, then set `SYNC_ENABLED=true` and deploy.
-
-Verify persistence by recording a real note's revision, the latest operation ID, and an authenticated browser/OAuth session before restarting the Render service. After restart, check the same note and operation, reuse the session and refresh token, and confirm a fresh successful Obsidian sync without logging in again. Only then consider the deployment verified. Disk-backed deploys briefly interrupt service; run only one instance.
-
-Vercel receives only `BRAIN_SERVICE_URL` and `BRAIN_BRIDGE_KEY`, scoped to **production**. The public OAuth issuer and resource stay on the Vercel origin. The Docker image and these environment variables also work on Railway with a volume at `/data`; no Render SDK is required.
-
-The frontend is deployed in the personal Vercel account at [brain.wilsondetorres.com/demo](https://brain.wilsondetorres.com/demo). The demo uses clearly labeled sample notes and activity. See the [deployment checkpoint](docs/deployment-status.md) for backend, real-vault sync, and agent connectivity status.
-
-## Connect Obsidian Sync
-
-Use the **server's separate vault copy**, not the same folder that the desktop app already syncs. This requires an active Obsidian Sync subscription. Back up the vault first.
-
-With the Compose service running and `SYNC_ENABLED=false`:
+With a backed-up, separate server vault and sync disabled, run in the container:
 
 ```sh
 docker compose exec brain ob login
@@ -123,75 +68,23 @@ docker compose exec brain ob sync-config --path /data/vault --conflict-strategy 
 docker compose exec brain ob sync --path /data/vault
 ```
 
-Enter any encryption password interactively, rather than putting it in shell arguments. The `headless-home` volume keeps the CLI's account configuration; the vault volume keeps the vault and its local Sync configuration.
+Enter passwords interactively. After manual sync succeeds, set `SYNC_ENABLED=true` and recreate the service using the same Compose files. A plain restart does not apply new environment values. The server serializes one-shot sync with its writes; do not run another sync process against that copy.
 
-Then set `SYNC_ENABLED=true` and recreate the service. For temporary local Docker, keep both Compose files so the localhost origin and login continue to work:
+Back up the vault, SQLite state, and sync configuration together while the service is stopped, or use a consistent filesystem snapshot/SQLite backup. Raw copies of a live SQLite file without its WAL are unsafe. Store encrypted backups off the host, then test restoration in an isolated instance. Server write success and another device's sync success are different checks.
 
-```sh
-docker compose -f compose.yaml -f compose.local.yaml up -d --force-recreate --no-build brain
-```
-
-For the production Compose configuration, use `docker compose up -d`. A plain `restart` does not apply changed environment variables. Both configurations reuse the existing named volumes. The service runs bounded one-shot sync jobs, never `ob sync --continuous`, so its own writes cannot overlap its sync process. Do not run additional sync writers against these volumes. An `applied` operation means the server file was written; it does not claim every desktop or phone has already received it.
-
-## Connect ChatGPT and other agents
-
-1. In a ChatGPT account with custom MCP/developer-mode support, add the deployed `https://YOUR-DOMAIN/mcp` as the remote MCP server and select OAuth.
-2. The client discovers protected-resource and authorization metadata. Dynamic registration supports public clients and `client_secret_post` clients.
-3. The Brain consent screen names the requesting client and its exact callback. Sign in with Google, then explicitly select **Connect** only for a request you initiated. Signing in alone does not approve the client.
-4. Read `brain://guide` or request `memory-workflow`. The same portable instructions are in [docs/agent-guide.md](docs/agent-guide.md).
-5. Ask the agent to recall a subject, inspect a page, then submit a sourced `remember` proposal. Confirm the operation in Changes. Start a fresh conversation and recall the same subject.
-
-The server has a `brain` permission scope and optional `offline_access` for refresh; there is no separate company/person access. All connected clients can read all indexed notes and perform the owner-enabled checked writes and review actions. This OAuth implementation is intentionally single-owner: no invitations, organizations, password recovery, or public registration UI.
-
-Open **Account & connections** (`/settings`) to see authorized apps and revoke access. Revocation deletes their access tokens, refresh tokens and consent; reconnecting does not resurrect old tokens. Signing out ends the browser session. An app with `offline_access` can refresh its grant afterwards; its current access token may need renewal. “Authorized” means consent exists; the separate last-MCP-request timestamp is evidence of successful HTTP use, not proof that every tool works.
-
-See [Google setup and auth cutover](docs/google-sso.md) before deploying or changing domains.
-
-## Assess, decide and commit
-
-Verified source-backed captures file directly after advisory assessment. Genuine evidence/routing uncertainty may use Inbox with a reason; interrupted staged candidates stay in shared work without another note. The existing authorized sweep can resume exceptions using leases and stored feedback; no new scheduler is included. The Review panel shows real scores, recommendations, agent rationale, earlier-draft/context labels and actual outcomes. See [the contract](docs/agent-guide.md) and [release validation and rollout status](docs/assess-commit-validation.md). Legacy `remember` remains compatible and displays “Not assessed.”
-
-## Evaluate Jev
-
-Use a pinned model and keep automatic writes disabled:
+## Develop and verify
 
 ```sh
-JEV_MODEL=jev-1.14.0 npm run evaluate -- tests/fixtures/jev-smoke.json
-JEV_MODEL=jev-1.14.0 npm run evaluate -- data/evals/brain-cases-v6.json dev
-JEV_MODEL=jev-1.14.0 npm run evaluate -- data/evals/brain-cases-v6.json holdout
+npm test
+npm run check
+npm run build
+npm audit
 ```
 
-The six-case fixture is synthetic integration smoke coverage. The private Brain dataset is deliberately ignored and is not distributed with the public app. It contains source references, minimized excerpts, label rationales, authored counterfactuals/injections, and a source/topic-separated holdout. See [the frozen gate and implementation scope](docs/jev-features.md).
+Tests use temporary synthetic vaults, mocked Google code exchange, and mocked model responses. They cover authentication, OAuth/PKCE/revocation, CSRF, MCP, safe rendering, privacy exclusions, path validation, write retries/recovery, and sync serialization. They do not establish live Google login, paid model quality, host configuration, or off-host recovery. `npm run evaluate` explicitly sends its supplied dataset to Jev; use synthetic or separately authorized data and review the request budget first.
 
-The runner evaluates memory, recall and connection cases without writing notes. It pins model/question and dataset hashes, validates inputs, caches exact model requests privately, and enforces the cumulative 2,000-request task budget in `data/evals/budget.json`. It reports exact memory outcomes, memory-value/category accuracy, unsafe acceptances, recall precision/coverage and unsafe routing, connection precision/coverage, failures, usage and latency. Missing roles or all-negative predictions cannot pass. Cached development calls are not independent trials. No successful small evaluation establishes production-wide accuracy.
+The source is in `server/` (auth, MCP, vault and history), `src/` (Explorer), `api/` (optional bridge), and `skills/` (agent workflows). Small, focused contributions should include relevant tests. Do not commit vaults, credentials, production captures, or internal operating records. Report security concerns privately as described in [SECURITY.md](SECURITY.md).
 
-Reports and excerpts stay in `data/evals/`, excluded from Git, Docker and Vercel uploads. Source excerpts preserve attribution, time and uncertainty; client data, credentials, raw transcripts and third-party personal details are excluded. Held-out cases must not guide tuning: retire a failed holdout and construct a fresh one if further tuning is needed.
+## License
 
-This task used 1,834 of the authorized 2,000 requests. The final untouched holdout passed; it is now observed, so rerunning it is regression checking, not fresh validation. Any further tuning requires a new source/topic split and must remain within the authorized cumulative budget. Do not reset the counter or weaken the gate.
-
-The temporary synthetic MCP/SQLite workflow can also be checked with `scripts/test-jev-workflow.ts`. The owner-reviewed connection integration tests cover save/dismiss, stale revisions, restart recovery, idempotency, protected paths and CSRF without contacting the live vault.
-
-## Backup and recovery
-
-Keep backups of **both** vault files and SQLite state. The state includes proposals, change history, and authorization records. Files can remain useful without the database, but source envelopes and operation history cannot be reconstructed completely from Markdown alone.
-
-For a consistent simple backup:
-
-1. `docker compose stop brain` and confirm it stopped. Do not copy an actively changing SQLite database on its own.
-2. Export all three named volumes (`vault`, `state`, `headless-home`) with the host's volume-backup mechanism. Encrypt backups; the CLI configuration and OAuth state are sensitive.
-3. Restart with `docker compose start brain`.
-4. Test restoration into separate volumes and an isolated service with `SYNC_ENABLED=false` and no public ingress. Inspect notes and changes before allowing the restored copy to sync.
-
-Never run two active services against the same vault/state volumes. After interruption, the next vault scan reconciles journaled pending writes against their submitted hashes. Read the current page and operation before retrying with a new payload.
-
-## Boundaries
-
-The web app supports reviewed link additions and checked memory-proposal review, plus a bounded shared-work list. It has no general text editor, ingestion, or chat. Bounded Undo reverses a recorded create/update/promotion only when later edits, path reuse and dependent links are absent. MCP promotion is limited to verified Inbox filing into existing folders and refuses moves that change resolved link targets. There is no hidden LLM rewriting step. Policy files (`AGENTS.md`, `BRAIN.md`, `CONTEXT.md`, `SKILL.md`, `CLAUDE.md`, `GEMINI.md`, `README.md`), hidden paths, symlinks, and underscore-prefixed folders are blocked for MCP writes. Attachments are rendered as labels, not fetched or executed. Raw Markdown HTML is shown as text.
-
-Do not expose this initial single-owner service as a public multi-user product without further security review, operational limits, and load testing.
-
-## Public landing page
-
-The approved “One brain. Any agent.” landing is live at the hosted Vercel root `/`; the private app entry is `/app`. Vercel builds put the landing in `dist/index.html` and preserve the app shell in `dist/app.html`, which serves the private app, demo, sign-in, consent, and settings rewrites. Backend forwarding is unchanged. This hosted route map supersedes the older root-entry instructions above; builds without `VERCEL` preserve the original local/Render app index.
-
-The landing uses an independent frontend build and a clearly labeled scripted conversation. Its semantic-search language is an authorized intended-state assumption; current retrieval remains a keyword shortlist plus Jev. See [landing architecture, tests, and release checks](docs/landing.md) for source paths, deployment status, and the requirement to preserve the running Render deployment.
+Wilson-owned code, documentation, skills, and synthetic examples are [MIT licensed](LICENSE). Bundled dependencies, logos, fonts, and external services retain their own terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Product names and marks identify compatible tools and do not imply endorsement.

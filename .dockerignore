@@ -6,3 +6,13 @@ dist
 data
 .superpowers
 *.log
+.impeccable
+private
+backups
+docs/superpowers
+.vercel
+*.sqlite*
+*.db*
+*.pem
+*.key
+.DS_Store

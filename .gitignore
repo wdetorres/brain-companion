@@ -12,3 +12,14 @@ data/
 .impeccable/review/
 .impeccable/questions/
 .vercel/
+.impeccable/
+docs/superpowers/
+private/
+backups/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+*.pem
+*.key
+.DS_Store

@@ -10,7 +10,7 @@ import type { Note, Source } from '../src/shared.ts';
 export const revision = (text:string) => createHash('sha256').update(text).digest('hex');
 export function validatePath(path:string, write=false):void {
   if(!path || path.length>512 || path.includes('\\') || path.includes('\0') || path.startsWith('/') || !path.endsWith('.md') || path.split('/').some(p=>!p || p==='..' || p.startsWith('.'))) throw Error('Invalid note path');
-  if(write && path.split('/').some(p=>p.startsWith('_') || /^(AGENTS|BRAIN|CONTEXT|SKILL|CLAUDE|GEMINI|README)\.md$/i.test(p))) throw Error('Operational policy files are read-only');
+  if(write && path.split('/').some(p=>p.startsWith('_') || /^(AGENTS|BRAIN|CONTEXT|PARA|SKILL|CLAUDE|GEMINI|README)\.md$/i.test(p))) throw Error('Operational policy files are read-only');
 }
 export async function safePath(root:string, path:string, write=false):Promise<string> {
   validatePath(path,write); const base=await realpath(root); const target=resolve(base,path);
@@ -33,9 +33,12 @@ export function parseNote(path:string, markdown:string, modifiedAt:string):Note 
   if(/^---\r?\n/.test(markdown)&&!fm)meta.sensitivity='restricted';
   try {if(fm){const parsed=parse(fm[1],{maxAliasCount:20});if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))throw Error('Frontmatter must be a mapping');meta=parsed;}}catch{/* Malformed frontmatter is not permission to send a note externally. */meta.sensitivity='restricted';}
   if(['sensitivity','portability','scope'].some(k=>k in meta&&typeof meta[k]!=='string')||('contains_client_data' in meta&&typeof meta.contains_client_data!=='boolean'))meta.sensitivity='restricted';
+  // Noncanonical privacy keys and unknown labels must not silently permit disclosure.
+  if(Object.keys(meta).some(k=>['sensitivity','portability','scope','contains_client_data'].includes(k.trim().toLowerCase())&&k!==k.trim().toLowerCase()))meta.sensitivity='restricted';
+  const sensitivity=String(meta.sensitivity??'normal').trim().toLowerCase(),portability=String(meta.portability??'').trim().toLowerCase(),scope=String(meta.scope??'').trim().toLowerCase();
   const body=fm?markdown.slice(fm[0].length):markdown;
   const sources:Source[]=Array.isArray(meta.sources)?meta.sources.filter((s:any)=>s&&typeof s.title==='string'&&typeof s.uri==='string'&&typeof s.observedAt==='string'):[];
-  const assessmentAllowed = !path.split('/').some(p=>p.startsWith('_')||/^(AGENTS|BRAIN|CONTEXT|SKILL|CLAUDE|GEMINI|README)\.md$/i.test(p)) && meta.contains_client_data !== true && !['internal','restricted','confidential'].includes(meta.sensitivity) && (meta.portability !== 'internal' && !String(meta.scope||'').startsWith('work') || meta.portability === 'portable');
+  const assessmentAllowed = !path.split('/').some(p=>p.startsWith('_')||/^(AGENTS|BRAIN|CONTEXT|PARA|SKILL|CLAUDE|GEMINI|README)\.md$/i.test(p)) && meta.contains_client_data !== true && ['normal','public','personal'].includes(sensitivity) && ['', 'portable'].includes(portability) && (!/^(work|client)/.test(scope) || portability === 'portable');
   return {path,assessmentAllowed,reviewReason:typeof meta.review_reason==='string'?meta.review_reason.slice(0,1000):undefined,category:categories.includes(meta.memory_category ?? meta.type) ? (meta.memory_category ?? meta.type) as MemoryCategory : undefined,title:typeof meta.title==='string'?meta.title:body.match(/^#\s+(.+)$/m)?.[1]||basename(path,'.md'),folder:folderFor(path),markdown,body,revision:revision(markdown),links:[],unresolved:[],tags:Array.isArray(meta.tags)?meta.tags.filter((s:unknown)=>typeof s==='string'):[],sources,modifiedAt};
 }
 export async function readVault(root:string, cache?:Map<string,CachedNote>):Promise<Note[]> {
