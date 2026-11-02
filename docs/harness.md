@@ -58,7 +58,7 @@ Direct hosting does not require `BRAIN_BRIDGE_KEY`. If retaining Vercel as the c
 
 ## Migration and limits
 
-The four-skill migration is approved. The deployment already supports authorized remote reads; writer cutover remains staged. See [the migration record](skill-migration.md) for installed surfaces, exact pending targets and verification limits.
+The four-skill migration is approved. Eligible personal same-session new/update capture is active and verified; parent/log/index bookkeeping and existing collectors retain their selected local routes. See [writer activation](writer-activation.md). See [the migration record](skill-migration.md) for installed surfaces, exact pending targets and verification limits.
 
 Keep `AUTO_ACCEPT` empty during validation. Enable only owner-approved actions after isolated write tests, backup and source/navigation/checkpoint checks. Empty acceptance does not disable explicit connection acceptance or queue mutations. Old retained proposals are not replayed automatically.
 
