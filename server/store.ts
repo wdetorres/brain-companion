@@ -37,6 +37,10 @@ export class BrainStore {
     this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; CREATE TABLE IF NOT EXISTS operations (id TEXT PRIMARY KEY, idem TEXT UNIQUE, fingerprint TEXT, payload TEXT NOT NULL); CREATE TABLE IF NOT EXISTS observed (path TEXT PRIMARY KEY, revision TEXT, markdown TEXT); CREATE TABLE IF NOT EXISTS auth (key TEXT PRIMARY KEY, payload TEXT NOT NULL, expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);');
     this.db.exec('CREATE TABLE IF NOT EXISTS connections (id TEXT PRIMARY KEY, payload TEXT NOT NULL)');
     this.db.exec('CREATE TABLE IF NOT EXISTS assessments (id TEXT PRIMARY KEY, idem TEXT UNIQUE NOT NULL, fingerprint TEXT NOT NULL, payload TEXT NOT NULL, progress TEXT NOT NULL DEFAULT \'{}\')');this.writeAssessor=options.writeAssessor;
+    if(this.db.prepare('SELECT value FROM metadata WHERE key=?').get('noteParserVersion')?.value!=='2'){
+      this.db.exec('DROP TABLE IF EXISTS note_index; DROP TABLE IF EXISTS note_fts');
+      this.db.prepare('INSERT OR REPLACE INTO metadata VALUES(?,?)').run('noteParserVersion','2');
+    }
     this.index=new NoteIndex(this.db,this.vault);
     this.work=new WorkQueue(this.db);
     for(const row of this.db.prepare("SELECT id,payload FROM assessments WHERE json_extract(payload,'$.status')='assessing'").all()){
@@ -108,7 +112,7 @@ export class BrainStore {
     for(const row of pending){const op:Operation=JSON.parse(row.payload);if(op.promotion||op.undo)continue;const current=notes.find(n=>n.path===op.path);op.status=current?.revision===revision(op.proposed)?'applied':'needs_attention';op.reason=op.status==='applied'?'Recovered committed write after restart':'Interrupted write retained for inspection';if(op.status==='applied')op.revision=current!.revision;this.save(op);if(op.status==='applied'){this.markObserved(current!);this.recordCategory(op);this.completeNoteWork(op);}else if(!op.resolution&&op.assessment?.role!=='primary'&&op.decision?.outcome!=='not_worth_remembering')this.work.enqueue('operation:'+op.id,revision(op.proposed),op.path,'proposal',op.reason,op.id);}
     for(const n of notes){const prev=this.db.prepare('SELECT revision,markdown FROM observed WHERE path=?').get(n.path) as {revision:string;markdown:string}|undefined;
       if(prev&&prev.revision!==n.revision){this.work.stale('note:'+n.path);this.save({id:randomUUID(),path:n.path,actor:'Obsidian / external',at:new Date().toISOString(),status:'external',reason:'Observed a change outside the memory API',before:prev.markdown,proposed:n.markdown,sources:n.sources,revision:n.revision});if(n.assessmentAllowed!==false&&n.folder!=='inbox')this.work.enqueue('note:'+n.path,n.revision,n.path,'review','Review changed context and links');}
-      if(n.folder==='inbox')this.work.enqueue('note:'+n.path,n.revision,n.path,'inbox','Verify sources and filing destination');
+      if(n.folder==='inbox')this.work.enqueue('note:'+n.path,n.revision,n.path,'inbox',n.reviewReason||'Verify sources and filing destination');
       if(!prev||prev.revision!==n.revision)this.markObserved(n);
     }
     const present=new Set(notes.map(n=>n.path));for(const row of this.db.prepare('SELECT path,markdown FROM observed').all() as {path:string;markdown:string}[]){if(!present.has(row.path)){this.save({id:randomUUID(),path:row.path,actor:'Obsidian / external',at:new Date().toISOString(),status:'external',reason:'Observed a removed page',before:row.markdown,proposed:'',sources:[]});this.db.prepare('DELETE FROM observed WHERE path=?').run(row.path);this.work.stale('note:'+row.path);}}

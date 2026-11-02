@@ -1,6 +1,11 @@
 import type{Note, Operation}from'./shared.ts';
 export function needsReview(operation: Operation) {
- return operation.status === 'needs_attention' && !operation.resolution && operation.decision?.outcome !== 'not_worth_remembering';
+ return operation.status === 'needs_attention' && !operation.resolution && !operation.undo && operation.assessment?.role!=='primary' && operation.decision?.outcome !== 'not_worth_remembering';
+}
+export function operationStatus(op:Operation){
+ if(op.status==='applied')return op.undo?'Undo applied':'Applied';
+ if(op.resolution)return'Reviewed';
+ return({duplicate:'Already present',needs_attention:'Needs attention',failed:'Failed',external:'From Obsidian',pending:'Pending'})[op.status];
 }
 export function firstReview(operations: Operation[]) {
  return (operations.find(needsReview) || operations[0])?.id || null;

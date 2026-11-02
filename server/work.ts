@@ -11,7 +11,11 @@ export class WorkQueue {
   active(subject:string){const row=this.db.prepare("SELECT payload FROM work WHERE subject=? AND status IN ('open','claimed','deferred') ORDER BY created DESC LIMIT 1").get(subject);return row?JSON.parse(row.payload as string) as WorkItem:undefined;}
   enqueue(subject:string,rev:string,path:string,kind:WorkKind,reason:string,operationId?:string,assessmentId?:string){
     const id=revision(JSON.stringify([subject,rev,kind]));this.stale(subject,id);const exists=this.get(id);
-    if(exists)return exists.status==='stale'?this.save({...exists,status:'open',owner:undefined,claimToken:undefined,leaseUntil:undefined,retryAt:undefined,reason,updatedAt:Date.now()}):exists;
+    if(exists){
+      if(exists.status==='stale')return this.save({...exists,status:'open',owner:undefined,claimToken:undefined,leaseUntil:undefined,retryAt:undefined,reason,updatedAt:Date.now()});
+      if(kind==='inbox'&&exists.status==='open'&&exists.reason==='Verify sources and filing destination'&&reason!==exists.reason)return this.save({...exists,reason,updatedAt:Date.now()});
+      return exists;
+    }
     const now=Date.now();return this.save({id,subject,revision:rev,path,kind,status:'open',reason,createdAt:now,updatedAt:now,operationId,assessmentId});
   }
   stale(subject:string,except=''){for(const row of this.db.prepare("SELECT payload FROM work WHERE subject=? AND id<>? AND status IN ('open','claimed','deferred')").all(subject,except)){const job:WorkItem=JSON.parse(row.payload as string);job.status='stale';job.claimToken=undefined;job.leaseUntil=undefined;job.updatedAt=Date.now();this.save(job);}}

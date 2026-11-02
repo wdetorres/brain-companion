@@ -78,7 +78,7 @@ test('reassigned assessment claims fence old agents and support explicit no-chan
 });
 test('an intentional unresolved Inbox save leaves one Inbox job and no unfinished assessment',async t=>{
  const f=await fixture(t),a=await f.store.assessMemory(input,'A');const op=await f.store.remember(commit(a,{path:'00 Inbox/Plan.md',markdown:'---\nstatus: inbox\nreview_reason: Destination requires source clarification\n---\n# Pending\nAvailable source context.'}),'A');assert.equal(op.status,'applied');
- const jobs=await f.store.listWork({});assert.equal(jobs.length,1);assert.equal(jobs[0].kind,'inbox');assert.equal((await f.store.assessment(a.assessment.id))?.progress?.resolution?.operationId,op.id);
+ const jobs=await f.store.listWork({});assert.equal(jobs.length,1);assert.equal(jobs[0].kind,'inbox');assert.match(jobs[0].reason,/Destination requires source clarification/);assert.equal((await f.store.assessment(a.assessment.id))?.progress?.resolution?.operationId,op.id);
 });
 test('pending committed-write recovery closes its assessment before another primary commit',async t=>{
  const f=await fixture(t),a=await f.store.assessMemory(input,'A'),op=await f.store.remember(commit(a),'A');
@@ -86,4 +86,12 @@ test('pending committed-write recovery closes its assessment before another prim
  const job=f.store.work.get(a.workId)!;f.store.db.prepare('UPDATE work SET status=?,payload=? WHERE id=?').run('open',JSON.stringify({...job,status:'open'}),job.id);
  const store=f.reopen();assert.equal((await store.operation(op.id))?.status,'applied');assert.equal((await store.assessment(a.assessment.id))?.progress?.resolution?.operationId,op.id);assert.equal((await store.listWork({kind:'assessment'})).length,0);
  await assert.rejects(store.remember(commit(a,{idempotencyKey:'after-crash-second'}),'A'),/complete|resolved/i);
+});
+test('existing cached Inbox captures acquire their real review reason without erasing deferred blockers',async t=>{
+ const f=await fixture(t);await mkdir(join(f.vault,'00 Inbox'));await writeFile(join(f.vault,'00 Inbox/Pending.md'),'---\nreview_reason: Original source is missing\n---\n# Pending');
+ const job=(await f.store.listWork({kind:'inbox'}))[0],row=f.store.db.prepare('SELECT payload FROM note_index WHERE path=?').get(job.path)!,legacy=JSON.parse(String(row.payload));delete legacy.reviewReason;
+ f.store.db.prepare('UPDATE note_index SET payload=? WHERE path=?').run(JSON.stringify(legacy),job.path);f.store.db.prepare('DELETE FROM metadata WHERE key=?').run('noteParserVersion');
+ f.store.db.prepare('UPDATE work SET payload=? WHERE id=?').run(JSON.stringify({...job,reason:'Verify sources and filing destination'}),job.id);
+ const store=f.reopen();assert.equal((await store.listWork({kind:'inbox'}))[0].reason,'Original source is missing');const claim=await store.claimWork(job.id,'B');
+ await store.finishWork({id:job.id,claimToken:claim.claimToken,outcome:'deferred',reason:'Source account is inaccessible'},'B');assert.equal((await store.listWork({kind:'inbox'}))[0].reason,'Source account is inaccessible');
 });
