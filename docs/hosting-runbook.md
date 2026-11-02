@@ -120,6 +120,18 @@ Completed domain steps:
 
 For rollback, re-add the previous exact Google callback, remove the old-host redirect and restore the previous canonical-origin configuration before signing in on the previous host. Register/reconnect ChatGPT against that origin; retired grants require fresh consent. Do not restore an old vault snapshot over newer notes to undo an auth/domain change. Backups remain private on the same Render disk; independent disaster recovery is still not established.
 
+## Session handoff — November 2, 2026
+
+Wilson confirmed the setup works and requested this handoff before changing sessions. Hosting, Google SSO and the custom-domain ChatGPT connection are complete; no further cutover is pending.
+
+- **Production versus preview:** `brain.wilsondetorres.com` is attached directly to Vercel production (`main`, no branch override or redirect on that domain). Cloudflare supplies a DNS-only CNAME; it does not redirect the browser. The old `brain-companion-hazel.vercel.app` redirects at Vercel. Deployments from `codex/google-sso` are branch previews with generated Vercel URLs; their missing production-only bridge settings do not describe the production app.
+- **Last verified deployment checkpoint:** commit `9711f35` on both `main` and `codex/google-sso`; [Vercel production `dpl_DbgRfL85xpFREBHKN2pCkgFt64Yb`](https://vercel.com/wilsondts-projects/brain-companion/DbgRfL85xpFREBHKN2pCkgFt64Yb) was Ready, and [Render `dep-dbk16h6417fc73bf2gng`](https://dashboard.render.com/web/srv-dbjum4vf3r2c73d6g2q0/deploys/dep-dbk16h6417fc73bf2gng) was live at `2026-11-02T04:37:16Z`. Later documentation pushes may supersede these IDs without changing runtime code.
+- **After that restart:** the existing Google owner session still opened the dashboard; the real ChatGPT status request succeeded at 12:38:01 PM and scheduled sync succeeded at 12:38:13 PM (Asia/Manila). During this handoff, the connected Brain Companion MCP in Codex also returned status and search results: 219 indexed notes, successful sync at `2026-11-02T04:53:33.679Z`, and `autoAccept: []`.
+- **Continue using the current app:** [Brain Companion](https://chatgpt.com/settings/plugins-settings/plugin_asdk_app_6ae8125cb734819199367c91b5350691) uses the custom-domain issuer. The old Vercel-domain registration is disconnected; do not reconnect it when resuming. Existing agent capture workflows and schedules are unchanged, and automatic MCP acceptance remains disabled.
+- **Remaining verification:** live token expiry/refresh, a different real Google account, full cross-device/attachment convergence and independent off-disk recovery have not been exercised. The previously recorded disk-service shutdown window is 30 seconds, while `server/runtime.ts` permits a sync process to run for 120 seconds; interruption/recovery during such a sync remains untested. Passing normal redeploy checks does not resolve that case. The earlier transient consent-details failure still has no proven cause.
+
+The existing private Brain project note, `01 Projects/Personal/Brain Companion.md`, is the personal-context counterpart to this operational record. Additional Jev roles and adoption of the MCP write workflow remain separate decisions.
+
 ## Resume safely
 
 - Check the current project/domain/environment state before acting; platform UI and DNS can change independently of Git.

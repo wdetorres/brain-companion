@@ -1,3 +1,11 @@
+# Current session handoff — November 2, 2026
+
+The persistent Render worker, whole-vault sync, Better Auth Google SSO and ChatGPT MCP connection are live at **https://brain.wilsondetorres.com**. Wilson confirmed the setup works. Start with the [hosting runbook and session handoff](hosting-runbook.md#session-handoff--november-2-2026), [deployment checkpoint](deployment-status.md) and [SSO operations](google-sso.md).
+
+Vercel production follows `main`; `codex/google-sso` deployments are previews. Existing agent workflows/schedules remain unchanged and `AUTO_ACCEPT` remains empty. The checkpoints below retain historical decisions, including the former localhost and paused-hosting state; they do not describe today's deployment.
+
+---
+
 # Brain harness checkpoint — October 31, 2026
 
 The agent-agnostic harness is implemented: 12 MCP tools, portable skill/resource/prompt, persisted FTS retrieval, leased shared work, checked source-backed Inbox promotion, and owner proposal review. No new runtime dependency or always-running reasoning agent was added. The local code supports verified new/update/promote actions; automatic acceptance remains disabled pending deployment.
