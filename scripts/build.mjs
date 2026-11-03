@@ -7,12 +7,14 @@ await cp('LICENSE', 'dist/LICENSE');
 await build({ entryPoints: ['src/main.tsx'], bundle: true, minify: true, format: 'esm', target: ['es2022'], outfile: 'dist/assets/app.js', sourcemap: false, define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'info' });
 await build({ entryPoints: ['src/landing.ts'], external: ['/fonts/*'], bundle: true, minify: true, format: 'esm', target: ['es2022'], outfile: 'dist/assets/landing.js', sourcemap: false, logLevel: 'info' });
 await build({ entryPoints: ['src/docs.css'], bundle: true, minify: true, outfile: 'dist/assets/docs.css', logLevel: 'info' });
+await build({ entryPoints: ['src/theme.ts'], bundle: true, minify: true, format: 'iife', target: ['es2022'], outfile: 'dist/assets/theme.js', logLevel: 'info' });
 // A portable, explicit demo of the same compiled application.
 const { readFile, writeFile } = await import('node:fs/promises');
+const theme = (await readFile('dist/assets/theme.js', 'utf8')).replaceAll('</script', '<\\/script');
 const css = await readFile('dist/assets/app.css', 'utf8');
 const js = (await readFile('dist/assets/app.js', 'utf8')).replaceAll('</script', '<\\/script');
 const notices = ((await readFile('LICENSE', 'utf8')) + '\n' + (await readFile('public/THIRD_PARTY_NOTICES.txt', 'utf8'))).replaceAll('-->', '--&gt;');
-await writeFile('dist/brain-explorer-demo.html', `<!doctype html><!--\n${notices}\n--><html lang="en" data-demo="true"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Brain Explorer · sample demo</title><style>${css}</style></head><body><div id="root"></div><script type="module">${js}</script></body></html>`);
+await writeFile('dist/brain-explorer-demo.html', `<!doctype html><!--\n${notices}\n--><html lang="en" data-demo="true"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#141414"><title>Brain Explorer · sample demo</title><script>${theme}</script><style>${css}</style></head><body><div id="root"></div><script type="module">${js}</script></body></html>`);
 // Vercel serves index.html before rewrites; keep the standalone worker's shell unchanged.
 if (process.env.VERCEL) {
   await cp('dist/index.html', 'dist/app.html');

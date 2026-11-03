@@ -1,3 +1,4 @@
+import { ThemeToggle } from './ThemeToggle.tsx';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, Copy, LockKeyhole, Network } from 'lucide-react';
 import { authClient } from './auth-client.ts';
@@ -13,7 +14,7 @@ async function read<T>(path: string, body?: object): Promise<T> {
   return response.json();
 }
 function Frame({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <main className={'entry ' + className}><div className="entry-card auth-card"><a className="brand-mark" href="/" aria-label="Brain Companion home"><Network size={23} /></a>{children}<small className="auth-footer"><LockKeyhole size={13} /> Your private Brain Companion</small></div></main>;
+  return <main className={'entry ' + className}><div className="entry-card auth-card"><div className="auth-heading"><a className="brand-mark" href="/" aria-label="Brain Companion home"><Network size={23} /></a><ThemeToggle /></div>{children}<small className="auth-footer"><LockKeyhole size={13} /> Your private Brain Companion</small></div></main>;
 }
 export function LoginPage({ error = '' }: { error?: string }) {
   const [busy, setBusy] = useState(false), [failure, setFailure] = useState('');
@@ -62,7 +63,7 @@ export function AccountSettings({ csrf, status, user }: { csrf: string; status: 
     return()=>clearTimeout(timer);
   },[copyState]);
   const mcpUrl = location.origin + '/mcp';
-  return <main className="account-page"><a className="demo-link" href="/app"><ArrowLeft size={15}/> Back to your Brain</a><h1>Account & connections</h1>
+  return <main className="account-page"><div className="account-heading"><a className="demo-link" href="/app"><ArrowLeft size={15}/> Back to your Brain</a><ThemeToggle /></div><h1>Account & connections</h1>
     {error && <p role="alert" className="error-text">{error}</p>}
     <section className="account-section account-identity"><div><h2>Signed in with Google</h2><p>{user?.email}</p><p className="small muted">Signing out ends this session. Connected apps keep their access.</p></div><button className="quiet-button" onClick={async()=>{const r=await authClient.signOut();if(r.error)setError('Could not sign out. Try again.');else location.assign('/sign-in');}}>Sign out</button></section>
     <section className="account-section"><h2>Obsidian Sync</h2><p className="sync-state">{status.sync}</p><p className="small muted">Last successful sync: {status.lastSync ? new Date(status.lastSync).toLocaleString() : 'No successful sync recorded'}</p><p className="small muted">This is the server’s sync status. Other devices may still be catching up.</p></section>

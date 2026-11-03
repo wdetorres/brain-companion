@@ -50,6 +50,7 @@ test('Vercel gets the public index while standalone builds retain the private ap
   assert.match(docs, /<title>Docs · Brain Companion<\/title>/);
   assert.match(await readFile('dist/assets/docs.css', 'utf8'), /docs-layout/);
   const portable=await readFile('dist/brain-explorer-demo.html','utf8');
+  assert.ok(portable.includes('brain-theme') && portable.indexOf('brain-theme') < portable.indexOf('<style>'));
   assert.ok(portable.includes(await readFile('public/THIRD_PARTY_NOTICES.txt','utf8')));
   assert.ok(portable.includes(await readFile('LICENSE','utf8')));
   assert.equal(await readFile('dist/LICENSE','utf8'),await readFile('LICENSE','utf8'));

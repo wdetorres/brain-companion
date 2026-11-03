@@ -1,6 +1,6 @@
 ---
 name: "Brain"
-description: "A compact monochrome workspace with rounded, layered surfaces."
+description: "A compact monochrome workspace with shared dark and light themes."
 colors:
   canvas: "#141414"
   paper: "#1c1c1c"
@@ -15,6 +15,25 @@ colors:
   action-text: "#171717"
   accent: "#ececec"
   accent-strong: "#ffffff"
+  control-strong: "#404040"
+  action-border: "#d4d4d4"
+  action-highlight: "#ffffff80"
+  light-canvas: "#f5f5f5"
+  light-paper: "#ffffff"
+  light-ink: "#171717"
+  light-reading-text: "#404040"
+  light-muted: "#666666"
+  light-line: "#dedede"
+  light-control: "#f3f3f3"
+  light-control-hover: "#e9e9e9"
+  light-border-hover: "#a3a3a3"
+  light-selected: "#e5e5e5"
+  light-action-text: "#fafafa"
+  light-accent: "#262626"
+  light-accent-strong: "#111111"
+  light-control-strong: "#dedede"
+  light-action-border: "#171717"
+  light-action-highlight: "#ffffff26"
 typography:
   display:
     fontFamily: "Atkinson, sans-serif"
@@ -124,39 +143,46 @@ components:
   scene-option-selected:
     backgroundColor: "{colors.selected}"
     textColor: "{colors.ink}"
+  theme-toggle:
+    backgroundColor: "{colors.control}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.control}"
+    padding: "8px"
+    width: "36px"
+    height: "36px"
 ---
 
 # Design System: Brain
 
 ## Overview
 
-**Creative North Star: "Brain in black"**
+**Creative North Star: "Brain in monochrome"**
 
-Brain uses charcoal layers, silver text and compact controls. Rounded outer panels give the app, landing page and documentation a common frame; reading surfaces inside them remain quiet and spacious. The approved dark monochrome identity and compact landing scale remain in force.
+Brain uses neutral layers and compact controls in two themes: charcoal surfaces with silver text by default, or white surfaces with charcoal text when light mode is selected. Rounded outer panels give the app, landing page and documentation a common frame; reading surfaces inside them remain quiet and spacious. The compact landing scale and monochrome identity remain in force.
 
-The component treatment adapts [BoardUI's](https://www.boardui.com/) MIT-licensed free button, input, sidebar, badge and segmented-control designs into the existing React, HTML and CSS. This is a native implementation with no new runtime dependency, not a Tailwind or React Aria installation. BoardUI revision `ec5c5eb3e29c2441be63b9422cd54f411ef23466` is attributed in `public/THIRD_PARTY_NOTICES.txt`; its MIT notice is also retained in `src/boardui.css`. BoardUI's colored accents map to white actions, neutral selections and silver focus treatments.
+The component treatment adapts [BoardUI's](https://www.boardui.com/) MIT-licensed free button, input, sidebar, badge and segmented-control designs into the existing React, HTML and CSS. This is a native implementation with no new runtime dependency, not a Tailwind or React Aria installation. BoardUI revision `ec5c5eb3e29c2441be63b9422cd54f411ef23466` is attributed in `public/THIRD_PARTY_NOTICES.txt`; its MIT notice is also retained in `src/boardui.css`. BoardUI's colored accents map to neutral actions, selections and focus treatments: white primary actions in dark mode, charcoal primary actions in light mode.
 
 **Key Characteristics:**
 
-- Shared charcoal tokens across the app, landing page and documentation.
+- Shared semantic dark/light tokens across the app, landing page and documentation.
 - Floating rounded frames, inset controls and restrained contact shadows.
-- White primary actions and selected app navigation; graphite secondary selections.
+- Contrasting primary actions and selected app navigation; neutral secondary selections.
 - Compact typography, readable note measures and explicit interaction states.
 
 ## Colors
 
-The shared source of truth is `src/boardui.css`, imported by all three surface stylesheets. Frontmatter records reused color values; the sidecar carries gradients and other properties outside the token schema.
+The shared source of truth is `src/boardui.css`, imported by all three surface stylesheets. Unprefixed frontmatter colors describe the dark default; `light-` entries record the corresponding `:root[data-theme="light"]` overrides. At runtime both themes use the same semantic CSS property names, such as `--paper` and `--action-text`. Frontmatter component references describe the default theme; sidecar previews inherit the runtime properties. The sidecar records shadows and component CSS that the frontmatter schema cannot hold.
 
 ### Primary
 
-- **Silver action:** the light vertical button gradient and dark `action-text` identify primary actions and selected app navigation. The exact gradient belongs to the sidecar because it is an image, not a CSS color.
-- **Silver focus:** `accent` and `accent-strong` support outlines, carets and clear hover states.
+- **Contrasting action:** primary buttons and selected app navigation share a light gradient with dark text in dark mode, and a charcoal gradient with light text in light mode. `action-text`, `action-border` and `action-highlight` keep their labels and edges consistent. Gradients remain CSS custom properties referenced by the sidecar; they are images, not frontmatter color values.
+- **Neutral focus:** `accent` and `accent-strong` support outlines, carets and clear hover states in each theme.
 
 ### Neutral
 
-- **Charcoal ground and paper:** `canvas` sits behind `paper` panels and beneath the graph. The name paper denotes a reading surface, not a light background.
-- **Inset graphite:** `control`, `control-hover` and `selected` distinguish fields, hover and selection. Selection in lists also has an inset border.
-- **Silver hierarchy:** `ink`, `reading-text` and `muted` separate headings, prose and supporting metadata.
+- **Ground and paper:** `canvas` sits behind `paper` panels and beneath the graph. Dark mode uses charcoal layers; light mode uses a soft gray canvas and white panels.
+- **Inset controls:** `control`, `control-hover`, `control-strong` and `selected` distinguish fields, hover, badges and selection. Selection in lists also has an inset border.
+- **Text hierarchy:** `ink`, `reading-text` and `muted` separate headings, prose and supporting metadata in both themes.
 - **Fine boundaries:** `line` divides surfaces; `border-hover` strengthens interactive edges.
 
 **The Monochrome Rule.** Keep decorative color out of the interface; communicate category, status and changed lines with words, icons, borders or line patterns as well as tone.
@@ -184,13 +210,13 @@ At 1500px and above the sidebar becomes 248px and inspector 380px. At 1150px and
 
 The landing content is centered at a 1100px maximum width, with 40px side space, then 24px at 850px and 18px at 640px. A floating masthead precedes the promise, paired conversation/note demonstration and evidence section. The demo's 1.65:1 columns become 1.4:1 at 850px and stack at 640px.
 
-Documentation uses a 1160px maximum width, a floating sticky header, a 230px sticky contents panel and a separate reading panel. At 1000px the sidebar becomes 200px; at 760px it moves above the article, with an expandable two-column contents list and 8px outer margins. Long code and tables scroll within their containers.
+Documentation uses a 1160px maximum width, a floating sticky header, a 230px sticky contents panel and a separate reading panel. At 1000px the sidebar becomes 200px; at 760px it moves above the article, with an expandable two-column contents list and 8px outer margins. Long code and tables scroll within their containers. At 640px and below, the documentation header hides its GitHub link to retain room for the theme button; GitHub links remain in the article and footer.
 
 ## Elevation & Depth
 
 Tonal layering and thin borders carry most depth. A low contact shadow supports controls; the sidebar and entry card use the panel shadow. Primary buttons and selected app navigation have a subtle inset top highlight. Search results use a stronger overlay shadow. Rounded frames do not imply that every nested section needs another shadow.
 
-The exact control, panel and overlay shadows, primary gradients, focus outlines and transition values live in `.impeccable/design.json`. These treatments supersede the earlier flat-pane/no-shadow guidance.
+The exact dark/light control, panel and overlay shadows, focus outlines and transition values live in `.impeccable/design.json`. Its component previews inherit the primary gradient properties from `src/boardui.css`, with dark fallbacks. Light mode uses lower shadow opacity while retaining the same geometry. These treatments supersede the earlier flat-pane/no-shadow guidance.
 
 **The Quiet Depth Rule.** Use contact shadows for controls and floating frames; keep ordinary reading sections separated by spacing and fine rules.
 
@@ -204,19 +230,25 @@ Graph nodes, folder markers and identity avatars remain circular. Preserve the t
 
 ### Buttons
 
-Primary actions use the white gradient, dark label and inset highlight. Quiet actions use graphite fill and a fine border; hover brightens fill and border, while active state uses `selected`. App buttons have a 36px minimum height, rising to 40px on mobile. Public primary links and consent actions retain 44px targets. Disabled primary and quiet controls use a flat graphite fill, muted label and no shadow. Preserve visible two-pixel focus outlines.
+Primary actions use the theme’s contrasting gradient, action label and inset highlight. Quiet actions use the neutral control fill and a fine border; hover changes fill and border, while active state uses `selected`. App buttons have a 36px minimum height, rising to 40px on mobile. Public primary links and consent actions retain 44px targets. Disabled primary and quiet controls use a flat neutral control fill, muted label and no shadow. Preserve visible two-pixel focus outlines.
+
+### Theme control
+
+The native theme button appears in the app header, authentication and account headings, and landing/documentation navigation. Its sun or moon icon and accessible action label indicate the mode it will switch to. The shared control is 36px square, becoming 40px at 760px and below, with the same border, hover and keyboard focus treatment as other controls.
+
+`src/theme.ts` is built as an external script loaded before each page’s stylesheet. It sets `html[data-theme]` from the saved `brain-theme` localStorage value and updates an existing browser theme-color meta tag. Only `light` selects light mode; missing or invalid values select dark. Native button clicks switch immediately and save the choice when storage is available. Storage events synchronize other tabs on the same origin; unavailable storage still permits switching on the current page. No system-mode preference or additional dependency is used. Without the script, dark styles remain and the nonfunctional toggle stays hidden.
 
 ### Inputs / Fields
 
-Search is an inset wrapper with a leading SVG icon; focus brightens its background and border. Its bounded results overlay stays anchored to the field. Native selects retain browser semantics. Recall and review-reason textareas remain resizable, bordered and visibly focused; mobile text size prevents zoom on entry. Keep existing labels, disabled states and errors.
+Search is an inset wrapper with a leading SVG icon; focus changes its background and border using the current theme. Its bounded results overlay stays anchored to the field. Native selects retain browser semantics. Recall and review-reason textareas remain resizable, bordered and visibly focused; mobile text size prevents zoom on entry. Keep existing labels, disabled states and errors.
 
 ### Navigation and status
 
-Selected app navigation uses the same light gradient as primary actions, with dark text and count badges. Hovered navigation uses graphite. Selected note and work rows use neutral fill plus an inset border. Documentation header navigation uses a quiet filled current state; its contents remain ordinary anchor links. Status badges are small bordered rectangles with explicit wording, including pending, applied and unavailable states.
+Selected app navigation uses the same contrasting gradient as primary actions, including themed text and count badges. Hovered navigation uses the neutral raised surface. Selected note and work rows use neutral fill plus an inset border. Documentation header navigation uses a quiet filled current state; its contents remain ordinary anchor links. Status badges are small bordered rectangles with explicit wording, including pending, applied and unavailable states.
 
 ### Segmented controls
 
-Landing scene buttons and Recall's native radio group sit inside a dark inset track. Selected options use a raised neutral fill, clear text and a contact shadow. Preserve pressed or checked semantics and keyboard focus; the landing no longer uses an active underline.
+Landing scene buttons and Recall's native radio group sit inside a canvas-colored inset track. Selected options use a raised neutral fill, clear text and a contact shadow. Preserve pressed or checked semantics and keyboard focus; the landing no longer uses an active underline.
 
 ### Review and readers
 
@@ -239,14 +271,14 @@ App button transitions use 160ms with the existing easing curve; the landing not
 ### Do:
 
 - **Do** import the shared BoardUI adaptation tokens for public, app and documentation surfaces.
-- **Do** keep white primary actions, white selected app navigation and neutral secondary selections distinct.
+- **Do** use semantic theme properties for primary actions, selected app navigation, text, icons, borders and secondary selections.
 - **Do** preserve the compact type scale, readable measures and sourced SVG identities.
 - **Do** retain native semantics, explicit labels, keyboard focus, mobile wrapping and reduced motion.
 - **Do** preserve review order, source evidence, permission disclosures and synthetic-demo labeling.
 
 ### Don't:
 
-- **Don't** introduce colored decorative accents, pale reading canvases or enlarged display type.
+- **Don't** introduce colored decorative accents, hardcoded dark-only component colors or enlarged display type.
 - **Don't** treat the adaptation as an installed BoardUI, Tailwind or React Aria runtime.
 - **Don't** turn every reading section into a shadowed card or remove the implemented subtle control gradients.
 - **Don't** rely on grayscale differences alone to communicate status, category or changed lines.

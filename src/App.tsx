@@ -1,3 +1,4 @@
+import { ThemeToggle } from './ThemeToggle.tsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, BookOpen, Check, ChevronRight, Circle, FileText, History, LockKeyhole, LogOut, Network, PanelRightClose, RefreshCw, Search, Settings, Sparkles, X, ArrowRight } from 'lucide-react';
 import { LoginPage, AccountSettings } from './Auth.tsx';
@@ -210,6 +211,7 @@ export function App() {
           {query.trim() && <div className="search-results" role="region" aria-label="Search results"><div className="search-result-count" aria-live="polite">{searching ? 'Searching…' : searchError || `${results.length} matches`}</div>{!searching && !searchError && results.map(n => <button key={n.path} onClick={() => openNote(n.path)} data-folder={n.folder}><span className="folder-dot" /><span>{n.title}<small>{n.path}</small></span><ArrowUpRight size={15} /></button>)}{!searching && !searchError && !results.length && <p className="muted small">No matches. Try a different word or page title.</p>}</div>}
         </div>
         <button className={'quiet-button recall-shortcut ' + (view === 'recall' ? 'active' : '')} aria-label="Recall with evidence" aria-pressed={view === 'recall'} title="Recall with evidence" onClick={() => changeView('recall')}><Sparkles size={15} /><span>Recall</span></button>
+        <ThemeToggle />
         {!isDemo && <a className="icon-button mobile-settings" href="/settings" aria-label="Account & connections" title="Account & connections"><Settings size={18} /></a>}
         <div className={'connection ' + (isDemo ? 'sample' : '')}>{isDemo ? <><span />Demo</> : <><LockKeyhole size={13} />Private</>}</div>
       </header>

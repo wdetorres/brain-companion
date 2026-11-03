@@ -14,6 +14,6 @@ test('public docs cover every registered MCP tool and keep their navigation vali
   const ids = [...docs.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
   assert.equal(new Set(ids).size, ids.length, 'Section and tool anchors must be unique');
   for (const [, target] of docs.matchAll(/href="#([^"]+)"/g)) assert.ok(ids.includes(target), `Missing target: ${target}`);
-  assert.doesNotMatch(docs, /<script\b/i, 'Public docs must work without a client script or private API access');
+  assert.doesNotMatch(docs.replace('<script src="/assets/theme.js"></script>', ''), /<script\b/i, 'Only the optional theme controller may run; docs navigation stays native');
   assert.match(landing, /href="\/docs"/);
 });
