@@ -3,6 +3,44 @@ import assert from 'node:assert/strict';
 import bridge from '../api/bridge.ts';
 import { Readable } from 'node:stream';
 
+test('MCP requests can finish after a two-minute sync without extending ordinary API waits', async t => {
+ const previous={backend:process.env.BRAIN_SERVICE_URL,key:process.env.BRAIN_BRIDGE_KEY};
+ t.after(()=>{for(const [key,value] of [['BRAIN_SERVICE_URL',previous.backend],['BRAIN_BRIDGE_KEY',previous.key]]){if(value===undefined)delete process.env[key!];else process.env[key!]=value;}});
+ process.env.BRAIN_SERVICE_URL='https://worker.example';process.env.BRAIN_BRIDGE_KEY='test';
+ t.mock.timers.enable({apis:['setTimeout']});
+ const {readFile}=await import('node:fs/promises');
+ const deployment=JSON.parse(await readFile(new URL('../vercel.json',import.meta.url),'utf8'));
+ t.mock.method(AbortSignal,'timeout',(ms:number)=>{
+  assert.ok(ms<deployment.functions['api/bridge.ts'].maxDuration*1000,'Leave time to finish before Vercel terminates the function');
+  const controller=new AbortController();setTimeout(()=>controller.abort(),ms);return controller.signal;
+ });
+ t.mock.method(globalThis,'fetch',async(_input:unknown,init:RequestInit)=>{
+  await new Promise<void>((resolve,reject)=>{
+   setTimeout(resolve,121000);
+   init.signal!.addEventListener('abort',()=>reject(init.signal!.reason),{once:true});
+  });
+  return new Response('completed');
+ });
+ for(const route of ['mcp','api/brain']){
+  const res={statusCode:200,output:'',setHeader(){},write(chunk:Buffer){this.output+=chunk.toString();},end(chunk=''){this.output+=chunk;}};
+  const pending=bridge({url:'/api/bridge?route='+route,method:'POST',headers:{},body:'{}'} as any,res as any);
+  t.mock.timers.tick(121000);await pending;
+  assert.equal(res.statusCode,route==='mcp'?200:502);
+  if(route==='mcp')assert.equal(res.output,'completed');
+ }
+});
+
+test('an interrupted MCP stream closes without replacing already-sent headers or appending JSON',async t=>{
+ const previous={backend:process.env.BRAIN_SERVICE_URL,key:process.env.BRAIN_BRIDGE_KEY};
+ t.after(()=>{for(const [key,value] of [['BRAIN_SERVICE_URL',previous.backend],['BRAIN_BRIDGE_KEY',previous.key]]){if(value===undefined)delete process.env[key!];else process.env[key!]=value;}});
+ process.env.BRAIN_SERVICE_URL='https://worker.example';process.env.BRAIN_BRIDGE_KEY='test';
+ let fail!:(error:Error)=>void;
+ t.mock.method(globalThis,'fetch',async()=>new Response(new ReadableStream({start(controller){controller.enqueue(new TextEncoder().encode('event: message\n'));fail=error=>controller.error(error);}}),{headers:{'Content-Type':'text/event-stream'}}));
+ const res={statusCode:200,headersSent:false,output:'',destroyed:false,setHeader(){assert.equal(this.headersSent,false,'Headers were already sent');},write(chunk:Buffer){this.headersSent=true;this.output+=chunk.toString();fail(Error('Upstream interrupted'));},end(chunk=''){this.output+=chunk;},destroy(){this.destroyed=true;}};
+ await bridge({url:'/api/bridge?route=mcp',method:'POST',headers:{},body:'{}'} as any,res as any);
+ assert.equal(res.destroyed,true);assert.equal(res.output,'event: message\n');assert.equal(res.statusCode,200);
+});
+
 test('bridge rejects oversized streams and invalid configured destinations without forwarding',async t=>{
  const previous={backend:process.env.BRAIN_SERVICE_URL,key:process.env.BRAIN_BRIDGE_KEY};
  t.after(()=>{for(const [key,value] of [['BRAIN_SERVICE_URL',previous.backend],['BRAIN_BRIDGE_KEY',previous.key]]){if(value===undefined)delete process.env[key!];else process.env[key!]=value;}});

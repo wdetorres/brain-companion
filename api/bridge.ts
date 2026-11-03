@@ -15,9 +15,10 @@ export default async function bridge(req:IncomingMessage & {query?:Record<string
   let body:string|Buffer|undefined;
   if(!['GET','HEAD'].includes(req.method||'GET')){if(req.body!==undefined){body=typeof req.body==='string'?req.body:req.body instanceof Uint8Array?Buffer.from(req.body):headers.get('content-type')?.includes('application/x-www-form-urlencoded')?new URLSearchParams(req.body as Record<string,string>).toString():JSON.stringify(req.body);}else{const chunks:Buffer[]=[];let length=0;for await(const chunk of req){const b=Buffer.from(chunk);length+=b.length;if(length>300000){res.statusCode=413;res.end();return;}chunks.push(b);}body=Buffer.concat(chunks);}}
   if(body&&Buffer.byteLength(body)>300000){res.statusCode=413;res.end();return;}
-  const upstream=await fetch(target,{method:req.method,headers,body:Buffer.isBuffer(body)?body.toString('utf8'):body,redirect:'manual',signal:AbortSignal.timeout(55000)});
+  // MCP calls can wait for the 120-second sync before safely reading changed notes or writing.
+  const upstream=await fetch(target,{method:req.method,headers,body:Buffer.isBuffer(body)?body.toString('utf8'):body,redirect:'manual',signal:AbortSignal.timeout(route==='mcp'?175000:55000)});
   res.statusCode=upstream.status;for(const [name,value]of upstream.headers)if(!['connection','transfer-encoding','content-encoding','content-length','set-cookie'].includes(name))res.setHeader(name,value);
   const cookies=upstream.headers.getSetCookie();if(cookies.length)res.setHeader('Set-Cookie',cookies);res.setHeader('Cache-Control','no-store');
   if(upstream.body){for await(const chunk of upstream.body as any)res.write(Buffer.from(chunk));}res.end();
- }catch{res.statusCode=502;res.setHeader('Content-Type','application/json');res.end(JSON.stringify({error:'Brain service unavailable. Please try again.'}));}
+ }catch{if(res.headersSent){res.destroy();return;}res.statusCode=502;res.setHeader('Content-Type','application/json');res.end(JSON.stringify({error:'Brain service unavailable. Please try again.'}));}
 }

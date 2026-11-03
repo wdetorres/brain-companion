@@ -6,7 +6,7 @@
   "regions": ["sin1"],
   "functions": {
     "api/bridge.ts": {
-      "maxDuration": 60
+      "maxDuration": 180
     }
   },
   "rewrites": [
