@@ -61,7 +61,7 @@ test('Vercel gets the public index while standalone builds retain the private ap
   assert.equal(await readFile('dist/LICENSE','utf8'),await readFile('LICENSE','utf8'));
   execFileSync(process.execPath, ['scripts/build.mjs'], { env: { ...env, VERCEL: '1', VERCEL_ENV: 'production' }, stdio: 'pipe' });
   const landing = await readFile('dist/index.html', 'utf8');
-  assert.match(landing, /One brain\. Any agent\./);
+  assert.match(landing, /One brain for your agents\./);
   assert.doesNotMatch(landing, /id="root"/);
   assert.match(await readFile('dist/app.html', 'utf8'), /id="root"/);
   const landingScript = await readFile('dist/assets/landing.js', 'utf8');
