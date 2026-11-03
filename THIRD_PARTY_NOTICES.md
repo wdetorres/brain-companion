@@ -4,6 +4,7 @@
 
 | Material | Source and terms |
 | --- | --- |
+| BoardUI component styles | Adapted from the [free MIT source](https://github.com/BoardUI/boardui) at `ec5c5eb3e29c2441be63b9422cd54f411ef23466`. Shared monochrome tokens are in `src/boardui.css`; existing native components retain their behavior. The full notice is in that stylesheet and [public/THIRD_PARTY_NOTICES.txt](public/THIRD_PARTY_NOTICES.txt). |
 | Browser libraries | React, React DOM, scheduler, marked, and lucide-react; full installed license notices are in [public/THIRD_PARTY_NOTICES.txt](public/THIRD_PARTY_NOTICES.txt). Keep them with distributed builds. Lucide includes its upstream ISC/MIT notices. |
 | Agent SVGs | Unmodified files from `@lobehub/icons-static-svg@1.102.0`, MIT, copyright LobeHub. [Asset hashes/source](public/agents/sources.json) and [license](public/agents/LOBE-LICENSE). Product marks remain owned by their respective holders; inclusion implies no endorsement. |
 | Atkinson Hyperlegible Next 700 | Unmodified font, SIL Open Font License 1.1. [Source/hash](public/fonts/sources.json) and [full OFL notice](public/fonts/OFL.txt). The font is not MIT licensed. |

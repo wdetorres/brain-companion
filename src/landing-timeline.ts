@@ -12,7 +12,7 @@ export const captions = [
   'Tell Claude what changed.', 'Claude prepares an update to your Brain.',
   'The MCP call saves the updated Markdown.', 'One note changes. Your Brain stays current.',
   'The decision is saved for the next conversation.', 'A fresh chat. A different agent.',
-  'Ask ChatGPT about the same decision.', 'Semantic search finds it. Jev checks the evidence.',
+  'Ask ChatGPT about the same decision.', 'Search finds matching notes. Jev checks the evidence.',
   'The same note comes back as evidence.', 'ChatGPT answers from your shared Brain.',
   'Different agents. One consistent Brain.',
 ];

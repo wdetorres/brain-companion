@@ -58,7 +58,9 @@ test('Vercel gets the public index while standalone builds retain the private ap
   assert.match(landing, /One brain\. Any agent\./);
   assert.doesNotMatch(landing, /id="root"/);
   assert.match(await readFile('dist/app.html', 'utf8'), /id="root"/);
-  assert.match(await readFile('dist/assets/landing.js', 'utf8'), /Semantic search/);
+  const landingScript = await readFile('dist/assets/landing.js', 'utf8');
+  assert.match(landingScript, /Keyword search/);
+  assert.doesNotMatch(landing + landingScript, /semantic search/i);
   assert.equal(await readFile('dist/docs.html', 'utf8'), docs, 'Docs must ship in both build modes');
 
   const { createServer } = await import('node:net');

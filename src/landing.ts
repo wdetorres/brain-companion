@@ -49,7 +49,7 @@ function render() {
   call.dataset.busy = String(f.busy);
   callName.textContent = f.recall ? 'recall' : 'remember';
   callState.textContent = f.busy ? (f.recall ? 'Finding evidence…' : 'Saving…') : (f.recall ? 'Evidence found' : 'Saved');
-  callDetail.textContent = f.recall ? 'Semantic search → Jev evidence review' : 'Update schedule → Monday, 10:00 AM';
+  callDetail.textContent = f.recall ? 'Keyword search → Jev evidence review' : 'Update schedule → Monday, 10:00 AM';
   schedule.textContent = f.saved ? 'Monday, 10:00 AM' : 'Friday, 10:00 AM';
   oldSchedule.hidden = !f.saved || f.recall;
   source.textContent = f.saved ? 'Your conversation with Claude.' : 'The original planning note.';
