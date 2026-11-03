@@ -42,7 +42,7 @@ Deploy your own HTTPS service, add **your origin + `/mcp`** to a compatible remo
 
 Start with `brain_status`, bounded `search`, and `inspect`. Use synthetic notes to verify a capture and an exact retry before connecting private sources. The [agent guide](docs/agent-guide.md) covers assessment advice, commits, review, undo, and filing. [Architecture and limits](docs/harness.md) describe the single-owner model.
 
-Non-owner sign-ins lead to a personal-instance screen with the source code and an optional hosted-version waitlist. **Settings → Visitor interest** shows aggregate code-link clicks and waitlist emails, with CSV export and removal. Click counts are not unique visitors; waitlist emails are unverified and no email is sent automatically. These records stay in the existing state database and never become vault notes. No separate analytics service is needed.
+Non-owner sign-ins lead to a personal-instance screen with the source code and an optional hosted-version waitlist. Visitors can also join directly from the public landing page, without signing in. **Settings → Visitor interest** shows aggregate code-link clicks and waitlist emails, with CSV export and removal. Click counts are not unique visitors; waitlist emails are unverified and no email is sent automatically. These records stay in the existing state database and never become vault notes. No separate analytics service is needed.
 
 ## Deploy
 

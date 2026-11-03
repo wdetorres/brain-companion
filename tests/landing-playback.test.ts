@@ -5,22 +5,23 @@ import { test } from 'node:test';
 
 const compiled = buildSync({ entryPoints: ['src/landing.ts'], external: ['/fonts/*'], bundle: true, format: 'esm', write: false, outdir: 'dist/assets' }).outputFiles.find(file => file.path.endsWith('.js'))!.text;
 type PreviewElement = {
-  dataset: Record<string, string>; textContent: string; hidden: boolean;
-  events: Record<string, () => void>; attributes: Record<string, string>;
-  classList: { toggle(): void }; closest(): PreviewElement;
-  addEventListener(event: string, callback: () => void): void;
+  dataset: Record<string, string>; textContent: string; hidden: boolean; disabled: boolean; value: string;
+  events: Record<string, (event?: { preventDefault(): void }) => void | Promise<void>>; attributes: Record<string, string>;
+  classList: { toggle(): void }; closest(): PreviewElement; querySelector(selector: string): PreviewElement;
+  addEventListener(event: string, callback: (event?: { preventDefault(): void }) => void | Promise<void>): void;
   setAttribute(key: string, value: string): void;
 };
 type Entry = { isIntersecting: boolean; intersectionRatio: number };
 
 // Exercise the shipped controller with a deterministic clock and reduced-motion preference.
-function preview(reduced = false) {
+function preview(reduced = false, fetch: typeof globalThis.fetch = async () => new Response('{}')) {
   const elements = new Map<string, PreviewElement>();
   function element(selector: string): PreviewElement {
     if (!elements.has(selector)) elements.set(selector, {
-      dataset: {}, textContent: '', hidden: false, events: {}, attributes: {},
+      dataset: {}, textContent: '', hidden: false, disabled: false, value: '', events: {}, attributes: {},
       classList: { toggle() {} },
       closest: () => element('.user-message'),
+      querySelector: child => element(selector + ' ' + child),
       addEventListener(event, callback) { this.events[event] = callback; },
       setAttribute(key, value) { this.attributes[key] = value; },
     });
@@ -32,7 +33,7 @@ function preview(reduced = false) {
   let now = 0, id = 0;
   let observer: (entries: Entry[]) => void;
   runInNewContext(compiled, {
-    document,
+    document, fetch,
     matchMedia: () => ({ matches: reduced, addEventListener() {} }),
     performance: { now: () => now },
     requestAnimationFrame: (fn: (now: number) => void) => { frames.set(++id, fn); return id; },
@@ -88,4 +89,21 @@ test('agent identity follows the selected conversation', () => {
   assert.equal(p.element('#agent-logo').attributes.src, '/agents/openai.svg');
   p.click('save');
   assert.equal(p.element('#agent-logo').attributes.src, '/agents/claude.svg');
+});
+
+test('landing waitlist blocks duplicate submits, preserves email on failure and confirms a successful retry', async () => {
+  let finish!: (response: Response) => void, calls = 0;
+  const p = preview(true, async () => { calls++; return new Promise<Response>(resolve => { finish = resolve; }); });
+  const form = p.element('#waitlist-form'), email = p.element('#waitlist-email'), button = p.element('#waitlist-form button');
+  email.value = 'visitor@example.com';
+  const pending = form.events.submit({ preventDefault() {} });
+  assert.equal(button.disabled, true); assert.equal(email.disabled, true);
+  await form.events.submit({ preventDefault() {} }); assert.equal(calls, 1);
+  finish(new Response('{}', { status: 429 })); await pending;
+  assert.equal(email.value, 'visitor@example.com'); assert.equal(button.disabled, false);
+  assert.match(p.element('#waitlist-error').textContent, /Try again in a minute/);
+  const retry = form.events.submit({ preventDefault() {} });
+  finish(new Response('{}')); await retry;
+  assert.equal(form.hidden, true); assert.equal(email.value, '');
+  assert.equal(p.element('#waitlist-success').hidden, false);
 });

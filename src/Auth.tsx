@@ -2,6 +2,7 @@ import { ThemeToggle } from './ThemeToggle.tsx';
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowUpRight, Check, Copy, LockKeyhole, Network } from 'lucide-react';
 import { authClient } from './auth-client.ts';
+import { joinWaitlist } from './waitlist.ts';
 import type { BrainSnapshot, InterestSummary } from './shared.ts';
 
 interface Owner { name: string; email: string }
@@ -33,7 +34,7 @@ function VisitorInterest({ secondary = false }: { secondary?: boolean }) {
     <a className={secondary ? 'quiet-button code-link' : 'primary code-link'} href="https://github.com/wdetorres/brain-companion" target="_blank" rel="noopener noreferrer" onClick={() => { void fetch('/api/interest', { method: 'POST', credentials: 'omit', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ event: 'code_click' }) }).catch(() => {}); }}>Get the code <ArrowUpRight size={16} /></a>
     <div className="visitor-links"><a href="/docs#quickstart">Setup guide</a><a href="/demo">Explore the demo</a></div>
     <section className="waitlist" aria-labelledby="waitlist-heading"><h2 id="waitlist-heading">Want a hosted version?</h2><p id="waitlist-purpose">Join the waitlist for an email if a hosted version becomes available. No launch date yet.</p>
-      {state === 'saved' ? <p className="waitlist-success" role="status"><Check size={17} /> You’re on the waitlist.</p> : <form onSubmit={async event => { event.preventDefault(); if (state === 'saving') return; setState('saving'); setError(''); try { await read('/api/interest', { event: 'waitlist', email }); setState('saved'); setEmail(''); } catch (failure) { setError((failure as Error).message); setState('idle'); } }}>
+      {state === 'saved' ? <p className="waitlist-success" role="status"><Check size={17} /> You’re on the waitlist.</p> : <form onSubmit={async event => { event.preventDefault(); if (state === 'saving') return; setState('saving'); setError(''); try { await joinWaitlist(email); setState('saved'); setEmail(''); } catch (failure) { setError((failure as Error).message); setState('idle'); } }}>
         <label htmlFor="waitlist-email">Email address</label><div className="waitlist-fields"><input id="waitlist-email" name="email" type="email" autoComplete="email" required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} disabled={state === 'saving'} aria-describedby={'waitlist-purpose waitlist-privacy' + (error ? ' waitlist-error' : '')} /><button className="quiet-button" disabled={state === 'saving'}>{state === 'saving' ? 'Joining…' : 'Join waitlist'}</button></div>
         {error && <p id="waitlist-error" className="error-text" role="alert">{error}</p>}
       </form>}

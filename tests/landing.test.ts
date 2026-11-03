@@ -35,6 +35,11 @@ test('public landing and application routes preserve the MCP and auth entry poin
   assert.match(landing, /href="\/app"/);
   assert.match(landing, /href="\/demo"/);
   assert.match(landing, /src="\/assets\/landing.js"/);
+  assert.match(landing, /href="#waitlist"/);
+  assert.match(landing, /id="waitlist-form"/);
+  assert.match(landing, /for="waitlist-email"/);
+  assert.match(landing, /type="email"[^>]*required/);
+  assert.match(landing, /id="waitlist-success" role="status" hidden/);
   assert.doesNotMatch(landing, /<script[^>]*>[^<]+<\/script>/);
 });
 
@@ -61,6 +66,7 @@ test('Vercel gets the public index while standalone builds retain the private ap
   assert.match(await readFile('dist/app.html', 'utf8'), /id="root"/);
   const landingScript = await readFile('dist/assets/landing.js', 'utf8');
   assert.match(landingScript, /Keyword search/);
+  assert.match(landingScript, /\/api\/interest/);
   assert.doesNotMatch(landing + landingScript, /semantic search/i);
   assert.equal(await readFile('dist/docs.html', 'utf8'), docs, 'Docs must ship in both build modes');
 

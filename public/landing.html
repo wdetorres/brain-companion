@@ -30,7 +30,7 @@
 <section class="intro page-width" aria-labelledby="hero-title">
 <h1 id="hero-title">One brain. Any agent.</h1>
 <p>Start in Claude. Pick it up in ChatGPT. Your ideas, decisions,<br class="wide-break"> and context stay in the same Brain.</p>
-<a class="primary-action" href="/demo">Explore the sample Brain <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+<div class="intro-actions"><a class="primary-action" href="/demo">Explore the sample Brain <svg class="icon" aria-hidden="true"><use href="#i-arrow"/></svg></a><a class="secondary-action" href="#waitlist">Join waitlist</a></div>
 <span class="intro-caption">No sign-in needed.</span>
 <ul class="agent-list" aria-label="Connect your agents through MCP">
 <li title="ChatGPT"><img src="/agents/openai.svg" width="22" height="22" alt="ChatGPT"></li>
@@ -84,6 +84,13 @@
 <div class="jev-source"><h4>Launch checklist</h4><span class="source-path">Projects/Launch checklist.md</span><p>Walkthrough: <strong>Monday, 10:00 AM.</strong></p><div class="jev-scores"><span>Relevance <strong>98%</strong></span><span>Conflict <strong>97%</strong></span></div></div>
 <p class="jev-caption">Illustrative scores from the sample UI.<br>Model judgments, not proof.</p>
 </div></article>
+</section>
+<section class="waitlist-section page-width" id="waitlist" aria-labelledby="waitlist-title" tabindex="-1">
+<div class="waitlist-copy"><h2 id="waitlist-title">Want a hosted version?</h2><p id="waitlist-purpose">Brain Companion is currently a personal, self-hosted project. Leave your email for an update if a hosted version becomes available. No launch date yet.</p></div>
+<div class="waitlist-signup"><form id="waitlist-form">
+<label for="waitlist-email">Email address</label><div class="waitlist-fields"><input id="waitlist-email" name="email" type="email" autocomplete="email" required maxlength="254" aria-describedby="waitlist-purpose waitlist-privacy waitlist-error"><button class="primary-action" type="submit" disabled>Join waitlist</button></div>
+<p class="waitlist-error" id="waitlist-error" role="alert"></p>
+</form><p class="waitlist-success" id="waitlist-success" role="status" hidden>You’re on the waitlist.</p><p class="waitlist-privacy" id="waitlist-privacy">Optional. Your email is only for hosted-version updates.</p><noscript><p class="waitlist-privacy">Enable JavaScript to join the waitlist.</p></noscript></div>
 </section>
 </main>
 <footer class="page-width"><a href="https://wilsondetorres.com">Built by Wilson De Torres <svg class="icon" aria-hidden="true"><use href="#i-external"/></svg></a></footer>

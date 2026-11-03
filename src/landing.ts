@@ -1,5 +1,30 @@
 import './landing.css';
 import { frameAt, beats, captions, duration } from './landing-timeline.ts';
+import { joinWaitlist } from './waitlist.ts';
+
+const waitlistForm = document.querySelector<HTMLFormElement>('#waitlist-form')!;
+const waitlistEmail = document.querySelector<HTMLInputElement>('#waitlist-email')!;
+const waitlistButton = waitlistForm.querySelector<HTMLButtonElement>('button')!;
+const waitlistError = document.querySelector<HTMLElement>('#waitlist-error')!;
+const waitlistSuccess = document.querySelector<HTMLElement>('#waitlist-success')!;
+waitlistButton.disabled = false;
+waitlistForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (waitlistButton.disabled) return;
+  waitlistButton.disabled = waitlistEmail.disabled = true;
+  waitlistButton.textContent = 'Joining…';
+  waitlistError.textContent = '';
+  try {
+    await joinWaitlist(waitlistEmail.value);
+    waitlistForm.hidden = true;
+    waitlistEmail.value = '';
+    waitlistSuccess.hidden = false;
+  } catch (error) {
+    waitlistError.textContent = error instanceof Error ? error.message : 'Could not join the waitlist. Please try again.';
+    waitlistButton.disabled = waitlistEmail.disabled = false;
+    waitlistButton.textContent = 'Join waitlist';
+  }
+});
 
 const demo = document.querySelector<HTMLElement>('.demo-frame')!;
 const play = document.querySelector<HTMLButtonElement>('#play-demo')!;
