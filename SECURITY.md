@@ -12,6 +12,12 @@ An authorized MCP client can read **all indexed notes** and use the mutations pe
 
 The filesystem and runtime account are trusted. Use one process and one server vault, with writes and Obsidian sync passing through the service queue. Hidden paths, traversal, symlinks, and operational policy files are rejected where applicable. This does not sandbox an attacker who already controls the host or can swap filesystem entries during an operation. Independent writers and network filesystems with incompatible locking/atomic operations are unsupported.
 
+## Visitor interest
+
+The public interest endpoint accepts only same-origin JSON with a fixed event type and, for explicit waitlist signups, a validated email. Code clicks are daily aggregate counts with no visitor identifiers. Waitlist emails and signup dates are stored in the existing SQLite state database, separate from the vault and MCP tools. Only the owner session can read/export them; removal also requires CSRF. Google sign-in does not automatically join the waitlist. Emails are unverified and no messages are sent automatically.
+
+Global per-minute limits reduce bursts without storing IP addresses. They do not establish unique people or prevent a determined bot from inflating counts or submitting someone else's email. Hosting providers may retain their own request logs. Records have no automatic expiry; owner removal deletes the current waitlist record, not historical backups.
+
 ## External model disclosure
 
 `search` and `inspect` do not call Jev. `recall` sends its query, eligible note excerpts, and comparison context. `assess_memory` sends the candidate, source metadata/excerpts, current note, and up to five eligible related notes. Connection suggestions send pairs of eligible notes. Do not put restricted information into a query or source excerpt: the service cannot infer the privacy of arbitrary submitted text. Original evidence URLs are not fetched.

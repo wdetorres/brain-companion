@@ -3,7 +3,9 @@
   "framework": null,
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "regions": ["sin1"],
+  "regions": [
+    "sin1"
+  ],
   "functions": {
     "api/bridge.ts": {
       "maxDuration": 180
@@ -37,6 +39,14 @@
     {
       "source": "/api/auth/:path*",
       "destination": "/api/bridge?route=api/auth/:path*"
+    },
+    {
+      "source": "/api/interest",
+      "destination": "/api/bridge?route=api/interest"
+    },
+    {
+      "source": "/api/interest/:path*",
+      "destination": "/api/bridge?route=api/interest/:path*"
     },
     {
       "source": "/api/brain",

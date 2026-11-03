@@ -93,7 +93,7 @@ test('Vercel forwards authenticated recall and connection review without widenin
 test('hosted harness review and work URLs reach the authenticated bridge', async () => {
   const { readFile } = await import('node:fs/promises');
   const { rewrites } = JSON.parse(await readFile(new URL('../vercel.json', import.meta.url), 'utf8'));
-  for (const path of ['/api/work','/api/memories/review','/api/assessment','/api/memories/undo']) {
+  for (const path of ['/api/work','/api/memories/review','/api/assessment','/api/memories/undo','/api/interest','/api/interest/export','/api/interest/remove']) {
     const rule = rewrites.find((r: {source:string}) => new RegExp('^'+r.source.replace(':path*','.*')+'$').test(path));
     assert.ok(rule, path+' must reach the bridge instead of a static 404');
     assert.match(rule.destination, /^\/api\/bridge\?route=/);
@@ -106,7 +106,7 @@ test('SSO bridge permits only the login/provider surface and preserves MCP proto
   process.env.BRAIN_SERVICE_URL='https://worker.example';process.env.BRAIN_BRIDGE_KEY='test';
   const response=()=>({statusCode:200,setHeader(){},write(){},end(){}});
   let target='';globalThis.fetch=async(input,init)=>{target=String(input);return new Response('{}');};
-  for (const route of ['api/auth/sign-in/social','api/auth/callback/google','api/auth/sign-out','api/auth/oauth2/authorize','api/auth/oauth2/consent','api/auth/oauth2/register','api/auth/oauth2/token','.well-known/oauth-authorization-server/api/auth','api/apps','api/apps/revoke','api/consent']) {
+  for (const route of ['api/auth/sign-in/social','api/auth/callback/google','api/auth/sign-out','api/auth/oauth2/authorize','api/auth/oauth2/consent','api/auth/oauth2/register','api/auth/oauth2/token','.well-known/oauth-authorization-server/api/auth','api/apps','api/apps/revoke','api/consent','api/interest','api/interest/export','api/interest/remove']) {
     const res=response();await bridge({url:'/api/bridge?route='+route,method:'GET',headers:{}} as any,res as any);assert.equal(res.statusCode,200,route);assert.equal(new URL(target).pathname,'/'+route);
   }
   for (const route of ['api/auth/sign-up/email','api/auth/admin/create-user','api/auth/oauth2/create-client','api/auth/validate-brain-token']) {

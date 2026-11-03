@@ -42,6 +42,8 @@ Deploy your own HTTPS service, add **your origin + `/mcp`** to a compatible remo
 
 Start with `brain_status`, bounded `search`, and `inspect`. Use synthetic notes to verify a capture and an exact retry before connecting private sources. The [agent guide](docs/agent-guide.md) covers assessment advice, commits, review, undo, and filing. [Architecture and limits](docs/harness.md) describe the single-owner model.
 
+Non-owner sign-ins lead to a personal-instance screen with the source code and an optional hosted-version waitlist. **Settings → Visitor interest** shows aggregate code-link clicks and waitlist emails, with CSV export and removal. Click counts are not unique visitors; waitlist emails are unverified and no email is sent automatically. These records stay in the existing state database and never become vault notes. No separate analytics service is needed.
+
 ## Deploy
 
 Use one persistent Docker service behind HTTPS. Run **one replica** and mount a writable disk at `/data`. Set `PUBLIC_ORIGIN` to your canonical HTTPS origin, configure Google sign-in, and retain `/data/vault`, `/data/state`, and `/data/config`. The image runs as the `node` user. Use `/healthz` for health checks and allow 150 seconds for shutdown.

@@ -15,7 +15,7 @@ const googleIdentity = z.object({ sub: z.string().min(1), email: z.email(), emai
 export function pinGoogleOwner(db: DatabaseSync, ownerEmail: string, profile: unknown) {
   const identity = googleIdentity.parse(profile);
   const pinned = db.prepare('SELECT subject FROM brainOwner WHERE id=1').get();
-  if (pinned ? pinned.subject !== identity.sub : identity.email.toLowerCase() !== ownerEmail.toLowerCase()) throw new APIError('FORBIDDEN', { message: 'This Google account is not the Brain owner.' });
+  if (pinned ? pinned.subject !== identity.sub : identity.email.toLowerCase() !== ownerEmail.toLowerCase()) throw new APIError('FORBIDDEN', { code: 'owner_only', message: 'This Google account is not the Brain owner.' });
   db.prepare('INSERT OR IGNORE INTO brainOwner(id,subject) VALUES(1,?)').run(identity.sub);
   return identity;
 }
@@ -47,7 +47,7 @@ export async function createAuthService(db: DatabaseSync, config: AuthConfig) {
       mapProfileToUser(profile) { pinGoogleOwner(db, config.ownerEmail, profile); return {}; },
     } },
     databaseHooks: { session: { create: { before: async session => {
-      if (!isOwner(session.userId)) throw new APIError('FORBIDDEN', { message: 'This Google account is not the Brain owner.' });
+      if (!isOwner(session.userId)) throw new APIError('FORBIDDEN', { code: 'owner_only', message: 'This Google account is not the Brain owner.' });
       return { data: session };
     } } } },
     plugins: [mcp(providerOptions), {
@@ -117,7 +117,9 @@ export async function createAuthService(db: DatabaseSync, config: AuthConfig) {
     return exclusive(async () => {
       const response = await auth.handler(req);
       if (path === '/api/auth/callback/google' && response.status >= 400) {
-        const headers = new Headers({ Location: origin + '/sign-in?error=sign_in_failed', 'Cache-Control': 'no-store' });
+        const body = await response.clone().json().catch(() => null);
+        const error = response.status === 403 && body?.code === 'owner_only' ? 'owner_only' : 'sign_in_failed';
+        const headers = new Headers({ Location: origin + '/sign-in?error=' + error, 'Cache-Control': 'no-store' });
         for (const value of response.headers.getSetCookie()) headers.append('Set-Cookie', value);
         return new Response(null, { status: 303, headers });
       }

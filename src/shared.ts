@@ -28,3 +28,9 @@ export type RecallJudge = (query: string, note: Note, peers: Note[]) => Promise<
 export type ConnectionAssessment = { useful: boolean; score: number; model: string; usage: Record<string,number>; questionVersion: string };
 export type ConnectionJudge = (source: Note, target: Note) => Promise<ConnectionAssessment>;
 export type Connection = { id: string; source: string; target: string; sourceRevision: string; targetRevision: string; status: 'proposed'|'accepted'|'dismissed'|'stale'; assessment: ConnectionAssessment; operationId?: string; reviewedBy?:string; reviewedAt?:string };
+export interface InterestSummary {
+  clicks: number;
+  clicks30Days: number;
+  waitlistCount: number;
+  subscribers: { email: string; createdAt: string }[];
+}

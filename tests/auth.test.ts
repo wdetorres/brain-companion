@@ -116,8 +116,17 @@ test('a different verified Google account is rejected with a usable sign-in page
   const response = (await service.handle(request('/api/auth/callback/google?code=synthetic&state=' + state, undefined, cookies)))!;
   assert.equal(response.status, 303);
   assert.equal(new URL(response.headers.get('location')!, origin).pathname, '/sign-in');
+  assert.equal(new URL(response.headers.get('location')!, origin).searchParams.get('error'), 'owner_only');
   assert.equal(db.prepare('SELECT count(*) n FROM brainOwner').get()!.n, 0);
   assert.equal(db.prepare('SELECT count(*) n FROM session').get()!.n, 0);
+  assert.equal(db.prepare('SELECT count(*) n FROM user').get()!.n, 0);
+  assert.equal(db.prepare('SELECT count(*) n FROM account').get()!.n, 0);
+});
+
+test('an invalid Google callback is not presented as an owner-only denial', async t => {
+  const { service } = await fixture(t);
+  const response = (await service.handle(request('/api/auth/callback/google?code=bad&state=bad')))!;
+  assert.notEqual(new URL(response.headers.get('location')!, origin).searchParams.get('error'), 'owner_only');
 });
 
 test('canonical-origin change updates discovery and Google callback and rejects the old resource grant', async t => {

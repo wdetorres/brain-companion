@@ -5,6 +5,20 @@ import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
+test('owner-only sign-in offers code and an explicit waitlist, while other failures retain sign-in recovery', async t => {
+  const dir = await mkdtemp(resolve('.render-test-')); t.after(() => rm(dir, { recursive: true, force: true }));
+  const compiled = await build({ stdin: { contents: `import React from 'react'; import {renderToStaticMarkup} from 'react-dom/server'; import {LoginPage} from './src/Auth.tsx'; export const render=(search)=>{const previous=globalThis.location;globalThis.location={search};try{return renderToStaticMarkup(React.createElement(LoginPage));}finally{globalThis.location=previous;}};`, resolveDir: process.cwd(), loader: 'tsx' }, bundle: true, platform: 'node', format: 'esm', packages: 'external', write: false });
+  const path = resolve(dir, 'login.mjs'); await writeFile(path, compiled.outputFiles[0].contents);
+  const { render } = await import(pathToFileURL(path).href);
+  const denied = render('?error=owner_only');
+  assert.match(denied, /This Brain is personal/); assert.match(denied, /github.com\/wdetorres\/brain-companion/);
+  assert.match(denied, /type="email"/); assert.match(denied, /for="waitlist-email"/); assert.match(denied, /Join waitlist/);
+  assert.doesNotMatch(denied, /Continue with Google|role="alert"/);
+  assert.match(denied, /Use another Google account/);
+  const failed = render('?error=sign_in_failed'); assert.match(failed, /Continue with Google/); assert.match(failed, /role="alert"/);
+  assert.doesNotMatch(render(''), /role="alert"/);
+});
+
 test('folder browser exposes selected ancestors, safe disclosure IDs and root notes', async t => {
   const dir = await mkdtemp(resolve('.render-test-'));
   t.after(() => rm(dir, { recursive: true, force: true }));

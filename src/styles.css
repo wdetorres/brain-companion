@@ -617,5 +617,26 @@ textarea::placeholder { color: var(--muted); opacity: 1; }
 .auth-heading, .account-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .auth-heading { margin-bottom: 24px; }
 .auth-heading .brand-mark { margin-bottom: 0; }
+.visitor-secondary { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.entry .code-link { width: 100%; min-height: 44px; margin-top: 8px; text-decoration: none; }
+.visitor-links { display: flex; justify-content: center; flex-wrap: wrap; gap: 12px 24px; margin-top: 12px; font-size: 13px; }
+.visitor-links a { color: var(--reading-text); padding: 6px 0; }
+.waitlist { margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--line); }
+.waitlist h2 { font-size: 17px; line-height: 1.4; margin: 0 0 8px; }
+.entry .waitlist p { font-size: 13px; line-height: 1.7; }
+.entry .waitlist form { margin-top: 20px; }
+.entry .waitlist label { margin-bottom: 8px; }
+.waitlist-fields { display: flex; gap: 8px; }
+.waitlist-fields input { min-width: 0; font-size: 16px; }
+.waitlist-fields button { flex-shrink: 0; min-height: 44px; }
+.entry .waitlist .interest-note { font-size: 12px; margin: 14px 0 0; }
+.waitlist-success { display: flex; align-items: center; gap: 8px; color: var(--ink)!important; margin-top: 20px; }
+.interest-counts { margin: 20px 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.interest-counts > div { display: flex; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.interest-counts dt { color: var(--reading-text); }.interest-counts dd { margin: 0; font-weight: 600; }
+.waitlist-list-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin: 24px 0 12px; }
+.waitlist-list-heading h3 { font-size: 14px; margin: 0; }.waitlist-list-heading a { text-decoration: none; }
+.waitlist-subscribers { list-style: none; margin: 0; padding: 0; font-size: 13px; }
+@media (max-width: 480px) { .entry { padding: 16px; }.entry-card { padding: 24px; }.waitlist-fields { flex-direction: column; }.entry .auth-heading { margin-bottom: 24px; } }
 .search-wrap { min-width: 0; }
 @media (max-width: 760px) { .topbar { gap: 8px; } }
