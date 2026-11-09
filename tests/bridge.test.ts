@@ -113,8 +113,8 @@ test('SSO bridge permits only the login/provider surface and preserves MCP proto
     const res=response();await bridge({url:'/api/bridge?route='+route,method:'GET',headers:{}} as any,res as any);assert.equal(res.statusCode,404,route);
   }
   const payload={jsonrpc:'2.0',id:1,method:'tools/list',params:{}};
-  globalThis.fetch=async(_input,init)=>{assert.deepEqual(JSON.parse(String(init?.body)),payload);const h=new Headers(init?.headers);assert.equal(h.get('mcp-method'),'tools/list');assert.equal(h.get('mcp-name'),'search');assert.equal(h.get('mcp-protocol-version'),'2026-07-28');assert.equal(h.get('mcp-param-query'),'test');assert.equal(h.get('x-forwarded-host'),null);return new Response('{}');};
+  globalThis.fetch=async(_input,init)=>{assert.deepEqual(JSON.parse(String(init?.body)),payload);const h=new Headers(init?.headers);assert.equal(h.get('mcp-method'),'tools/list');assert.equal(h.get('mcp-name'),'search');assert.equal(h.get('mcp-protocol-version'),'2026-07-28');assert.equal(h.get('mcp-param-query'),'test');assert.equal(h.get('x-forwarded-host'),null);assert.equal(h.get('x-brain-client-ip'),'203.0.113.7');return new Response('{}');};
   for (const body of [payload,JSON.stringify(payload),Buffer.from(JSON.stringify(payload)),new TextEncoder().encode(JSON.stringify(payload))]) {
-    const res=response();await bridge({url:'/api/bridge?route=mcp',method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream','mcp-method':'tools/list','mcp-name':'search','mcp-protocol-version':'2026-07-28','mcp-param-query':'test','x-forwarded-host':'evil.test'},body} as any,res as any);assert.equal(res.statusCode,200);
+    const res=response();await bridge({url:'/api/bridge?route=mcp',method:'POST',headers:{'content-type':'application/json',accept:'application/json, text/event-stream','mcp-method':'tools/list','mcp-name':'search','mcp-protocol-version':'2026-07-28','mcp-param-query':'test','x-forwarded-host':'evil.test','x-real-ip':'203.0.113.7','x-brain-client-ip':'198.51.100.9'},body} as any,res as any);assert.equal(res.statusCode,200);
   }
 });

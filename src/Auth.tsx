@@ -58,7 +58,7 @@ function InterestSettings({ csrf }: { csrf: string }) {
 }
 export function ConsentPage() {
   const [state, setState] = useState<{ kind: 'loading' } | { kind: 'signed-out' } | { kind: 'ready'; session: Session; consent: Consent } | { kind: 'error'; message: string }>({ kind: 'loading' });
-  const [pending, setPending] = useState<'connect' | 'cancel' | null>(null), [failure, setFailure] = useState('');
+  const [pending, setPending] = useState<'connect' | 'cancel' | null>(null), [failure, setFailure] = useState(''), [done, setDone] = useState<{ accepted: boolean; url: string } | null>(null);
   useEffect(() => { let active = true; void (async () => { try {
     const session = await read<Session>('/api/auth/session');
     if (!session.authenticated) { if(active)setState({kind:'signed-out'}); return; }
@@ -68,10 +68,11 @@ export function ConsentPage() {
   if (state.kind === 'signed-out') return <LoginPage />;
   async function decide(accept: boolean) {
     if(pending)return;setPending(accept?'connect':'cancel');setFailure('');
-    try { const result = await authClient.oauth2.consent({ accept }); if(result.error || !result.data?.url)throw Error(); location.assign(result.data.url); }
+    // better-auth's redirect plugin already navigates to data.url; navigating again would resend the one-time code.
+    try { const result = await authClient.oauth2.consent({ accept }); if(result.error || !result.data?.url)throw Error(); setDone({ accepted: accept, url: result.data.url }); }
     catch { setFailure('The connection could not be completed. Try again, or restart it from your app.');setPending(null); }
   }
-  return <Frame className="consent-entry">{state.kind === 'loading' ? <p role="status">Checking connection request…</p> : state.kind === 'error' ? <><h1>Start a fresh connection</h1><p role="alert">{state.message}</p><a className="demo-link" href="/app">Back to your Brain</a></> : <>
+  return <Frame className="consent-entry">{done ? <><h1>{done.accepted ? 'Access approved' : 'Connection cancelled'}</h1><p role="status">{done.accepted ? 'Return to your app to finish connecting. You can close this tab.' : 'No access was granted. You can close this tab.'}</p><a className="demo-link" href={done.url}>App didn’t open? Continue <ArrowUpRight size={14} /></a></> : state.kind === 'loading' ? <p role="status">Checking connection request…</p> : state.kind === 'error' ? <><h1>Start a fresh connection</h1><p role="alert">{state.message}</p><a className="demo-link" href="/app">Back to your Brain</a></> : <>
     <h1>Connect to your Brain</h1><p className="consent-client">{state.consent.name}</p>
     <div className="auth-identity"><Check size={16} /><div><strong>{state.session.user?.name}</strong><span>{state.session.user?.email}</span></div></div>
     <div className="consent-permissions"><strong>Allow this app to:</strong><ul>{state.consent.scopes.includes('brain') && <><li>Search and read your synced notes.</li><li>Submit sourced memories and review shared work.</li><li>File notes and accept links under your existing Brain policies.</li></>}{state.consent.scopes.includes('offline_access') && <li>Keep access until you revoke it, even after you close this browser.</li>}</ul></div>

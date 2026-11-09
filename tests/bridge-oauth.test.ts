@@ -39,3 +39,18 @@ test('OAuth browser redirects survive a real Node fetch hop without changing fet
   assert.equal((await handler(spoof)).status, 403);
   assert.equal((await createHandler(store, { auth })(spoof)).status, 200, 'direct clients cannot override fetch metadata with a bridge header');
 });
+
+test('OAuth rate limits key bridged callers by Vercel client IP, and direct clients cannot spoof it', async t => {
+  const dir = await mkdtemp(join(tmpdir(), 'brain-rate-limit-'));
+  const store = new BrainStore({ vault: join(dir, 'vault'), data: join(dir, 'state'), judge: async () => { throw Error('unused'); } });
+  t.after(async () => { store.close(); await rm(dir, { recursive: true, force: true }); });
+  for (const bridgeKey of ['synthetic-bridge', undefined]) {
+    const { service: auth } = await fixture(t), handler = createHandler(store, { auth, bridgeKey });
+    const token = (ip: string) => handler(new Request(origin + '/api/auth/oauth2/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Brain-Client-IP': ip, ...(bridgeKey ? { 'X-Brain-Bridge': bridgeKey } : {}) }, body: 'grant_type=refresh_token&client_id=unknown&refresh_token=unknown' }));
+    for (let i = 0; i < 100; i++) await token('203.0.113.' + (bridgeKey ? 1 : i + 2));
+    if (bridgeKey) {
+      assert.equal((await token('203.0.113.1')).status, 429);
+      assert.notEqual((await token('203.0.113.2')).status, 429, 'another caller keeps its own bucket');
+    } else assert.equal((await token('198.51.100.1')).status, 429, 'a spoofed header must not open a new bucket');
+  }
+});

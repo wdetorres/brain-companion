@@ -29,7 +29,8 @@ export async function createAuthService(db: DatabaseSync, config: AuthConfig) {
     resource, loginPage: '/sign-in', consentPage: '/consent',
     scopes: ['brain', 'offline_access'], grantTypes: ['authorization_code', 'refresh_token'] as ['authorization_code', 'refresh_token'],
     allowDynamicClientRegistration: true, allowUnauthenticatedClientRegistration: true,
-    disableJwtPlugin: true, accessTokenExpiresIn: 3600, refreshTokenExpiresIn: 30 * 86400, refreshTokenReuseInterval: 0,
+    // Parallel agent sessions share one stored grant; a short replay window stops their simultaneous refreshes from revoking it.
+    disableJwtPlugin: true, accessTokenExpiresIn: 3600, refreshTokenExpiresIn: 30 * 86400, refreshTokenReuseInterval: 300,
   };
   function isOwner(userId: string) {
     return !!db.prepare('SELECT 1 FROM account a JOIN brainOwner o ON a.accountId=o.subject WHERE a.userId=? AND a.providerId=?').get(userId, 'google');
@@ -41,6 +42,8 @@ export async function createAuthService(db: DatabaseSync, config: AuthConfig) {
     account: { accountLinking: { enabled: false }, encryptOAuthTokens: true },
     session: { expiresIn: 86400, cookieCache: { enabled: false } },
     rateLimit: { enabled: true, storage: 'database', window: 60, max: 100 },
+    // x-brain-client-ip is kept only on bridge-authenticated requests (server/http.ts).
+    advanced: { ipAddress: { ipAddressHeaders: ['x-brain-client-ip', 'x-forwarded-for'] } },
     socialProviders: { google: {
       prompt: 'select_account',
       clientId: config.googleClientId, clientSecret: config.googleClientSecret,
