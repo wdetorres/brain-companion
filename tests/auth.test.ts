@@ -47,6 +47,20 @@ test('revocation survives reconnect and browser sign-out preserves offline refre
   assert.ok(await service.bearer('Bearer ' + (await refreshed.json()).access_token));
 });
 
+test('parallel sessions sharing one refresh token keep access, and revocation still ends it', async t => {
+  const { service, db } = await fixture(t); const { cookie } = await owner(service, db);
+  const flow = await clientFlow(service, cookie), initial = await flow.tokens();
+  const body = { grant_type: 'refresh_token', client_id: flow.client.client_id, refresh_token: initial.refresh_token, resource: origin + '/mcp' };
+  const [first, second] = await Promise.all([1, 2].map(() => service.handle(request('/api/auth/oauth2/token', body))));
+  assert.equal(first!.status, 200); assert.equal(second!.status, 200, await second!.clone().text());
+  const [a, b] = [await first!.json(), await second!.json()];
+  assert.equal(a.refresh_token, b.refresh_token);
+  assert.ok(await service.bearer('Bearer ' + a.access_token));
+  await service.revokeClient(request('/api/apps', undefined, cookie), flow.client.client_id);
+  assert.ok((await service.handle(request('/api/auth/oauth2/token', body)))!.status >= 400);
+  assert.equal(await service.bearer('Bearer ' + a.access_token), null);
+});
+
 test('revocation invalidates outstanding authorization codes even after the app reconnects', async t => {
   const { service, db } = await fixture(t); const { cookie } = await owner(service, db);
   const flow = await clientFlow(service, cookie), pending = await flow.authorize();
