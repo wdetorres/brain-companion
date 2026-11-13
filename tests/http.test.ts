@@ -12,14 +12,26 @@ test('private APIs reject anonymous access and MCP advertises OAuth',async t=>{
  const metadata=await handler(request('/.well-known/oauth-protected-resource/mcp'));assert.equal((await metadata.json()).resource,'https://brain.example.com/mcp');
 });
 
-test('OAuth grants discover and read synthetic notes through the private HTTP boundary; revoke requires CSRF', async t => {
+test('MCP challenge grants renew expired access without another login; revoke requires CSRF', async t => {
  const dir=await mkdtemp(join(tmpdir(),'brain-auth-mcp-'));
  const vault=join(dir,'vault');await mkdir(vault);await writeFile(join(vault,'Example.md'),'# Synthetic note\n\nOrchid is the test keyword.');
  const store=new BrainStore({vault,data:join(dir,'state'),judge:async()=>{throw Error('unused')}});
  t.after(async()=>{store.close();await rm(dir,{recursive:true,force:true});});
  const {service:auth,db}=await fixture(t),{cookie}=await owner(auth,db);
- const handler=createHandler(store,{auth,bridgeKey:'synthetic-bridge'}),flow=await clientFlow(auth,cookie),tokens=await flow.tokens();
+ const handler=createHandler(store,{auth,bridgeKey:'synthetic-bridge'});
+ const challenge=await handler(new Request(origin+'/mcp',{headers:{'X-Brain-Bridge':'synthetic-bridge'}}));
+ assert.equal(challenge.status,401);
+ const scope=challenge.headers.get('www-authenticate')?.match(/\bscope="([^"]+)"/)?.[1];assert.ok(scope);
+ const flow=await clientFlow(auth,cookie,scope);let tokens=await flow.tokens();
+ assert.ok(tokens.refresh_token,'Following the advertised scopes must issue a refresh token');
  const call=async(method:string,params:object={})=>handler(new Request(origin+'/mcp',{method:'POST',headers:{'X-Brain-Bridge':'synthetic-bridge',Authorization:'Bearer '+tokens.access_token,'Content-Type':'application/json',Accept:'application/json, text/event-stream','MCP-Protocol-Version':'2025-11-25'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})}));
+ assert.equal((await call('tools/list')).status,200);
+ const ctx=await auth.auth.$context;
+ await ctx.adapter.update({model:'oauthAccessToken',where:[{field:'clientId',value:flow.client.client_id}],update:{expiresAt:new Date(0)}});
+ assert.equal((await call('tools/list')).status,401);
+ const refresh=request('/api/auth/oauth2/token',{grant_type:'refresh_token',client_id:flow.client.client_id,refresh_token:tokens.refresh_token,resource:origin+'/mcp'});refresh.headers.set('x-brain-bridge','synthetic-bridge');
+ const refreshed=await handler(refresh);assert.equal(refreshed.status,200);
+ tokens=await refreshed.json();assert.ok(tokens.refresh_token);
  assert.equal((await call('tools/list')).status,200);
  const inspected=await call('tools/call',{name:'inspect',arguments:{path:'Example.md'}});assert.equal(inspected.status,200);assert.match(await inspected.text(),/Orchid/);
  const apps=await auth.clients(request('/api/apps',undefined,cookie));assert.equal(apps.length,1);assert.ok(apps[0]!.lastUsed);
