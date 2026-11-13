@@ -22,7 +22,8 @@ export function createHandler(store:BrainStore,config:{auth:AuthService;bridgeKe
     return json({ok:true});
    }
    if(url.pathname==='/mcp'){
-    const grant=await auth.bearer(req.headers.get('authorization'));if(!grant)return json({error:'Authentication required'},401,{'WWW-Authenticate':`Bearer resource_metadata="${auth.origin}/.well-known/oauth-protected-resource/mcp", scope="brain"`});
+    // Clients following this challenge need offline_access to receive a refresh token.
+    const grant=await auth.bearer(req.headers.get('authorization'));if(!grant)return json({error:'Authentication required'},401,{'WWW-Authenticate':`Bearer resource_metadata="${auth.origin}/.well-known/oauth-protected-resource/mcp", scope="brain offline_access"`});
     if(grant.scope!=='brain')return json({error:'Insufficient scope'},403);
     const response=await createMemoryMcp(store,grant.name+' ('+grant.clientId+')').fetch(req);if(response.ok)auth.recordUse(grant.clientId);return response;
    }

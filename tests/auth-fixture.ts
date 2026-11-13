@@ -25,10 +25,10 @@ export function request(path: string, body?: unknown, cookie?: string) {
   return new Request(origin + path, { method: body === undefined ? 'GET' : 'POST', headers: { Origin: origin, ...(body === undefined ? {} : { 'Content-Type': form ? 'application/x-www-form-urlencoded' : 'application/json' }), ...(cookie ? { Cookie: cookie } : {}) }, ...(body === undefined ? {} : { body: form ? new URLSearchParams(body as Record<string,string>).toString() : JSON.stringify(body) }) });
 }
 
-export async function clientFlow(service: Awaited<ReturnType<typeof createAuthService>>, cookie: string) {
-  const client = await (await service.handle(request('/api/auth/oauth2/register', { client_name: 'Synthetic MCP', redirect_uris: ['https://client.example/callback'], token_endpoint_auth_method: 'none', grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'], scope: 'brain offline_access' })))!.json();
+export async function clientFlow(service: Awaited<ReturnType<typeof createAuthService>>, cookie: string, scope = 'brain offline_access') {
+  const client = await (await service.handle(request('/api/auth/oauth2/register', { client_name: 'Synthetic MCP', redirect_uris: ['https://client.example/callback'], token_endpoint_auth_method: 'none', grant_types: ['authorization_code', 'refresh_token'], response_types: ['code'], scope })))!.json();
   const verifier = 'v'.repeat(64);
-  const query = new URLSearchParams({ client_id: client.client_id, redirect_uri: client.redirect_uris[0], response_type: 'code', resource: origin + '/mcp', scope: 'brain offline_access', state: 'test-state', code_challenge: createHash('sha256').update(verifier).digest('base64url'), code_challenge_method: 'S256' });
+  const query = new URLSearchParams({ client_id: client.client_id, redirect_uri: client.redirect_uris[0], response_type: 'code', resource: origin + '/mcp', scope, state: 'test-state', code_challenge: createHash('sha256').update(verifier).digest('base64url'), code_challenge_method: 'S256' });
   const tokenBody = { grant_type: 'authorization_code', client_id: client.client_id, redirect_uri: client.redirect_uris[0], code_verifier: verifier, resource: origin + '/mcp' };
   async function authorize(accept = true) {
     const response = (await service.handle(request('/api/auth/oauth2/authorize?' + query, undefined, cookie)))!;
