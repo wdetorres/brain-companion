@@ -47,6 +47,27 @@ test('revocation survives reconnect and browser sign-out preserves offline refre
   assert.ok(await service.bearer('Bearer ' + (await refreshed.json()).access_token));
 });
 
+test('offline MCP access renews after the owner browser session expires', async t => {
+  const { service, db } = await fixture(t);
+  const { cookie, user } = await owner(service, db);
+  const flow = await clientFlow(service, cookie);
+  const initial = await flow.tokens();
+  const ctx = await service.auth.$context;
+  // Keep the expired row in place, as it is before session cleanup or explicit sign-out.
+  await ctx.adapter.update({
+    model: 'session', where: [{ field: 'userId', value: user.id }], update: { expiresAt: new Date(0) },
+  });
+  const response = await service.handle(request('/api/auth/oauth2/token', {
+    grant_type: 'refresh_token', client_id: flow.client.client_id,
+    refresh_token: initial.refresh_token, resource: origin + '/mcp',
+  }));
+  assert.equal(response?.status, 200);
+  const renewed = await response.json();
+  assert.ok(renewed.refresh_token);
+  assert.equal((await service.bearer('Bearer ' + renewed.access_token))?.userId, user.id);
+  assert.equal(await service.session(request('/api/brain', undefined, cookie)), null);
+});
+
 test('parallel sessions sharing one refresh token keep access, and revocation still ends it', async t => {
   const { service, db } = await fixture(t); const { cookie } = await owner(service, db);
   const flow = await clientFlow(service, cookie), initial = await flow.tokens();
